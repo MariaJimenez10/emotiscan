@@ -12,8 +12,7 @@ import base64
 import cv2
 import numpy as np
 from deepface import DeepFace
-import mysql.connector
-from mysql.connector import Error
+import sqlite3
 
 # -----------------------------
 # APP FLASK
@@ -22,61 +21,46 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "emocionesIA")
 
 # -----------------------------
-# CONEXIÓN MYSQL (MEJORADA)
+# CONEXIÓN SQLITE
 # -----------------------------
-def conectar():
-    try:
-        conn = mysql.connector.connect(
-            host=os.getenv("MYSQLHOST", "localhost"),
-            user=os.getenv("MYSQLUSER", "root"),
-            password=os.getenv("MYSQLPASSWORD", ""),  # 🔥 Cambia en Render
-            database=os.getenv("MYSQLDATABASE", "emotiscan"),
-            port=int(os.getenv("MYSQLPORT", 3306))
-        )
-        return conn
-    except Error as e:
-        print(f"❌ Error conexión MySQL: {e}")
-        return None
+DATABASE = '/tmp/emotiscan.db'
 
-# -----------------------------
-# CREAR BD (MEJORADO)
-# -----------------------------
-def crear_bd():
-    conn = conectar()
-    if not conn:
-        print("❌ No se pudo conectar a MySQL")
-        return
+def get_db():
+    """Obtener conexión a la base de datos"""
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """Inicializar tablas"""
+    conn = get_db()
+    cursor = conn.cursor()
     
-    try:
-        cursor = conn.cursor()
-        
-        # Tabla usuarios (con password hasheada)
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS usuarios(
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            usuario VARCHAR(100) UNIQUE,
-            password VARCHAR(255)  -- Más largo para hash
+    # Tabla usuarios
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT UNIQUE,
+            password TEXT
         )
-        """)
-        
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS emociones(
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            usuario VARCHAR(100),
-            emocion VARCHAR(50),
+    ''')
+    
+    # Tabla emociones
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS emociones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT,
+            emocion TEXT,
             fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
         )
-        """)
-        
-        conn.commit()
-        print("✅ Base de datos MySQL verificada/creada")
-    except Exception as e:
-        print("❌ Error creando BD:", e)
-    finally:
-        if conn:
-            conn.close()
+    ''')
+    
+    conn.commit()
+    conn.close()
+    print("✅ Base de datos SQLite inicializada en:", DATABASE)
 
-crear_bd()
+# Inicializar BD
+init_db()
 
 # -----------------------------
 # DETECTOR DE ROSTRO
@@ -100,12 +84,20 @@ def consejo_emocion(emocion):
     return consejos.get(emocion, "Cuida tu bienestar emocional.")
 
 # -----------------------------
-# LOGIN (CON HASH)
+# RUTAS - CORREGIDAS
 # -----------------------------
+
+# Página principal (login)
 @app.route("/")
-def login():
+def index():
     return render_template("login.html")
 
+# IMPORTANTE: Ruta GET para /login (redirige a la raíz)
+@app.route("/login", methods=["GET"])
+def login_get():
+    return redirect("/")
+
+# Ruta POST para procesar el login
 @app.route("/login", methods=["POST"])
 def validar():
     usuario = request.form.get("usuario")
@@ -114,36 +106,24 @@ def validar():
     if not usuario or not password:
         return "❌ Usuario y contraseña son requeridos", 400
     
-    conn = conectar()
-    if not conn:
-        return "❌ Error de conexión a la base de datos", 500
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM usuarios WHERE usuario = ?", (usuario,))
+    result = cursor.fetchone()
+    conn.close()
     
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT password FROM usuarios WHERE usuario=%s",
-            (usuario,)
-        )
-        result = cursor.fetchone()
-        
-        if result and check_password_hash(result[0], password):
-            session["user"] = usuario
-            return redirect("/inicio")
-        else:
-            return "❌ Usuario o contraseña incorrectos", 401
-    except Exception as e:
-        print(f"Error en login: {e}")
-        return "❌ Error interno", 500
-    finally:
-        conn.close()
+    if result and check_password_hash(result[0], password):
+        session["user"] = usuario
+        return redirect("/inicio")
+    else:
+        return "❌ Usuario o contraseña incorrectos"
 
-# -----------------------------
-# REGISTRO (CON HASH)
-# -----------------------------
+# Página de registro
 @app.route("/register")
 def register():
     return render_template("register.html")
 
+# Guardar nuevo usuario
 @app.route("/guardar", methods=["POST"])
 def guardar_usuario():
     usuario = request.form.get("usuario")
@@ -152,32 +132,24 @@ def guardar_usuario():
     if not usuario or not password:
         return "❌ Usuario y contraseña son requeridos", 400
     
-    conn = conectar()
-    if not conn:
-        return "❌ Error de conexión a la base de datos", 500
-    
     try:
+        conn = get_db()
         cursor = conn.cursor()
-        # Hashear contraseña
         hashed_password = generate_password_hash(password)
-        
         cursor.execute(
-            "INSERT INTO usuarios (usuario, password) VALUES (%s, %s)",
+            "INSERT INTO usuarios (usuario, password) VALUES (?, ?)",
             (usuario, hashed_password)
         )
         conn.commit()
+        conn.close()
         return redirect("/")
-    except mysql.connector.IntegrityError:
-        return "⚠️ El usuario ya existe. <a href='/register'>Intentar de nuevo</a>", 409
+    except sqlite3.IntegrityError:
+        return "⚠️ El usuario ya existe. <a href='/register'>Intentar de nuevo</a>"
     except Exception as e:
         print(f"Error en registro: {e}")
         return "❌ Error interno del servidor", 500
-    finally:
-        conn.close()
 
-# -----------------------------
-# INICIO
-# -----------------------------
+# Página principal de la app
 @app.route("/inicio")
 def inicio():
     if "user" not in session:
@@ -191,9 +163,7 @@ def inicio():
         hora=ahora.strftime("%H:%M:%S")
     )
 
-# -----------------------------
-# ANALIZAR EMOCIÓN
-# -----------------------------
+# Analizar emoción
 @app.route("/analizar", methods=["POST"])
 def analizar():
     if "user" not in session:
@@ -224,15 +194,14 @@ def analizar():
         consejo = consejo_emocion(emocion)
         
         # Guardar en BD
-        conn = conectar()
-        if conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO emociones (usuario, emocion) VALUES (%s, %s)",
-                (session["user"], emocion)
-            )
-            conn.commit()
-            conn.close()
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO emociones (usuario, emocion) VALUES (?, ?)",
+            (session["user"], emocion)
+        )
+        conn.commit()
+        conn.close()
         
         return jsonify({
             "emotion": emocion,
@@ -243,47 +212,37 @@ def analizar():
         print("❌ ERROR ANALIZAR:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# -----------------------------
-# DASHBOARD
-# -----------------------------
+# Dashboard de estadísticas
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
         return redirect("/")
     
-    conn = conectar()
-    if not conn:
-        return "❌ Error de conexión", 500
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT emocion, COUNT(*)
+        FROM emociones
+        WHERE usuario = ?
+        GROUP BY emocion
+    """, (session["user"],))
     
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT emocion, COUNT(*)
-            FROM emociones
-            WHERE usuario=%s
-            GROUP BY emocion
-        """, (session["user"],))
-        
-        datos = cursor.fetchall()
-        
-        conteo = {
-            "happy": 0, "sad": 0, "angry": 0,
-            "neutral": 0, "fear": 0, "surprise": 0
-        }
-        
-        for emocion, cantidad in datos:
-            conteo[emocion] = cantidad
-        
-        return render_template("dashboard.html", conteo=conteo)
-    except Exception as e:
-        print(f"Error dashboard: {e}")
-        return "❌ Error interno", 500
-    finally:
-        conn.close()
+    datos = cursor.fetchall()
+    conn.close()
+    
+    conteo = {
+        "happy": 0, "sad": 0, "angry": 0,
+        "neutral": 0, "fear": 0, "surprise": 0
+    }
+    
+    for row in datos:
+        emocion = row["emocion"]
+        cantidad = row[1]
+        conteo[emocion] = cantidad
+    
+    return render_template("dashboard.html", conteo=conteo)
 
-# -----------------------------
-# LOGOUT
-# -----------------------------
+# Cerrar sesión
 @app.route("/logout")
 def logout():
     session.clear()
