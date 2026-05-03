@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Login - EmotiScan AI</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            overflow: hidden;
+        }
+
+        /* TARJETA LOGIN */
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-box h2 {
+            margin-bottom: 25px;
+        }
+
+        /* INPUTS */
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        /* BOTON */
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #5563d6;
+        }
+
+        /* LINK */
+
+        a {
+            display: block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        /* MENSAJE DE ÉXITO */
+
+        #mensaje {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            animation: fade 0.5s ease;
+            z-index: 10;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- MENSAJE -->
+    <div id="mensaje">✔ Inicio de sesión exitoso</div>
+
+    <div class="login-box">
+
+        <h2>🤖 EmotiScan AI</h2>
+
+        <form action="/login" method="POST" onsubmit="loginExitoso(event)">
+
+            <input name="usuario" placeholder="Usuario" required>
+
+            <input type="password" name="password" placeholder="Contraseña" required>
+
+            <button type="submit">Entrar</button>
+
+        </form>
+
+        <a href="/register">Crear cuenta</a>
+
+    </div>
+
+    <script>
+
+        function loginExitoso(e) {
+            e.preventDefault()
+
+            document.getElementById("mensaje").style.display = "block"
+
+            setTimeout(() => {
+                e.target.submit()
+            }, 1500)
+
+        }
+
+    </script>
+
+</body>
+
+</html>

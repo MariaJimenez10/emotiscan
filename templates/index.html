@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EmotiScan AI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+
+<style>
+body{
+margin:0;
+font-family:'Segoe UI',sans-serif;
+display:flex;
+background:linear-gradient(135deg,#eef2f7,#dce6f2);
+}
+
+.sidebar{
+width:230px;
+background:#1f2937;
+color:white;
+height:100vh;
+padding-top:30px;
+}
+
+.sidebar h2{
+text-align:center;
+margin-bottom:20px;
+}
+
+.sidebar button{
+width:100%;
+padding:15px;
+border:none;
+background:none;
+color:#e5e7eb;
+font-size:16px;
+cursor:pointer;
+text-align:left;
+padding-left:30px;
+}
+
+.sidebar button:hover{
+background:#374151;
+}
+
+.main{
+flex:1;
+padding:40px;
+}
+
+.section{display:none;}
+.active{display:block;}
+
+.card{
+background:white;
+padding:35px;
+border-radius:15px;
+box-shadow:0px 10px 30px rgba(0,0,0,0.1);
+max-width:700px;
+}
+
+canvas{
+border-radius:12px;
+border:4px solid #0ea5e9;
+margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+<h2>🤖 EmotiScan</h2>
+<button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
+<button onclick="mostrar('grafica')">📊 Gráficas</button>
+<button onclick="window.location='/logout'">🚪 Cerrar sesión</button>
+</div>
+
+<div class="main">
+
+<!-- ANALIZAR -->
+<div id="analizar" class="section active">
+<div class="card">
+
+<h2>Reconocimiento de emociones</h2>
+<button onclick="startCamera()">Activar cámara</button>
+
+<br><br>
+
+<video id="video" width="400" height="300" autoplay style="display:none"></video>
+<canvas id="canvas" width="400" height="300"></canvas>
+
+<h2 id="resultado"></h2>
+<h3 id="consejo"></h3>
+
+</div>
+</div>
+
+<!-- GRAFICA -->
+<div id="grafica" class="section">
+<div class="card">
+<h2>Gráfica de emociones</h2>
+<canvas id="graficaEmociones"></canvas>
+</div>
+</div>
+
+</div>
+
+<script>
+
+/* SECCIONES */
+function mostrar(seccion){
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
+document.getElementById(seccion).classList.add("active")
+}
+
+/* ELEMENTOS */
+let video=document.getElementById("video")
+let canvas=document.getElementById("canvas")
+let ctx=canvas.getContext("2d")
+
+let resultado=document.getElementById("resultado")
+let consejo=document.getElementById("consejo")
+
+/* CONTADOR */
+let contador={
+happy:0,
+sad:0,
+angry:0,
+neutral:0
+}
+
+/* FACE MESH */
+const faceMesh=new FaceMesh({
+locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+})
+
+faceMesh.setOptions({
+maxNumFaces:1,
+refineLandmarks:true,
+minDetectionConfidence:0.5,
+minTrackingConfidence:0.5
+})
+
+faceMesh.onResults(results=>{
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+ctx.drawImage(results.image,0,0,canvas.width,canvas.height)
+
+/* CUADRO ESCANER */
+ctx.strokeStyle="#00e5ff"
+ctx.lineWidth=2
+ctx.strokeRect(100,50,200,200)
+
+/* TEXTO */
+ctx.font="16px Arial"
+ctx.fillStyle="#00e5ff"
+ctx.fillText("SCANNING FACE...",110,40)
+
+/* MALLA */
+if(results.multiFaceLandmarks){
+for(const landmarks of results.multiFaceLandmarks){
+drawConnectors(ctx,landmarks,FACEMESH_TESSELATION,{color:"#00e5ff",lineWidth:0.5})
+drawConnectors(ctx,landmarks,FACEMESH_RIGHT_EYE,{color:"#00e5ff"})
+drawConnectors(ctx,landmarks,FACEMESH_LEFT_EYE,{color:"#00e5ff"})
+drawConnectors(ctx,landmarks,FACEMESH_LIPS,{color:"#00e5ff"})
+}
+}
+})
+
+/* CAMARA */
+function startCamera(){
+navigator.mediaDevices.getUserMedia({video:true})
+.then(stream=>{
+video.srcObject=stream
+
+const camera=new Camera(video,{
+onFrame:async()=>{
+await faceMesh.send({image:video})
+},
+width:400,
+height:300
+})
+
+camera.start()
+analizar()
+})
+.catch(err=>{
+alert("Error activando cámara")
+console.log(err)
+})
+}
+
+/* ANALISIS IA */
+function analizar(){
+
+ctx.drawImage(video,0,0,canvas.width,canvas.height)
+
+let data=canvas.toDataURL("image/jpeg")
+
+fetch("/analizar",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({image:data})
+})
+.then(res=>res.json())
+.then(data=>{
+
+let emocion=data.emotion
+
+resultado.innerText="Emoción: "+emocion
+consejo.innerText=data.advice
+
+if(contador[emocion]!==undefined){
+contador[emocion]++
+}
+
+/* ACTUALIZAR GRAFICA */
+grafica.data.datasets[0].data=[
+contador.happy,
+contador.sad,
+contador.angry,
+contador.neutral
+]
+
+grafica.update()
+
+})
+
+setTimeout(analizar,2000)
+}
+
+/* GRAFICA */
+let grafica=new Chart(document.getElementById("graficaEmociones"),{
+type:"bar",
+data:{
+labels:["Feliz","Triste","Enojo","Neutral"],
+datasets:[{
+label:"Emociones",
+data:[0,0,0,0]
+}]
+}
+})
+
+</script>
+
+</body>
+</html>
