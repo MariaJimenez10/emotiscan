@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>EmotiScan AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            display: flex;
+            background: #f4f6fa;
+        }
+
+        /* MENU */
+
+        .sidebar {
+            width: 220px;
+            background: #667eea;
+            color: white;
+            height: 100vh;
+            padding-top: 30px;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .sidebar button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            padding-left: 30px;
+        }
+
+        .sidebar button:hover {
+            background: #5563d6;
+        }
+
+        /* CONTENIDO */
+
+        .main {
+            flex: 1;
+            padding: 40px;
+        }
+
+        /* SECCIONES */
+
+        .section {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- MENU -->
+
+    <div class="sidebar">
+
+        <h2>🤖 EmotiScan</h2>
+
+        <button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
+
+        <button onclick="mostrar('grafica')">📊 Gráficas</button>
+
+        <button onclick="mostrar('semana')">📅 Emoción por semana</button>
+
+    </div>
+
+
+    <!-- CONTENIDO -->
+
+    <div class="main">
+
+
+        <!-- ANALIZAR -->
+
+        <div id="analizar" class="section active">
+
+            <div class="card">
+
+                <h2>Analizar emoción</h2>
+
+                <p>Aquí aparecerá el análisis de emociones con la cámara.</p>
+
+                <p>Estado actual: 😊 Feliz</p>
+
+            </div>
+
+        </div>
+        <!-- GRAFICAS -->
+
+        <div id="grafica" class="section">
+
+            <div class="card">
+
+                <h2>Gráfica de emociones</h2>
+
+                <canvas id="graficaEmociones"></canvas>
+
+            </div>
+
+        </div>
+        <!-- SEMANA -->
+
+        <div id="semana" class="section">
+
+            <div class="card">
+
+                <h2>Emoción por semana</h2>
+
+                <canvas id="graficaSemana"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        function mostrar(seccion) {
+
+            document.querySelectorAll(".section").forEach(s => {
+                s.classList.remove("active")
+            })
+
+            document.getElementById(seccion).classList.add("active")
+
+        }
+
+
+
+        /* GRAFICA GENERAL */
+
+        const datos = {
+            labels: ["Feliz", "Triste", "Enojo", "Neutral"],
+
+            datasets: [{
+                label: "Emociones",
+                data: [8, 3, 2, 5],
+
+                backgroundColor: ["green", "blue", "red", "gray"]
+            }]
+
+        }
+
+        new Chart(document.getElementById("graficaEmociones"), {
+            type: "bar",
+            data: datos
+        })
+
+
+
+        /* GRAFICA SEMANAL */
+
+        const semana = {
+            labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+
+            datasets: [{
+                label: "Nivel de felicidad",
+                data: [6, 7, 5, 8, 9, 7, 6],
+
+                borderColor: "green",
+                fill: false
+            }]
+
+        }
+
+        new Chart(document.getElementById("graficaSemana"), {
+            type: "line",
+            data: semana
+        })
+
+    </script>
+
+</body>
+
+</html>

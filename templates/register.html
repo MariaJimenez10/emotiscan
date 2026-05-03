@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Registro - EmotiScan AI</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            overflow: hidden;
+        }
+
+        /* CAJA REGISTRO */
+
+        .register-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .register-box h2 {
+            margin-bottom: 25px;
+        }
+
+        /* INPUTS */
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        /* BOTON */
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #5563d6;
+        }
+
+        /* LINK */
+
+        a {
+            display: block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* CANVAS CHISPITAS */
+
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <canvas id="confetti"></canvas>
+
+    <div class="register-box">
+
+        <h2>📝 Registro EmotiScan AI</h2>
+
+        <form onsubmit="registrar(event)" action="/guardar" method="POST">
+
+            <input name="usuario" placeholder="Usuario" required>
+
+            <input type="password" name="password" placeholder="Contraseña" required>
+
+            <button type="submit">Registrar</button>
+
+        </form>
+
+        <a href="/">Ya tengo cuenta</a>
+
+    </div>
+
+    <script>
+
+        /* ===== CHISPITAS ===== */
+
+        const canvas = document.getElementById("confetti")
+        const ctx = canvas.getContext("2d")
+
+        canvas.width = window.innerWidth
+        canvas.height = window.innerHeight
+
+        let particulas = []
+
+        function crearParticulas() {
+            for (let i = 0; i < 120; i++) {
+                particulas.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    r: Math.random() * 6 + 2,
+                    d: Math.random() * 10 + 5,
+                    color: `hsl(${Math.random() * 360},100%,60%)`,
+                    velY: Math.random() * 3 + 2
+                })
+            }
+        }
+
+        function dibujar() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+            for (let p of particulas) {
+                ctx.beginPath()
+                ctx.fillStyle = p.color
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+                ctx.fill()
+
+                p.y += p.velY
+
+                if (p.y > canvas.height) {
+                    p.y = -10
+                }
+            }
+
+            requestAnimationFrame(dibujar)
+        }
+
+        function registrar(e) {
+            e.preventDefault()
+
+            crearParticulas()
+            dibujar()
+
+            setTimeout(() => {
+                e.target.submit()
+            }, 2000)
+        }
+
+    </script>
+
+</body>
+
+</html>
