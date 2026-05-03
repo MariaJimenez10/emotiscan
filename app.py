@@ -1,6 +1,9 @@
 import os
+
+# 🔥 Configuración para evitar errores en Render
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['DEEPFACE_HOME'] = '/tmp'
 
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, session, jsonify
@@ -14,7 +17,7 @@ import mysql.connector
 # APP FLASK
 # -----------------------------
 app = Flask(__name__)
-app.secret_key = "emocionesIA"
+app.secret_key = os.getenv("SECRET_KEY", "emocionesIA")
 
 # -----------------------------
 # CONEXIÓN MYSQL
@@ -54,8 +57,13 @@ def crear_bd():
         """)
 
         conn.commit()
+    except Exception as e:
+        print("Error creando BD:", e)
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except:
+            pass
 
 crear_bd()
 
@@ -92,14 +100,16 @@ def validar():
     usuario = request.form["usuario"]
     password = request.form["password"]
 
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM usuarios WHERE usuario=%s AND password=%s",
-        (usuario, password)
-    )
-    user = cursor.fetchone()
-    conn.close()
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM usuarios WHERE usuario=%s AND password=%s",
+            (usuario, password)
+        )
+        user = cursor.fetchone()
+    finally:
+        conn.close()
 
     if user:
         session["user"] = usuario
@@ -119,17 +129,16 @@ def guardar_usuario():
     usuario = request.form["usuario"]
     password = request.form["password"]
 
-    conn = conectar()
-    cursor = conn.cursor()
-
     try:
+        conn = conectar()
+        cursor = conn.cursor()
         cursor.execute(
             "INSERT INTO usuarios (usuario,password) VALUES (%s,%s)",
             (usuario, password)
         )
         conn.commit()
         return redirect("/")
-    except:
+    except Exception as e:
         return "⚠️ El usuario ya existe"
     finally:
         conn.close()
@@ -167,11 +176,14 @@ def analizar():
         nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        # Detección de rostro (opcional)
+        if img is None:
+            return jsonify({"error": "Imagen inválida"}), 400
+
+        # Convertir a escala de grises
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_detector.detectMultiScale(gray, 1.3, 5)
 
-        # Análisis con IA
+        # IA (DeepFace)
         result = DeepFace.analyze(
             img,
             actions=['emotion'],
@@ -198,6 +210,7 @@ def analizar():
         })
 
     except Exception as e:
+        print("ERROR ANALIZAR:", e)
         return jsonify({"error": str(e)}), 500
 
 # -----------------------------
@@ -244,7 +257,7 @@ def logout():
     return redirect("/")
 
 # -----------------------------
-# RUN
+# ENTRYPOINT PARA GUNICORN
 # -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
