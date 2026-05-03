@@ -6,7 +6,7 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['DEEPFACE_HOME'] = '/tmp'
 
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify  # ✅ redirect ya está aquí
 from werkzeug.security import generate_password_hash, check_password_hash
 import base64
 import cv2
@@ -84,7 +84,7 @@ def consejo_emocion(emocion):
     return consejos.get(emocion, "Cuida tu bienestar emocional.")
 
 # -----------------------------
-# RUTAS - CORREGIDAS
+# RUTAS - COMPLETAMENTE CORREGIDAS
 # -----------------------------
 
 # Página principal (login)
@@ -92,7 +92,7 @@ def consejo_emocion(emocion):
 def index():
     return render_template("login.html")
 
-# IMPORTANTE: Ruta GET para /login (redirige a la raíz)
+# Ruta GET para /login (redirige a la raíz)
 @app.route("/login", methods=["GET"])
 def login_get():
     return redirect("/")
