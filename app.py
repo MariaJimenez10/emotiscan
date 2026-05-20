@@ -75,9 +75,7 @@ def consejo_emocion(emocion):
         "happy": "😊 ¡Estás feliz! Aprovecha esta energía para avanzar en tus metas.",
         "sad": "😢 Estás triste. Habla con alguien o tómate un descanso.",
         "angry": "😡 Respira profundo. Calma tu mente antes de actuar.",
-        "neutral": "😐 Estás estable. Buen momento para concentrarte.",
-        "fear": "😨 Tranquilo, todo problema tiene solución.",
-        "surprise": "😲 Algo te sorprendió. Analiza con calma la situación."
+        "neutral": "😐 Estás estable. Buen momento para concentrarte."
     }
     return consejos.get(emocion, "Cuida tu bienestar emocional.")
 
@@ -230,7 +228,7 @@ def dashboard():
     
     conteo = {
         "happy": 0, "sad": 0, "angry": 0,
-        "neutral": 0, "fear": 0, "surprise": 0
+        "neutral": 0
     }
     
     for row in datos:
