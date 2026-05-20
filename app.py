@@ -1,6 +1,4 @@
 import os
-
-# 🔥 Configuración para evitar errores en Render
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['DEEPFACE_HOME'] = '/tmp'
@@ -247,6 +245,55 @@ def dashboard():
 def logout():
     session.clear()
     return redirect("/")
+
+@app.route('/imagen')
+def imagen():
+    return render_template('imagen.html')
+
+####
+@app.route('/predict_image', methods=['POST'])
+def predict_image():
+
+    if 'imagen' not in request.files:
+        return jsonify({'error': 'No hay imagen'})
+
+    archivo = request.files['imagen']
+
+    ruta = "temp.jpg"
+    archivo.save(ruta)
+
+    img = cv2.imread(ruta)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5
+    )
+
+    for (x, y, w, h) in faces:
+
+        rostro = gray[y:y+h, x:x+w]
+
+        rostro = cv2.resize(rostro, (48,48))
+
+        rostro = rostro / 255.0
+
+        rostro = np.reshape(rostro, (1,48,48,1))
+
+        pred = model.predict(rostro)
+
+        emocion = emociones[np.argmax(pred)]
+
+        return jsonify({
+            'emocion': emocion
+        })
+
+    return jsonify({
+        'emocion': 'No se detectó rostro'
+    })
+
 
 # -----------------------------
 # ENTRYPOINT
