@@ -254,47 +254,112 @@ def imagen():
 @app.route('/predict_image', methods=['POST'])
 def predict_image():
 
-    if 'imagen' not in request.files:
-        return jsonify({'error': 'No hay imagen'})
+    try:
 
-    archivo = request.files['imagen']
+        # Verificar imagen
+        if 'imagen' not in request.files:
+            return jsonify({
+                'emocion': 'No se envió imagen'
+            }), 400
 
-    ruta = "temp.jpg"
-    archivo.save(ruta)
+        archivo = request.files['imagen']
 
-    img = cv2.imread(ruta)
+        # Convertir imagen a OpenCV
+        file_bytes = np.frombuffer(
+            archivo.read(),
+            np.uint8
+        )
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.imdecode(
+            file_bytes,
+            cv2.IMREAD_COLOR
+        )
 
-    faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5
-    )
+        # Validar imagen
+        if img is None:
+            return jsonify({
+                'emocion': 'Error al leer imagen'
+            }), 400
 
-    for (x, y, w, h) in faces:
+        # Escala de grises
+        gray = cv2.cvtColor(
+            img,
+            cv2.COLOR_BGR2GRAY
+        )
 
-        rostro = gray[y:y+h, x:x+w]
+        # Detectar rostro
+        faces = face_detector.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(30, 30)
+        )
 
-        rostro = cv2.resize(rostro, (48,48))
+        # Si no detecta rostro
+        if len(faces) == 0:
+            return jsonify({
+                'emocion': 'No se detectó rostro'
+            })
 
-        rostro = rostro / 255.0
+        # Analizar emoción con DeepFace
+        result = DeepFace.analyze(
+            img,
+            actions=['emotion'],
+            enforce_detection=False,
+            detector_backend='opencv'
+        )
 
-        rostro = np.reshape(rostro, (1,48,48,1))
+        emocion = result[0]['dominant_emotion']
 
-        pred = model.predict(rostro)
+        consejo = consejo_emocion(emocion)
 
-        emocion = emociones[np.argmax(pred)]
+        # Guardar en BD
+        if "user" in session:
 
+            conn = get_db()
+
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                INSERT INTO emociones
+                (usuario, emocion)
+                VALUES (?, ?)
+                """,
+                (
+                    session["user"],
+                    emocion
+                )
+            )
+
+            conn.commit()
+
+            conn.close()
+
+        # Respuesta final
         return jsonify({
-            'emocion': emocion
+
+            'emocion': emocion,
+
+            'consejo': consejo,
+
+            'estado': 'success'
+
         })
 
-    return jsonify({
-        'emocion': 'No se detectó rostro'
-    })
+    except Exception as e:
 
+        print("❌ ERROR predict_image:", str(e))
 
+        return jsonify({
+
+            'emocion': 'Error interno',
+
+            'detalle': str(e),
+
+            'estado': 'error'
+
+        }), 500
 # -----------------------------
 # ENTRYPOINT
 # -----------------------------
