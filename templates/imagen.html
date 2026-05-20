@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Analizar Imagen</title>
+
+    <style>
+
+        body{
+            font-family: Arial;
+            text-align: center;
+            background: #f4f4f4;
+            padding-top: 50px;
+        }
+
+        .container{
+            background: white;
+            width: 400px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+
+        button{
+            padding: 10px 20px;
+            background: #6c63ff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        img{
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Analizar Emoción desde Imagen</h1>
+
+    <input type="file" id="imagenInput" accept="image/*">
+
+    <br><br>
+
+    <button onclick="enviarImagen()">
+        Analizar
+    </button>
+
+    <br><br>
+
+    <img id="preview" width="300">
+
+    <div id="resultado"></div>
+
+</div>
+
+<script>
+
+async function enviarImagen() {
+
+    const archivo = document.getElementById("imagenInput").files[0];
+
+    if (!archivo) {
+        alert("Selecciona una imagen");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("imagen", archivo);
+
+    const respuesta = await fetch("/predict_image", {
+        method: "POST",
+        body: formData
+    });
+
+    const datos = await respuesta.json();
+
+    document.getElementById("resultado").innerHTML =
+        `<h2>Emoción Detectada: ${datos.emocion}</h2>`;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        document.getElementById("preview").src = e.target.result;
+    }
+
+    reader.readAsDataURL(archivo);
+}
+
+</script>
+
+</body>
+</html>
