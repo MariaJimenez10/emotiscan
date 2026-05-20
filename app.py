@@ -264,7 +264,7 @@ def predict_image():
 
         archivo = request.files['imagen']
 
-        # Convertir imagen a OpenCV
+        # Convertir imagen
         file_bytes = np.frombuffer(
             archivo.read(),
             np.uint8
@@ -281,27 +281,7 @@ def predict_image():
                 'emocion': 'Error al leer imagen'
             }), 400
 
-        # Escala de grises
-        gray = cv2.cvtColor(
-            img,
-            cv2.COLOR_BGR2GRAY
-        )
-
-        # Detectar rostro
-        faces = face_detector.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30)
-        )
-
-        # Si no detecta rostro
-        if len(faces) == 0:
-            return jsonify({
-                'emocion': 'No se detectó rostro'
-            })
-
-        # Analizar emoción con DeepFace
+        # Analizar emoción directamente
         result = DeepFace.analyze(
             img,
             actions=['emotion'],
@@ -336,7 +316,6 @@ def predict_image():
 
             conn.close()
 
-        # Respuesta final
         return jsonify({
 
             'emocion': emocion,
@@ -353,7 +332,7 @@ def predict_image():
 
         return jsonify({
 
-            'emocion': 'Error interno',
+            'emocion': 'No se pudo analizar la imagen',
 
             'detalle': str(e),
 
