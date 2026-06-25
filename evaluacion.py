@@ -1,5 +1,5 @@
 from sklearn.metrics import classification_report
-from deepface import DeepFace
+from emoci_deepface import DeepFace
 import os
 
 y_true = []
