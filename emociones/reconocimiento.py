@@ -1,6 +1,6 @@
 import cv2
 import mediapipe as mp
-from deepface import DeepFace
+from emoci_deepface import DeepFace
 from collections import Counter
 
 # ------------------------------
@@ -32,7 +32,6 @@ def consejo_emocion(emocion):
         "Tristeza": "Escuchar musica o hablar con alguien puede ayudarte.",
         "Enojo": "Respira profundo y tomate un momento para relajarte.",
         "Neutral": "Es un buen momento para concentrarte en tus tareas."
-
     }
 
     return consejos.get(emocion, "")
