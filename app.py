@@ -1,4 +1,5 @@
 import os
+from tensorflow.keras.models import load_model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['DEEPFACE_HOME'] = '/tmp'
@@ -9,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import base64
 import cv2
 import numpy as np
-from deepface import DeepFace
+from emoci_deepface import DeepFace
 import sqlite3
 
 # -----------------------------
@@ -68,17 +69,73 @@ face_detector = cv2.CascadeClassifier(
 )
 
 # -----------------------------
+# CARGAR MODELO CNN
+# -----------------------------
+
+modelo_cnn = load_model("modelo_emociones.h5")
+print(modelo_cnn.summary())
+
+emociones_cnn = [
+    "Enojo",
+    "Felicidad",
+    "Neutral",
+    "Tristeza"
+]
+
+print("✅ Modelo CNN cargado correctamente")
+
+# =============================
+# FUNCION CNN
+# =============================
+
+def predecir_cnn(img):
+
+    imagen = cv2.resize(img, (48, 48))
+
+    imagen = imagen.astype("float32") / 255.0
+
+    imagen = np.expand_dims(imagen, axis=0)
+
+    prediccion = modelo_cnn.predict(
+        imagen,
+        verbose=0
+    )
+
+    clase = np.argmax(prediccion)
+
+    emociones = [
+        "Enojo",
+        "Felicidad",
+        "Neutral",
+        "Tristeza"
+    ]
+
+    return emociones[clase]
+
+# -----------------------------
 # CONSEJOS IA
 # -----------------------------
 def consejo_emocion(emocion):
-    consejos = {
-        "happy": "😊 ¡Estás feliz! Aprovecha esta energía para avanzar en tus metas.",
-        "sad": "😢 Estás triste. Habla con alguien o tómate un descanso.",
-        "angry": "😡 Respira profundo. Calma tu mente antes de actuar.",
-        "neutral": "😐 Estás estable. Buen momento para concentrarte."
-    }
-    return consejos.get(emocion, "Cuida tu bienestar emocional.")
 
+    consejos = {
+
+        "Felicidad":
+        "😊 Te ves feliz. Continúa disfrutando este momento.",
+
+        "Tristeza":
+        "😢 Parece que te sientes triste. Puedes hablar con una persona de confianza.",
+
+        "Enojo":
+        "😡 Respira lentamente y toma un momento para relajarte.",
+
+        "Neutral":
+        "😐 Te ves tranquilo y concentrado."
+    }
+
+    return consejos.get(
+        emocion,
+        "🔍 No fue posible determinar la emoción."
+    )
 # -----------------------------
 # RUTAS - COMPLETAMENTE CORREGIDAS
 # -----------------------------
@@ -107,13 +164,17 @@ def validar():
     cursor.execute("SELECT password FROM usuarios WHERE usuario = ?", (usuario,))
     result = cursor.fetchone()
     conn.close()
-    
-    if result and check_password_hash(result[0], password):
-        session["user"] = usuario
+
+    if result and check_password_hash(result[0],password):
+        session["user"] = usuario 
         return redirect("/inicio")
     else:
-        return "❌ Usuario o contraseña incorrectos"
-
+        return """
+     <script>
+        alert('❌ Usuario o contraseña incorrectos');
+        window.location.href = '/';
+    </script>
+    """
 # Página de registro
 @app.route("/register")
 def register():
@@ -279,16 +340,7 @@ def predict_image():
                 'emocion': 'Error al leer imagen'
             }), 400
 
-        # Analizar emoción directamente
-        result = DeepFace.analyze(
-            img,
-            actions=['emotion'],
-            enforce_detection=False,
-            detector_backend='opencv'
-        )
-
-        emocion = result[0]['dominant_emotion']
-
+        emocion = predecir_cnn(img)
         consejo = consejo_emocion(emocion)
 
         # Guardar en BD
