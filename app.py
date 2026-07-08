@@ -2,7 +2,7 @@ import os
 from tensorflow.keras.models import load_model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['DEEPFACE_HOME'] = '/tmp'
+
 
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, session, jsonify  # ✅ redirect ya está aquí
@@ -10,7 +10,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import base64
 import cv2
 import numpy as np
-from emoci_deepface import DeepFace
 import sqlite3
 
 # -----------------------------
@@ -69,10 +68,10 @@ face_detector = cv2.CascadeClassifier(
 )
 
 # -----------------------------
-# CARGAR MODELO CNN
+# CARGAR MODELO RESTNEST
 # -----------------------------
 
-modelo_cnn = load_model("modelo_emociones.h5")
+modelo_cnn = load_model("modelo_resnet50_emociones.h5")
 print(modelo_cnn.summary())
 
 emociones_cnn = [
@@ -82,24 +81,23 @@ emociones_cnn = [
     "Tristeza"
 ]
 
-print("✅ Modelo CNN cargado correctamente")
+print("✅ Modelo ResNet50 cargado correctamente")
 
 # =============================
 # FUNCION CNN
 # =============================
 
+from tensorflow.keras.applications.resnet50 import preprocess_input
+
 def predecir_cnn(img):
 
-    imagen = cv2.resize(img, (48, 48))
+    imagen = cv2.resize(img, (224, 224))
 
-    imagen = imagen.astype("float32") / 255.0
+    imagen = np.expand_dims(imagen.astype(np.float32), axis=0)
 
-    imagen = np.expand_dims(imagen, axis=0)
+    imagen = preprocess_input(imagen)
 
-    prediccion = modelo_cnn.predict(
-        imagen,
-        verbose=0
-    )
+    prediccion = modelo_cnn.predict(imagen, verbose=0)
 
     clase = np.argmax(prediccion)
 
@@ -239,16 +237,9 @@ def analizar():
         if img is None:
             return jsonify({"error": "Imagen inválida"}), 400
         
-        # DeepFace
-        result = DeepFace.analyze(
-            img,
-            actions=['emotion'],
-            enforce_detection=False,
-            detector_backend='opencv'
-        )
-        
-        emocion = result[0]["dominant_emotion"]
+        emocion = predecir_cnn(img)
         consejo = consejo_emocion(emocion)
+        
         
         # Guardar en BD
         conn = get_db()
@@ -288,9 +279,11 @@ def dashboard():
     conn.close()
     
     conteo = {
-        "happy": 0, "sad": 0, "angry": 0,
-        "neutral": 0
-    }
+    "Enojo": 0,
+    "Felicidad": 0,
+    "Neutral": 0,
+    "Tristeza": 0
+}
     
     for row in datos:
         emocion = row["emocion"]
