@@ -1,8 +1,29 @@
 import os
-from tensorflow.keras.models import load_model
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
+os.environ['TF_GPU_THREAD_COUNT'] = '1'
+import tensorflow as tf
+tf.config.set_visible_devices([], 'GPU')
 
+# Limitar threads
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
+
+# Configurar para usar menos memoria
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+            tf.config.experimental.set_virtual_device_configuration(
+                gpu,
+                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=128)]
+            )
+    except RuntimeError as e:
+        print(e)
+from tensorflow.keras.models import load_model
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,7 +32,6 @@ import cv2
 import numpy as np
 import sqlite3
 from tensorflow.keras.applications.resnet50 import preprocess_input
-
 # -----------------------------
 # CONFIGURACIÓN DE TENSORFLOW PARA MEMORIA
 # -----------------------------
