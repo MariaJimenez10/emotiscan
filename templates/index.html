@@ -1,249 +1,313 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>EmotiScan AI</title>
+    <title>EmotiScan AI</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
-<style>
-body{
-margin:0;
-font-family:'Segoe UI',sans-serif;
-display:flex;
-background:linear-gradient(135deg,#eef2f7,#dce6f2);
-}
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            background: linear-gradient(135deg, #eef2f7, #dce6f2);
+        }
 
-.sidebar{
-width:230px;
-background:#1f2937;
-color:white;
-height:100vh;
-padding-top:30px;
-}
+        .sidebar {
+            width: 230px;
+            background: #1f2937;
+            color: white;
+            height: 100vh;
+            padding-top: 30px;
+        }
 
-.sidebar h2{
-text-align:center;
-margin-bottom:20px;
-}
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-.sidebar button{
-width:100%;
-padding:15px;
-border:none;
-background:none;
-color:#e5e7eb;
-font-size:16px;
-cursor:pointer;
-text-align:left;
-padding-left:30px;
-}
+        .sidebar button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            background: none;
+            color: #e5e7eb;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            padding-left: 30px;
+        }
 
-.sidebar button:hover{
-background:#374151;
-}
+        .sidebar button:hover {
+            background: #374151;
+        }
 
-.main{
-flex:1;
-padding:40px;
-}
+        .main {
+            flex: 1;
+            padding: 40px;
+        }
 
-.section{display:none;}
-.active{display:block;}
+        .section {
+            display: none;
+        }
 
-.card{
-background:white;
-padding:35px;
-border-radius:15px;
-box-shadow:0px 10px 30px rgba(0,0,0,0.1);
-max-width:700px;
-}
+        .active {
+            display: block;
+        }
 
-canvas{
-border-radius:12px;
-border:4px solid #0ea5e9;
-margin-top:10px;
-}
-</style>
+        .card {
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+        }
+
+        canvas {
+            border-radius: 12px;
+            border: 4px solid #0ea5e9;
+            margin-top: 10px;
+        }
+
+        #video {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="sidebar">
-<h2>🤖 EmotiScan</h2>
-<button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
-<button onclick="mostrar('grafica')">📊 Gráficas</button>
-<button onclick="window.location='/logout'">🚪 Cerrar sesión</button>
-</div>
+    <div class="sidebar">
+        <h2>🤖 EmotiScan</h2>
+        <button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
+        <button onclick="mostrar('grafica')">📊 Gráficas</button>
+        <button onclick="window.location='/logout'">🚪 Cerrar sesión</button>
+    </div>
 
-<div class="main">
+    <div class="main">
 
-<!-- ANALIZAR -->
-<div id="analizar" class="section active">
-<div class="card">
+        <!-- ANALIZAR -->
+        <div id="analizar" class="section active">
+            <div class="card">
+                <h2>Reconocimiento de emociones</h2>
+                <button onclick="startCamera()">Activar cámara</button>
+                <br><br>
+                <video id="video" width="400" height="300" autoplay></video>
+                <canvas id="canvas" width="400" height="300"></canvas>
+                <h2 id="resultado"></h2>
+                <h3 id="consejo"></h3>
+            </div>
+        </div>
 
-<h2>Reconocimiento de emociones</h2>
-<button onclick="startCamera()">Activar cámara</button>
+        <!-- GRAFICA -->
+        <div id="grafica" class="section">
+            <div class="card">
+                <h2>Gráfica de emociones</h2>
+                <canvas id="graficaEmociones"></canvas>
+            </div>
+        </div>
 
-<br><br>
+    </div>
 
-<video id="video" width="400" height="300" autoplay style="display:none"></video>
-<canvas id="canvas" width="400" height="300"></canvas>
+    <script>
+        // ============ SECCIONES ============
+        function mostrar(seccion) {
+            document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+            document.getElementById(seccion).classList.add("active");
+        }
 
-<h2 id="resultado"></h2>
-<h3 id="consejo"></h3>
+        // ============ ELEMENTOS ============
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const resultado = document.getElementById("resultado");
+        const consejo = document.getElementById("consejo");
+        let analizando = false;
 
-</div>
-</div>
+        // ============ CONTADOR ============
+        const contador = {
+            Felicidad: 0,
+            Tristeza: 0,
+            Enojo: 0,
+            Neutral: 0
+        };
 
-<!-- GRAFICA -->
-<div id="grafica" class="section">
-<div class="card">
-<h2>Gráfica de emociones</h2>
-<canvas id="graficaEmociones"></canvas>
-</div>
-</div>
+        // ============ GRÁFICA ============
+        const grafica = new Chart(document.getElementById("graficaEmociones"), {
+            type: "bar",
+            data: {
+                labels: ["Felicidad", "Tristeza", "Enojo", "Neutral"],
+                datasets: [{
+                    label: "Emociones detectadas",
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(201, 203, 207, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(201, 203, 207, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stepSize: 1
+                    }
+                }
+            }
+        });
 
-</div>
+        // ============ FACE MESH ============
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
 
-<script>
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
 
-/* SECCIONES */
-function mostrar(seccion){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
-document.getElementById(seccion).classList.add("active")
-}
+        faceMesh.onResults(results => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-/* ELEMENTOS */
-let video=document.getElementById("video")
-let canvas=document.getElementById("canvas")
-let ctx=canvas.getContext("2d")
+            // Cuadro escáner
+            ctx.strokeStyle = "#00e5ff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(100, 50, 200, 200);
 
-let resultado=document.getElementById("resultado")
-let consejo=document.getElementById("consejo")
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#00e5ff";
+            ctx.fillText("SCANNING FACE...", 110, 40);
 
-/* CONTADOR */
-let contador={
-happy:0,
-sad:0,
-angry:0,
-neutral:0
-}
+            // Malla facial
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, { color: "#00e5ff", lineWidth: 0.5 });
+                    drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, { color: "#00e5ff" });
+                    drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, { color: "#00e5ff" });
+                    drawConnectors(ctx, landmarks, FACEMESH_LIPS, { color: "#00e5ff" });
+                }
+            }
+        });
 
-/* FACE MESH */
-const faceMesh=new FaceMesh({
-locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-})
+        // ============ CÁMARA ============
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.style.display = "block";
+                    canvas.style.display = "block";
 
-faceMesh.setOptions({
-maxNumFaces:1,
-refineLandmarks:true,
-minDetectionConfidence:0.5,
-minTrackingConfidence:0.5
-})
+                    const camera = new Camera(video, {
+                        onFrame: async () => {
+                            await faceMesh.send({ image: video });
+                        },
+                        width: 400,
+                        height: 300
+                    });
 
-faceMesh.onResults(results=>{
+                    camera.start();
+                    
+                    // Iniciar el análisis después de 2 segundos
+                    setTimeout(analizar, 2000);
+                })
+                .catch(err => {
+                    alert("Error activando cámara: " + err.message);
+                    console.error(err);
+                });
+        }
 
-ctx.clearRect(0,0,canvas.width,canvas.height)
-ctx.drawImage(results.image,0,0,canvas.width,canvas.height)
+        // ============ ANÁLISIS IA ============
+        async function analizar() {
+            if (analizando) {
+                return;
+            }
 
-/* CUADRO ESCANER */
-ctx.strokeStyle="#00e5ff"
-ctx.lineWidth=2
-ctx.strokeRect(100,50,200,200)
+            analizando = true;
 
-/* TEXTO */
-ctx.font="16px Arial"
-ctx.fillStyle="#00e5ff"
-ctx.fillText("SCANNING FACE...",110,40)
+            try {
+                // Dibujar el frame actual en el canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imagen = canvas.toDataURL("image/jpeg");
 
-/* MALLA */
-if(results.multiFaceLandmarks){
-for(const landmarks of results.multiFaceLandmarks){
-drawConnectors(ctx,landmarks,FACEMESH_TESSELATION,{color:"#00e5ff",lineWidth:0.5})
-drawConnectors(ctx,landmarks,FACEMESH_RIGHT_EYE,{color:"#00e5ff"})
-drawConnectors(ctx,landmarks,FACEMESH_LEFT_EYE,{color:"#00e5ff"})
-drawConnectors(ctx,landmarks,FACEMESH_LIPS,{color:"#00e5ff"})
-}
-}
-})
+                resultado.innerHTML = "Analizando...";
 
-/* CAMARA */
-function startCamera(){
-navigator.mediaDevices.getUserMedia({video:true})
-.then(stream=>{
-video.srcObject=stream
+                const response = await fetch("/analizar", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        image: imagen
+                    })
+                });
 
-const camera=new Camera(video,{
-onFrame:async()=>{
-await faceMesh.send({image:video})
-},
-width:400,
-height:300
-})
+                if (!response.ok) {
+                    const txt = await response.text();
+                    console.error("Error del servidor:", txt);
+                    resultado.innerHTML = "Error del servidor";
+                    return;
+                }
 
-camera.start()
-analizar()
-})
-.catch(err=>{
-alert("Error activando cámara")
-console.log(err)
-})
-}
+                const data = await response.json();
 
-/* ANALISIS IA */
-function analizar(){
+                if (data.error) {
+                    resultado.innerHTML = "Error: " + data.error;
+                    return;
+                }
 
-ctx.drawImage(video,0,0,canvas.width,canvas.height)
+                // Mostrar resultados
+                resultado.innerHTML = "😊 " + data.emotion;
+                consejo.innerHTML = "💡 " + data.advice;
 
-let data=canvas.toDataURL("image/jpeg")
+                // Actualizar contador
+                if (contador[data.emotion] !== undefined) {
+                    contador[data.emotion]++;
+                }
 
-fetch("/analizar",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({image:data})
-})
-.then(res=>res.json())
-.then(data=>{
+                // Actualizar gráfica
+                grafica.data.datasets[0].data = [
+                    contador.Felicidad,
+                    contador.Tristeza,
+                    contador.Enojo,
+                    contador.Neutral
+                ];
+                grafica.update();
 
-let emocion=data.emotion
+            } catch (error) {
+                console.error("Error en la petición:", error);
+                resultado.innerHTML = "No fue posible conectar con el servidor.";
+            } finally {
+                analizando = false;
+                // Programar próximo análisis después de 3 segundos
+                if (video.srcObject) {
+                    setTimeout(analizar, 3000);
+                }
+            }
+        }
 
-consejo.innerText=data.advice
-
-if(contador[emocion]!==undefined){
-contador[emocion]++
-}
-
-/* ACTUALIZAR GRAFICA */
-grafica.data.datasets[0].data=[
-contador.happy,
-contador.sad,
-contador.angry,
-contador.neutral
-]
-
-grafica.update()
-
-})
-
-setTimeout(analizar,2000)
-}
-
-/* GRAFICA */
-let grafica=new Chart(document.getElementById("graficaEmociones"),{
-type:"bar",
-data:{
-labels:["Feliz","Triste","Enojo","Neutral"],
-datasets:[{
-label:"Emociones",
-data:[0,0,0,0]
-}]
-}
-})
-
-</script>
+        // ============ INICIALIZACIÓN ============
+        // Mostrar mensaje inicial
+        resultado.innerHTML = "Presiona 'Activar cámara' para comenzar";
+        
+        console.log("EmotiScan AI cargado correctamente");
+    </script>
 
 </body>
+
 </html>
