@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
     
     <!-- Face API para detección de emociones -->
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
     <style>
         body {
@@ -103,6 +103,7 @@
             height: 100%;
             display: block;
             transform: scaleX(-1);
+            pointer-events: none;
         }
 
         .result-box {
@@ -161,6 +162,58 @@
             font-size: 0.9rem;
             margin-top: 10px;
         }
+
+        .emotion-details {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .emotion-tag {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .emotion-tag .percentage {
+            font-weight: bold;
+            color: #0ea5e9;
+        }
+
+        /* Animación de escaneo sutil */
+        @keyframes scanPulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.3; }
+        }
+
+        .scan-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 229, 255, 0.2);
+            color: #00e5ff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            animation: scanPulse 1.5s infinite;
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .scan-indicator.active {
+            display: block;
+        }
+
+        .scan-indicator.inactive {
+            display: none;
+        }
     </style>
 </head>
 
@@ -180,15 +233,16 @@
             <div class="card">
                 <h2>Reconocimiento de emociones</h2>
                 <button class="btn-cam" id="btnCamara" onclick="startCamera()">📷 Activar cámara</button>
-                <div id="loadingStatus" class="loading-models">Cargando modelos de IA...</div>
+                <div id="loadingStatus" class="loading-models">⏳ Cargando modelos de IA...</div>
                 <div class="camera-container">
                     <video id="video" autoplay></video>
                     <canvas id="canvas"></canvas>
+                    <div class="scan-indicator inactive" id="scanIndicator">● ESCANEANDO</div>
                 </div>
                 <div class="result-box">
-                    <h2 id="resultado">Presiona "Activar cámara"</h2>
+                    <h2 id="resultado">📷 Presiona "Activar cámara"</h2>
                     <h3 id="consejo"></h3>
-                    <div id="detallesEmocion" style="font-size: 0.9rem; color: #64748b; margin-top: 5px;"></div>
+                    <div id="detallesEmocion" class="emotion-details"></div>
                 </div>
             </div>
         </div>
@@ -220,6 +274,7 @@
         const detallesEmocion = document.getElementById("detallesEmocion");
         const btnCamara = document.getElementById("btnCamara");
         const loadingStatus = document.getElementById("loadingStatus");
+        const scanIndicator = document.getElementById("scanIndicator");
 
         // ============ CONTADOR ============
         const contador = {
@@ -275,13 +330,13 @@
 
         // ============ CONSEJOS POR EMOCIÓN ============
         const consejos = {
-            'Felicidad': '¡Sigue así! Comparte tu alegría con los demás.',
-            'Tristeza': 'Recuerda que está bien sentir tristeza. Habla con alguien de confianza.',
-            'Enojo': 'Respira profundo. Tómate un momento para calmarte antes de actuar.',
-            'Neutral': 'Estado equilibrado. Sigue con tu día.',
-            'Sorpresa': '¡Qué sorpresa! Disfruta el momento.',
-            'Miedo': 'Reconoce tu miedo. Es una emoción natural que nos protege.',
-            'Asco': 'Escucha lo que tu cuerpo te dice. Busca un ambiente más cómodo.'
+            'Felicidad': '¡Sigue así! Comparte tu alegría con los demás. 😊',
+            'Tristeza': 'Recuerda que está bien sentir tristeza. Habla con alguien de confianza. 💙',
+            'Enojo': 'Respira profundo. Tómate un momento para calmarte antes de actuar. 🧘',
+            'Neutral': 'Estado equilibrado. Sigue con tu día. 🌟',
+            'Sorpresa': '¡Qué sorpresa! Disfruta el momento. 😮',
+            'Miedo': 'Reconoce tu miedo. Es una emoción natural que nos protege. 🛡️',
+            'Asco': 'Escucha lo que tu cuerpo te dice. Busca un ambiente más cómodo. 🌿'
         };
 
         // ============ FACE MESH (SOLO PARA VISUALIZACIÓN) ============
@@ -297,22 +352,14 @@
         });
 
         faceMesh.onResults(results => {
+            // Limpiar canvas y dibujar solo la imagen y la malla
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
             ctx.scale(-1, 1);
             ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
             ctx.restore();
 
-            // Cuadro escáner
-            ctx.strokeStyle = "#00e5ff";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(50, 30, canvas.width - 100, canvas.height - 60);
-
-            ctx.font = "16px Arial";
-            ctx.fillStyle = "#00e5ff";
-            ctx.fillText("SCANNING FACE...", 60, 25);
-
-            // Malla facial
+            // Malla facial - solo puntos azules sin texto ni recuadro
             if (results.multiFaceLandmarks) {
                 for (const landmarks of results.multiFaceLandmarks) {
                     const mirroredLandmarks = landmarks.map(lm => ({
@@ -321,10 +368,33 @@
                         z: lm.z
                     }));
 
-                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_TESSELATION, { color: "#00e5ff", lineWidth: 0.5 });
-                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_RIGHT_EYE, { color: "#00e5ff" });
-                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LEFT_EYE, { color: "#00e5ff" });
-                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LIPS, { color: "#00e5ff" });
+                    // Dibujar la malla con líneas más sutiles
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_TESSELATION, { 
+                        color: "rgba(0, 229, 255, 0.3)", 
+                        lineWidth: 0.5 
+                    });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_RIGHT_EYE, { 
+                        color: "rgba(0, 229, 255, 0.6)", 
+                        lineWidth: 1.5 
+                    });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LEFT_EYE, { 
+                        color: "rgba(0, 229, 255, 0.6)", 
+                        lineWidth: 1.5 
+                    });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LIPS, { 
+                        color: "rgba(0, 229, 255, 0.6)", 
+                        lineWidth: 1.5 
+                    });
+                    
+                    // Dibujar puntos de los landmarks con círculos pequeños
+                    for (const lm of mirroredLandmarks) {
+                        const x = lm.x * canvas.width;
+                        const y = lm.y * canvas.height;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.5, 0, 2 * Math.PI);
+                        ctx.fillStyle = "rgba(0, 229, 255, 0.5)";
+                        ctx.fill();
+                    }
                 }
             }
         });
@@ -332,10 +402,15 @@
         // ============ CARGAR MODELOS FACE-API ============
         async function loadModels() {
             try {
-                loadingStatus.textContent = "Cargando modelos de detección facial...";
+                loadingStatus.textContent = "⏳ Cargando modelos de detección facial...";
                 
-                // Cargar modelos desde CDN
-                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                if (typeof faceapi === 'undefined') {
+                    throw new Error("FaceAPI no está disponible. Verifica la conexión a internet.");
+                }
+
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/';
+                
+                console.log("Cargando modelos desde:", MODEL_URL);
                 
                 await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
                 await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
@@ -346,11 +421,36 @@
                 loadingStatus.textContent = "✅ Modelos cargados correctamente";
                 loadingStatus.style.color = "#10b981";
                 
-                console.log("Modelos de face-api cargados correctamente");
+                console.log("✅ Modelos de face-api cargados correctamente");
+                
+                if (cameraStarted) {
+                    iniciarDeteccionContinua();
+                }
+                
             } catch (error) {
-                console.error("Error cargando modelos:", error);
+                console.error("❌ Error cargando modelos:", error);
                 loadingStatus.textContent = "❌ Error cargando modelos: " + error.message;
                 loadingStatus.style.color = "#ef4444";
+                
+                // Intentar con CDN alternativa
+                try {
+                    const ALT_MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/';
+                    await faceapi.nets.tinyFaceDetector.loadFromUri(ALT_MODEL_URL);
+                    await faceapi.nets.faceLandmark68Net.loadFromUri(ALT_MODEL_URL);
+                    await faceapi.nets.faceRecognitionNet.loadFromUri(ALT_MODEL_URL);
+                    await faceapi.nets.faceExpressionNet.loadFromUri(ALT_MODEL_URL);
+                    
+                    modelsLoaded = true;
+                    loadingStatus.textContent = "✅ Modelos cargados correctamente (CDN alternativa)";
+                    loadingStatus.style.color = "#10b981";
+                    
+                    if (cameraStarted) {
+                        iniciarDeteccionContinua();
+                    }
+                } catch (altError) {
+                    console.error("❌ Error con CDN alternativa:", altError);
+                    loadingStatus.textContent = "❌ No se pudieron cargar los modelos. Verifica tu conexión a internet.";
+                }
             }
         }
 
@@ -361,17 +461,14 @@
             }
 
             analizando = true;
-            resultado.textContent = "🧠 Analizando...";
 
             try {
-                // Tomar foto del video
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = video.videoWidth || 400;
                 tempCanvas.height = video.videoHeight || 300;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-                // Detectar cara y emociones
                 const detections = await faceapi.detectAllFaces(
                     tempCanvas,
                     new faceapi.TinyFaceDetectorOptions({
@@ -383,21 +480,23 @@
                 if (detections && detections.length > 0) {
                     const expressions = detections[0].expressions;
                     
-                    // Encontrar la emoción con mayor probabilidad
                     let maxEmotion = '';
                     let maxScore = 0;
                     const emotionDetails = [];
                     
                     for (const [emotion, score] of Object.entries(expressions)) {
                         const percentage = (score * 100).toFixed(1);
-                        emotionDetails.push(`${emotion}: ${percentage}%`);
+                        emotionDetails.push({
+                            name: emotion,
+                            score: score,
+                            percentage: percentage
+                        });
                         if (score > maxScore) {
                             maxScore = score;
                             maxEmotion = emotion;
                         }
                     }
 
-                    // Mapear emociones a nombres en español
                     const emotionMap = {
                         'happy': 'Felicidad',
                         'sad': 'Tristeza',
@@ -410,21 +509,26 @@
 
                     const emotionSpanish = emotionMap[maxEmotion] || maxEmotion;
                     
-                    // Mostrar resultado
                     resultado.textContent = `😊 ${emotionSpanish}`;
                     consejo.textContent = `💡 ${consejos[emotionSpanish] || 'Emoción detectada'}`;
-                    detallesEmocion.textContent = `📊 ${emotionDetails.join(' | ')}`;
+                    
+                    const sortedEmotions = emotionDetails.sort((a, b) => b.score - a.score);
+                    
+                    detallesEmocion.innerHTML = sortedEmotions.map(e => {
+                        const spanishName = emotionMap[e.name] || e.name;
+                        const isMax = e.name === maxEmotion;
+                        return `<span class="emotion-tag" style="${isMax ? 'background: #dbeafe; font-weight: bold;' : ''}">
+                            ${spanishName}: <span class="percentage">${e.percentage}%</span>
+                        </span>`;
+                    }).join('');
 
-                    // Actualizar contador
                     if (contador[emotionSpanish] !== undefined) {
                         contador[emotionSpanish]++;
                     }
 
-                    // Guardar historial
                     emotionHistory.push(emotionSpanish);
                     if (emotionHistory.length > 10) emotionHistory.shift();
 
-                    // Actualizar gráfica
                     grafica.data.datasets[0].data = [
                         contador.Felicidad,
                         contador.Tristeza,
@@ -436,13 +540,18 @@
                     ];
                     grafica.update();
 
-                    // Guardar en localStorage para persistencia
                     guardarEstadisticas();
+
+                    // Mostrar indicador de escaneo activo
+                    scanIndicator.classList.remove('inactive');
+                    scanIndicator.classList.add('active');
 
                 } else {
                     resultado.textContent = "😕 No se detectó ningún rostro";
                     consejo.textContent = "💡 Asegúrate de estar mirando directamente a la cámara";
-                    detallesEmocion.textContent = "";
+                    detallesEmocion.innerHTML = "";
+                    scanIndicator.classList.remove('active');
+                    scanIndicator.classList.add('inactive');
                 }
 
             } catch (error) {
@@ -476,7 +585,6 @@
                     Object.assign(contador, data.contador);
                     emotionHistory = data.history || [];
                     
-                    // Actualizar gráfica
                     grafica.data.datasets[0].data = [
                         contador.Felicidad,
                         contador.Tristeza,
@@ -516,22 +624,15 @@
                     canvas.height = video.videoHeight || 300;
                     btnCamara.textContent = "📷 Cámara activa";
                     btnCamara.disabled = false;
+                    scanIndicator.classList.add('active');
                     
-                    // Iniciar detección continua
                     if (modelsLoaded) {
                         iniciarDeteccionContinua();
                     } else {
-                        // Esperar a que carguen los modelos
-                        const checkModels = setInterval(() => {
-                            if (modelsLoaded) {
-                                clearInterval(checkModels);
-                                iniciarDeteccionContinua();
-                            }
-                        }, 500);
+                        resultado.textContent = "⏳ Esperando carga de modelos...";
                     }
                 };
 
-                // Iniciar FaceMesh para visualización
                 const camera = new Camera(video, {
                     onFrame: async () => {
                         await faceMesh.send({ image: video });
@@ -553,17 +654,14 @@
 
         // ============ INICIAR DETECCIÓN CONTINUA ============
         function iniciarDeteccionContinua() {
-            // Limpiar intervalos anteriores
             if (detectionInterval) {
                 clearInterval(detectionInterval);
             }
             
-            // Detectar cada 2 segundos
             detectionInterval = setInterval(() => {
                 detectarEmocion();
             }, 2000);
             
-            // Primera detección inmediata
             setTimeout(detectarEmocion, 500);
         }
 
@@ -575,23 +673,28 @@
 
         // ============ INICIALIZACIÓN ============
         async function init() {
-            // Cargar estadísticas guardadas
             cargarEstadisticas();
             
-            // Cargar modelos
-            await loadModels();
+            const checkFaceApi = setInterval(() => {
+                if (typeof faceapi !== 'undefined') {
+                    clearInterval(checkFaceApi);
+                    console.log("✅ FaceAPI detectado");
+                    loadModels();
+                }
+            }, 500);
+            
+            setTimeout(() => {
+                if (typeof faceapi === 'undefined') {
+                    loadingStatus.textContent = "❌ FaceAPI no se cargó. Verifica tu conexión a internet.";
+                    loadingStatus.style.color = "#ef4444";
+                }
+            }, 10000);
             
             resultado.textContent = "📷 Presiona 'Activar cámara' para comenzar";
             console.log("EmotiScan AI cargado correctamente");
-            
-            // Si la cámara ya está activa, iniciar detección
-            if (cameraStarted && modelsLoaded) {
-                iniciarDeteccionContinua();
-            }
         }
 
-        // Iniciar la aplicación
-        init();
+        window.onload = init;
     </script>
 
 </body>
