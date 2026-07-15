@@ -15,6 +15,8 @@
             font-family: 'Segoe UI', sans-serif;
             display: flex;
             background: linear-gradient(135deg, #eef2f7, #dce6f2);
+            height: 100vh;
+            overflow: hidden;
         }
 
         .sidebar {
@@ -23,6 +25,7 @@
             color: white;
             height: 100vh;
             padding-top: 30px;
+            flex-shrink: 0;
         }
 
         .sidebar h2 {
@@ -49,10 +52,15 @@
         .main {
             flex: 1;
             padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .section {
             display: none;
+            width: 100%;
+            max-width: 700px;
         }
 
         .active {
@@ -64,17 +72,80 @@
             padding: 35px;
             border-radius: 15px;
             box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
-            max-width: 700px;
+            text-align: center;
         }
 
-        canvas {
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
             border-radius: 12px;
+            overflow: hidden;
             border: 4px solid #0ea5e9;
-            margin-top: 10px;
         }
 
         #video {
-            display: none;
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 10px;
+            min-height: 70px;
+        }
+
+        #resultado {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+
+        #consejo {
+            font-size: 1rem;
+            color: #475569;
+            margin: 8px 0 0;
+        }
+
+        .btn-cam {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.2s;
+        }
+
+        .btn-cam:hover {
+            background: #0284c7;
+        }
+
+        /* Gráfica */
+        #grafica .card {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        #graficaEmociones {
+            max-height: 300px;
+            width: 100% !important;
         }
     </style>
 </head>
@@ -94,12 +165,15 @@
         <div id="analizar" class="section active">
             <div class="card">
                 <h2>Reconocimiento de emociones</h2>
-                <button onclick="startCamera()">Activar cámara</button>
-                <br><br>
-                <video id="video" width="400" height="300" autoplay></video>
-                <canvas id="canvas" width="400" height="300"></canvas>
-                <h2 id="resultado"></h2>
-                <h3 id="consejo"></h3>
+                <button class="btn-cam" onclick="startCamera()">📷 Activar cámara</button>
+                <div class="camera-container">
+                    <video id="video" autoplay></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="result-box">
+                    <h2 id="resultado">Presiona "Activar cámara"</h2>
+                    <h3 id="consejo"></h3>
+                </div>
             </div>
         </div>
 
@@ -127,6 +201,7 @@
         const resultado = document.getElementById("resultado");
         const consejo = document.getElementById("consejo");
         let analizando = false;
+        let cameraStarted = false;
 
         // ============ CONTADOR ============
         const contador = {
@@ -160,6 +235,8 @@
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: true,
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -182,36 +259,54 @@
         });
 
         faceMesh.onResults(results => {
+            // Limpiar y dibujar la imagen del video en el canvas (con espejo)
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
 
             // Cuadro escáner
             ctx.strokeStyle = "#00e5ff";
             ctx.lineWidth = 2;
-            ctx.strokeRect(100, 50, 200, 200);
+            ctx.strokeRect(50, 30, canvas.width - 100, canvas.height - 60);
 
             ctx.font = "16px Arial";
             ctx.fillStyle = "#00e5ff";
-            ctx.fillText("SCANNING FACE...", 110, 40);
+            ctx.fillText("SCANNING FACE...", 60, 25);
 
-            // Malla facial
+            // Malla facial (dibujada en el canvas con el espejo)
             if (results.multiFaceLandmarks) {
                 for (const landmarks of results.multiFaceLandmarks) {
-                    drawConnectors(ctx, landmarks, FACEMESH_TESSELATION, { color: "#00e5ff", lineWidth: 0.5 });
-                    drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, { color: "#00e5ff" });
-                    drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, { color: "#00e5ff" });
-                    drawConnectors(ctx, landmarks, FACEMESH_LIPS, { color: "#00e5ff" });
+                    // Aplicar espejo a los landmarks para que coincidan con el video
+                    const mirroredLandmarks = landmarks.map(lm => ({
+                        x: 1 - lm.x,
+                        y: lm.y,
+                        z: lm.z
+                    }));
+
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_TESSELATION, { color: "#00e5ff", lineWidth: 0.5 });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_RIGHT_EYE, { color: "#00e5ff" });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LEFT_EYE, { color: "#00e5ff" });
+                    drawConnectors(ctx, mirroredLandmarks, FACEMESH_LIPS, { color: "#00e5ff" });
                 }
             }
         });
 
         // ============ CÁMARA ============
         function startCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true })
+            if (cameraStarted) return;
+
+            navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 } })
                 .then(stream => {
                     video.srcObject = stream;
-                    video.style.display = "block";
-                    canvas.style.display = "block";
+                    cameraStarted = true;
+
+                    // Ajustar canvas al tamaño del video
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth || 400;
+                        canvas.height = video.videoHeight || 300;
+                    };
 
                     const camera = new Camera(video, {
                         onFrame: async () => {
@@ -222,9 +317,8 @@
                     });
 
                     camera.start();
-                    
-                    // Iniciar el análisis después de 2 segundos
-                    setTimeout(analizar, 2000);
+                    resultado.innerHTML = "👀 Cámara activa, detectando...";
+                    setTimeout(analizar, 1500);
                 })
                 .catch(err => {
                     alert("Error activando cámara: " + err.message);
@@ -234,40 +328,43 @@
 
         // ============ ANÁLISIS IA ============
         async function analizar() {
-            if (analizando) {
+            if (!cameraStarted || analizando) {
+                setTimeout(analizar, 1000);
                 return;
             }
 
             analizando = true;
 
             try {
-                // Dibujar el frame actual en el canvas
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imagen = canvas.toDataURL("image/jpeg");
+                // Capturar frame actual del video
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                const imagen = tempCanvas.toDataURL("image/jpeg");
 
-                resultado.innerHTML = "Analizando...";
+                resultado.innerHTML = "🧠 Analizando...";
 
                 const response = await fetch("/analizar", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        image: imagen
-                    })
+                    body: JSON.stringify({ image: imagen })
                 });
 
                 if (!response.ok) {
                     const txt = await response.text();
                     console.error("Error del servidor:", txt);
-                    resultado.innerHTML = "Error del servidor";
+                    resultado.innerHTML = "⚠️ Error del servidor";
                     return;
                 }
 
                 const data = await response.json();
 
                 if (data.error) {
-                    resultado.innerHTML = "Error: " + data.error;
+                    resultado.innerHTML = "⚠️ " + data.error;
                     return;
                 }
 
@@ -291,20 +388,17 @@
 
             } catch (error) {
                 console.error("Error en la petición:", error);
-                resultado.innerHTML = "No fue posible conectar con el servidor.";
+                resultado.innerHTML = "⚠️ No fue posible conectar con el servidor.";
             } finally {
                 analizando = false;
-                // Programar próximo análisis después de 3 segundos
-                if (video.srcObject) {
+                if (cameraStarted) {
                     setTimeout(analizar, 3000);
                 }
             }
         }
 
         // ============ INICIALIZACIÓN ============
-        // Mostrar mensaje inicial
-        resultado.innerHTML = "Presiona 'Activar cámara' para comenzar";
-        
+        resultado.innerHTML = "📷 Presiona 'Activar cámara' para comenzar";
         console.log("EmotiScan AI cargado correctamente");
     </script>
 
