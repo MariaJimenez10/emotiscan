@@ -115,8 +115,6 @@ print(f"📊 Emociones: {EMOCIONES}")
 
 CONSEJOS = {
     "Enojo": "😡 Respira profundamente y cuenta hasta 10.",
-    "Asco": "🤢 Busca algo positivo en tu entorno.",
-    "Miedo": "😨 Enfócate en lo que puedes controlar.",
     "Felicidad": "😊 ¡Qué bien! Disfruta este momento.",
     "Tristeza": "😢 Habla con alguien de confianza.",
     "Sorpresa": "😮 Tómate un momento para procesarlo.",
@@ -127,58 +125,65 @@ CONSEJOS = {
 # FUNCIÓN DE PREDICCIÓN - ULTRA OPTIMIZADA
 # =============================
 
+####detecta la emocion
 def predecir_cnn(img):
-    """Predicción optimizada al máximo para ahorrar memoria"""
+    """
+    Predicción optimizada para Render
+    """
+
     try:
-        # 🔥 REDUCIR IMAGEN AL MÍNIMO
-        if img.shape[0] > 300 or img.shape[1] > 300:
-            img = cv2.resize(img, (300, 300))
-        
-        # 🔥 DETECCIÓN DE ROSTRO RÁPIDA
+        print("📷 Imagen recibida:", img.shape)
+
+        # Detectar rostro
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Reducir resolución para detección más rápida y menos memoria
-        gray_small = cv2.resize(gray, (gray.shape[1]//2, gray.shape[0]//2))
-        
+
         rostros = face_detector.detectMultiScale(
-            gray_small,
-            scaleFactor=1.1,
-            minNeighbors=3,
-            minSize=(30, 30)
+            gray,
+            scaleFactor=1.2,
+            minNeighbors=5,
+            minSize=(50, 50)
         )
-        
+
         if len(rostros) > 0:
             x, y, w, h = rostros[0]
-            x, y = x*2, y*2
-            w, h = w*2, h*2
-            x, y = max(0, x), max(0, y)
             img = img[y:y+h, x:x+w]
-        
-        # 🔥 PROCESAR EN 224x224
+            print("🙂 Rostro detectado")
+        else:
+            print("⚠ No se detectó rostro, usando imagen completa")
+
+        # Preparar imagen
         img = cv2.resize(img, (224, 224))
         img = img.astype(np.float32)
-        img = np.expand_dims(img, axis=0)
-        img = preprocess_input(img)
-        
-        # 🔥 PREDECIR CON BATCH_SIZE=1
-        pred = modelo_cnn.predict(img, verbose=0, batch_size=1)
-        
-        indice = np.argmax(pred[0])
-        emocion = EMOCIONES[indice] if indice < len(EMOCIONES) else EMOCIONES[0]
-        
-        # 🔥 LIMPIAR MEMORIA
-        del img, pred, gray, gray_small
-        if 'rostros' in locals():
-            del rostros
-        gc.collect()
-        
-        return emocion
-        
-    except Exception as e:
-        print(f"❌ Error en predicción: {e}")
-        gc.collect()
-        return "Neutral"
 
+        img = preprocess_input(img)
+
+        img = np.expand_dims(img, axis=0)
+
+        print("🧠 Ejecutando modelo...")
+
+        # Más rápido que predict()
+        pred = modelo_cnn(img, training=False).numpy()
+
+        indice = int(np.argmax(pred))
+
+        print("Predicción:", pred)
+        print("Índice:", indice)
+
+        if indice >= len(EMOCIONES):
+            return "Neutral"
+
+        emocion = EMOCIONES[indice]
+
+        print("😊 Emoción:", emocion)
+
+        return emocion
+
+    except Exception as e:
+
+        print("❌ ERROR predecir_cnn")
+        print(e)
+
+        return "Neutral"
 # =============================
 # RUTAS
 # =============================
@@ -256,48 +261,80 @@ def inicio():
 
 @app.route("/analizar", methods=["POST"])
 def analizar():
+
+    print("\n========== NUEVA PETICIÓN ==========")
+
     if "user" not in session:
+        print("❌ No hay sesión")
         return jsonify({"error": "No hay sesión activa"}), 401
-    
+
     try:
+
+        print("1️⃣ Leyendo JSON...")
         data = request.get_json()
-        if not data or "image" not in data:
+
+        if not data:
+            print("❌ JSON vacío")
+            return jsonify({"error": "No se recibió JSON"}), 400
+
+        if "image" not in data:
+            print("❌ No existe 'image'")
             return jsonify({"error": "No se recibió imagen"}), 400
-        
-        # Decodificar imagen
+
+        print("2️⃣ Decodificando imagen...")
+
         image_data = data["image"].split(";base64,")[1]
+
         img_bytes = base64.b64decode(image_data)
+
         nparr = np.frombuffer(img_bytes, np.uint8)
+
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
+
         if img is None:
+            print("❌ Imagen inválida")
             return jsonify({"error": "Imagen inválida"}), 400
-        
+
+        print("✅ Imagen recibida")
+        print("Tamaño:", img.shape)
+
+        print("3️⃣ Ejecutando ResNet50...")
+
         emocion = predecir_cnn(img)
+
+        print("✅ Emoción detectada:", emocion)
+
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
-        
-        # Guardar en BD
+
+        print("4️⃣ Guardando en SQLite")
+
         conn = get_db()
         cursor = conn.cursor()
+
         cursor.execute(
             "INSERT INTO emociones (usuario, emocion) VALUES (?, ?)",
             (session["user"], emocion)
         )
+
         conn.commit()
         conn.close()
-        
-        # 🔥 LIMPIAR MEMORIA
-        gc.collect()
-        
+
+        print("5️⃣ Enviando respuesta")
+
         return jsonify({
             "emotion": emocion,
             "advice": consejo
         })
-        
+
     except Exception as e:
-        print(f"❌ ERROR ANALIZAR: {e}")
-        gc.collect()
-        return jsonify({"error": str(e)}), 500
+
+        print("❌ ERROR EN ANALIZAR")
+        print(type(e))
+        print(e)
+
+        return jsonify({
+            "error": str(e)
+        }),500
 
 @app.route("/dashboard")
 def dashboard():
@@ -349,6 +386,8 @@ def predict_image():
             return jsonify({'estado': 'error', 'detalle': 'Error al leer imagen'}), 400
         
         emocion = predecir_cnn(img)
+
+        ##cuando es tristeza hara esta funcion
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         
         if "user" in session:
