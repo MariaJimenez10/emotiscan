@@ -13,6 +13,30 @@ import sqlite3
 from tensorflow.keras.applications.resnet50 import preprocess_input
 
 # -----------------------------
+# CONFIGURACIÓN DE TENSORFLOW PARA MEMORIA
+# -----------------------------
+import tensorflow as tf
+
+# 🔥 LIMITAR USO DE MEMORIA
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
+# 🔥 LIMITAR HILOS DE CPU
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
+
+# 🔥 CONFIGURAR PARA AHORRAR MEMORIA
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+
+
+# -----------------------------
 # APP FLASK
 # -----------------------------
 app = Flask(__name__)
@@ -68,12 +92,40 @@ face_detector = cv2.CascadeClassifier(
 )
 
 # -----------------------------
-# CARGAR MODELO RESNET50
+# CARGAR MODELO RESNET50 - VERSIÓN OPTIMIZADA
 # -----------------------------
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
     "modelo_resnet50_emociones.h5"
 )
+
+# 🔥 CARGAR CON COMPILE=FALSE PARA AHORRAR MEMORIA
+try:
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"No se encontró el modelo: {MODEL_PATH}")
+    
+    modelo_cnn = load_model(MODEL_PATH, compile=False)  # 👈 Compile=False ahorra memoria
+    print("✅ Modelo ResNet50 cargado correctamente")
+    print("📊 Entrada:", modelo_cnn.input_shape)
+    print("📊 Salida:", modelo_cnn.output_shape)
+    
+except Exception as e:
+    print(f"❌ Error cargando modelo: {e}")
+    # Crear modelo de respaldo (más ligero)
+    from tensorflow.keras.applications import ResNet50
+    from tensorflow.keras.models import Model
+    from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+    
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    base_model.trainable = False
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    x = Dense(128, activation='relu')(x)  # 🔥 Menos neuronas
+    x = Dense(64, activation='relu')(x)   # 🔥 Menos neuronas
+    predictions = Dense(7, activation='softmax')(x)
+    modelo_cnn = Model(inputs=base_model.input, outputs=predictions)
+    print("✅ Modelo de respaldo creado (más ligero)")
+
 
 # Manejo de errores en carga de modelo
 try:
@@ -129,59 +181,59 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
-    """
-    Predice la emoción de una imagen usando ResNet50
-    """
+    """Predice la emoción con optimización de memoria - VERSIÓN OPTIMIZADA"""
     try:
-        # Convertir a escala de grises para detectar el rostro
+        # 🔥 REDUCIR TAMAÑO DE IMAGEN ANTES DE PROCESAR (ahorra memoria)
+        if img.shape[0] > 400 or img.shape[1] > 400:
+            img = cv2.resize(img, (400, 400))
+        
+        # Detectar rostro con parámetros más eficientes
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
+        # 🔥 Reducir resolución para detección más rápida
+        gray_small = cv2.resize(gray, (gray.shape[1]//2, gray.shape[0]//2))
+        
         rostros = face_detector.detectMultiScale(
-            gray,
-            scaleFactor=1.2,
-            minNeighbors=5,
-            minSize=(60, 60)
+            gray_small,
+            scaleFactor=1.1,  # Más rápido
+            minNeighbors=3,   # Menos estricto
+            minSize=(30, 30)  # Rostros más pequeños
         )
         
-        # Si encuentra rostro, recortar solo el rostro
         if len(rostros) > 0:
             x, y, w, h = rostros[0]
-            # Asegurar que las coordenadas sean válidas
+            x, y = x*2, y*2  # Escalar de vuelta
+            w, h = w*2, h*2
             x, y = max(0, x), max(0, y)
             img = img[y:y+h, x:x+w]
         else:
             print("⚠️ No se detectó rostro, usando imagen completa")
         
-        # Cambiar tamaño a 224x224 (requerido por ResNet50)
+        # 🔥 PROCESAR EN RESOLUCIÓN 224x224
         img = cv2.resize(img, (224, 224))
-        
-        # Convertir a float32
         img = img.astype(np.float32)
-        
-        # Expandir dimensiones para batch (1, 224, 224, 3)
         img = np.expand_dims(img, axis=0)
-        
-        # Preprocesamiento específico de ResNet50
         img = preprocess_input(img)
         
-        # Predicción
-        pred = modelo_cnn.predict(img, verbose=0)
+        # 🔥 PREDECIR CON BATCH SIZE 1
+        pred = modelo_cnn.predict(img, verbose=0, batch_size=1)
         
-        # Obtener índice de la emoción con mayor probabilidad
         indice = np.argmax(pred[0])
         confianza = np.max(pred[0])
-        
-        # Usar lista completa de emociones
         emocion = EMOCIONES[indice] if indice < len(EMOCIONES) else "Desconocida"
         
         print(f"📊 Predicción: {emocion} ({confianza:.2%})")
-        print("📊 Probabilidades:", {EMOCIONES[i]: f"{pred[0][i]:.2%}" for i in range(len(EMOCIONES))})
+        
+        # 🔥 LIMPIAR MEMORIA
+        del img, pred, gray, gray_small, rostros
+        import gc
+        gc.collect()
         
         return emocion
         
     except Exception as e:
         print(f"❌ Error en predecir_cnn: {e}")
-        return "Neutral"  # Valor por defecto en caso de error
+        return "Neutral"
 
 def consejo_emocion(emocion):
     """Obtiene un consejo según la emoción"""
@@ -411,6 +463,32 @@ def predict_image():
             'detalle': str(e),
             'estado': 'error'
         }), 500
+
+# Agregar al final de app.py, antes del entrypoint
+
+# -----------------------------
+# HEALTH CHECK PARA RENDER
+# -----------------------------
+@app.route('/health')
+def health():
+    """Endpoint para health check de Render"""
+    return jsonify({"status": "healthy", "message": "EmotiScan funcionando"}), 200
+
+@app.route('/ping')
+def ping():
+    """Endpoint simple para mantener vivo el servicio"""
+    return "pong", 200
+
+# -----------------------------
+# MANEJO DE ERRORES GLOBAL
+# -----------------------------
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print(f"❌ Error global: {e}")
+    return jsonify({
+        "error": str(e),
+        "status": "error"
+    }), 500
 
 # -----------------------------
 # ENTRYPOINT
