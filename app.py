@@ -322,9 +322,10 @@ def analizar():
         print("5️⃣ Enviando respuesta")
 
         return jsonify({
-            "emotion": emocion,
-            "advice": consejo
-        })
+    "success": True,
+    "emotion": emocion,
+    "advice": consejo
+})
 
     except Exception as e:
 
