@@ -1,23 +1,16 @@
 import os
-# 🔥 CONFIGURACIÓN DE MEMORIA - AL PRINCIPIO
+# 🔥 CONFIGURACIÓN DE MEMORIA - AL PRINCIPIO DE TODO
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-os.environ['TF_GPU_THREAD_MODE'] = 'gpu_private'
-os.environ['TF_GPU_THREAD_COUNT'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 import tensorflow as tf
-# 🔥 CONFIGURACIÓN EXTREMA DE MEMORIA
-tf.config.set_visible_devices([], 'GPU')  # Desactivar GPU completamente
+# 🔥 DESACTIVAR GPU Y LIMITAR THREADS
+tf.config.set_visible_devices([], 'GPU')
 tf.config.threading.set_intra_op_parallelism_threads(1)
 tf.config.threading.set_inter_op_parallelism_threads(1)
-
-# Limitar memoria de CPU
-try:
-    tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('CPU')[0], True)
-except:
-    pass
 
 from tensorflow.keras.models import load_model
 from datetime import datetime
@@ -29,29 +22,30 @@ import numpy as np
 import sqlite3
 from tensorflow.keras.applications.resnet50 import preprocess_input
 import gc
+import sys
+
+# 🔥 REDUCIR USO DE MEMORIA DE OPENCV
+cv2.setNumThreads(0)
 
 # -----------------------------
 # APP FLASK
 # -----------------------------
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "emocionesIA")
+app.secret_key = os.getenv("SECRET_KEY", "emocionesIA_segura_2026")
 
 # -----------------------------
-# CONEXIÓN SQLITE
+# BASE DE DATOS
 # -----------------------------
 DATABASE = '/tmp/emotiscan.db'
 
 def get_db():
-    """Obtener conexión a la base de datos"""
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    """Inicializar tablas"""
     conn = get_db()
     cursor = conn.cursor()
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +53,6 @@ def init_db():
             password TEXT
         )
     ''')
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS emociones (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,10 +61,9 @@ def init_db():
             fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
     conn.commit()
     conn.close()
-    print("✅ Base de datos SQLite inicializada en:", DATABASE)
+    print("✅ Base de datos SQLite inicializada")
 
 init_db()
 
@@ -96,71 +88,56 @@ try:
     # 🔥 CARGAR CON COMPILE=FALSE PARA AHORRAR MEMORIA
     modelo_cnn = load_model(MODEL_PATH, compile=False)
     print("✅ Modelo ResNet50 cargado correctamente")
-    print("📊 Entrada:", modelo_cnn.input_shape)
-    print("📊 Salida:", modelo_cnn.output_shape)
+    print(f"📊 Entrada: {modelo_cnn.input_shape}")
+    print(f"📊 Salida: {modelo_cnn.output_shape}")
     
-    # Verificar número de salidas
     num_salidas = modelo_cnn.output_shape[-1]
-    print(f"📊 Número de emociones: {num_salidas}")
     
 except Exception as e:
     print(f"❌ Error cargando modelo: {e}")
-    print("🔄 Creando modelo de respaldo...")
-    
-    from tensorflow.keras.applications import ResNet50
-    from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
-    
-    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-    base_model.trainable = False
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    x = Dense(64, activation='relu')(x)   # 🔥 Menos neuronas para ahorrar memoria
-    x = Dense(32, activation='relu')(x)   # 🔥 Menos neuronas
-    predictions = Dense(4, activation='softmax')(x)  # 4 emociones
-    modelo_cnn = Model(inputs=base_model.input, outputs=predictions)
-    print("✅ Modelo de respaldo creado (optimizado)")
+    sys.exit(1)
 
 # =============================
-# FUNCION CNN - OPTIMIZADA
+# EMOCIONES - DETECCIÓN AUTOMÁTICA
 # =============================
 
-# 🔥 DETECTAR AUTOMÁTICAMENTE EL NÚMERO DE EMOCIONES DEL MODELO
-NUM_EMOCIONES = modelo_cnn.output_shape[-1]
-
-# Lista de emociones según el modelo
-if NUM_EMOCIONES == 7:
+# 🔥 DETECTAR NÚMERO DE EMOCIONES DEL MODELO
+if num_salidas == 7:
     EMOCIONES = ["Enojo", "Asco", "Miedo", "Felicidad", "Tristeza", "Sorpresa", "Neutral"]
-elif NUM_EMOCIONES == 4:
+elif num_salidas == 4:
     EMOCIONES = ["Enojo", "Felicidad", "Tristeza", "Neutral"]
-elif NUM_EMOCIONES == 3:
+elif num_salidas == 3:
     EMOCIONES = ["Enojo", "Felicidad", "Neutral"]
 else:
-    # Si el modelo tiene otro número, usar genéricos
-    EMOCIONES = [f"Emoción_{i}" for i in range(NUM_EMOCIONES)]
+    EMOCIONES = [f"Emoción_{i}" for i in range(num_salidas)]
 
-print(f"📊 Usando {len(EMOCIONES)} emociones: {EMOCIONES}")
+print(f"📊 Emociones: {EMOCIONES}")
 
-# Diccionario de consejos
 CONSEJOS = {
-    "Enojo": "😡 Respira profundamente y cuenta hasta 10. Tómate un momento para relajarte.",
-    "Asco": "🤢 Intenta encontrar algo positivo en tu entorno.",
-    "Miedo": "😨 Recuerda que es normal sentir miedo. Respira y enfócate en lo que puedes controlar.",
-    "Felicidad": "😊 ¡Qué bien! Disfruta este momento y compártelo con alguien especial.",
-    "Tristeza": "😢 Está bien sentir tristeza. Habla con alguien de confianza.",
-    "Sorpresa": "😮 ¡Qué sorpresa! Tómate un momento para procesarlo.",
-    "Neutral": "😐 Te ves tranquilo y enfocado. Sigue así, estás en equilibrio."
+    "Enojo": "😡 Respira profundamente y cuenta hasta 10.",
+    "Asco": "🤢 Busca algo positivo en tu entorno.",
+    "Miedo": "😨 Enfócate en lo que puedes controlar.",
+    "Felicidad": "😊 ¡Qué bien! Disfruta este momento.",
+    "Tristeza": "😢 Habla con alguien de confianza.",
+    "Sorpresa": "😮 Tómate un momento para procesarlo.",
+    "Neutral": "😐 Estás en equilibrio."
 }
 
+# =============================
+# FUNCIÓN DE PREDICCIÓN - ULTRA OPTIMIZADA
+# =============================
+
 def predecir_cnn(img):
-    """Predice la emoción con optimización de memoria"""
+    """Predicción optimizada al máximo para ahorrar memoria"""
     try:
-        # 🔥 REDUCIR TAMAÑO DE IMAGEN
+        # 🔥 REDUCIR IMAGEN AL MÍNIMO
         if img.shape[0] > 300 or img.shape[1] > 300:
             img = cv2.resize(img, (300, 300))
         
-        # Detectar rostro
+        # 🔥 DETECCIÓN DE ROSTRO RÁPIDA
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Reducir resolución para detección más rápida y menos memoria
         gray_small = cv2.resize(gray, (gray.shape[1]//2, gray.shape[0]//2))
         
         rostros = face_detector.detectMultiScale(
@@ -177,52 +154,38 @@ def predecir_cnn(img):
             x, y = max(0, x), max(0, y)
             img = img[y:y+h, x:x+w]
         
-        # Procesar para el modelo
+        # 🔥 PROCESAR EN 224x224
         img = cv2.resize(img, (224, 224))
         img = img.astype(np.float32)
         img = np.expand_dims(img, axis=0)
         img = preprocess_input(img)
         
-        # 🔥 PREDECIR
+        # 🔥 PREDECIR CON BATCH_SIZE=1
         pred = modelo_cnn.predict(img, verbose=0, batch_size=1)
         
         indice = np.argmax(pred[0])
-        confianza = np.max(pred[0])
-        
-        # Asegurar que el índice sea válido
-        if indice >= len(EMOCIONES):
-            indice = 0  # Fallback a la primera emoción
-        
-        emocion = EMOCIONES[indice]
-        
-        print(f"📊 Predicción: {emocion} ({confianza:.2%})")
+        emocion = EMOCIONES[indice] if indice < len(EMOCIONES) else EMOCIONES[0]
         
         # 🔥 LIMPIAR MEMORIA
         del img, pred, gray, gray_small
+        if 'rostros' in locals():
+            del rostros
         gc.collect()
         
         return emocion
         
     except Exception as e:
-        print(f"❌ Error en predecir_cnn: {e}")
+        print(f"❌ Error en predicción: {e}")
         gc.collect()
         return "Neutral"
 
-def consejo_emocion(emocion):
-    """Obtiene un consejo según la emoción"""
-    return CONSEJOS.get(emocion, "🔍 No fue posible determinar la emoción. ¡Cuida de ti mismo!")
-
-# -----------------------------
+# =============================
 # RUTAS
-# -----------------------------
+# =============================
 
 @app.route("/")
 def index():
     return render_template("login.html")
-
-@app.route("/login", methods=["GET"])
-def login_get():
-    return redirect("/")
 
 @app.route("/login", methods=["POST"])
 def validar():
@@ -301,6 +264,7 @@ def analizar():
         if not data or "image" not in data:
             return jsonify({"error": "No se recibió imagen"}), 400
         
+        # Decodificar imagen
         image_data = data["image"].split(";base64,")[1]
         img_bytes = base64.b64decode(image_data)
         nparr = np.frombuffer(img_bytes, np.uint8)
@@ -310,7 +274,7 @@ def analizar():
             return jsonify({"error": "Imagen inválida"}), 400
         
         emocion = predecir_cnn(img)
-        consejo = consejo_emocion(emocion)
+        consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         
         # Guardar en BD
         conn = get_db()
@@ -331,7 +295,7 @@ def analizar():
         })
         
     except Exception as e:
-        print("❌ ERROR ANALIZAR:", str(e))
+        print(f"❌ ERROR ANALIZAR: {e}")
         gc.collect()
         return jsonify({"error": str(e)}), 500
 
@@ -353,12 +317,9 @@ def dashboard():
     conn.close()
     
     conteo = {emocion: 0 for emocion in EMOCIONES}
-    
     for row in datos:
-        emocion = row["emocion"]
-        cantidad = row[1]
-        if emocion in conteo:
-            conteo[emocion] = cantidad
+        if row["emocion"] in conteo:
+            conteo[row["emocion"]] = row[1]
     
     return render_template("dashboard.html", conteo=conteo)
 
@@ -375,30 +336,20 @@ def imagen():
 def predict_image():
     try:
         if 'imagen' not in request.files:
-            return jsonify({
-                'estado': 'error',
-                'detalle': 'No se envió imagen'
-            }), 400
+            return jsonify({'estado': 'error', 'detalle': 'No se envió imagen'}), 400
         
         archivo = request.files['imagen']
-        
         if archivo.filename == "":
-            return jsonify({
-                "estado": "error",
-                "detalle": "No se seleccionó ninguna imagen"
-            }), 400
+            return jsonify({"estado": "error", "detalle": "No se seleccionó imagen"}), 400
         
         file_bytes = np.frombuffer(archivo.read(), np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
         if img is None:
-            return jsonify({
-                'estado': 'error',
-                'detalle': 'Error al leer imagen'
-            }), 400
+            return jsonify({'estado': 'error', 'detalle': 'Error al leer imagen'}), 400
         
         emocion = predecir_cnn(img)
-        consejo = consejo_emocion(emocion)
+        consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         
         if "user" in session:
             conn = get_db()
@@ -419,13 +370,9 @@ def predict_image():
         })
         
     except Exception as e:
-        print("❌ ERROR predict_image:", str(e))
+        print(f"❌ ERROR predict_image: {e}")
         gc.collect()
-        return jsonify({
-            'emocion': 'No se pudo analizar la imagen',
-            'detalle': str(e),
-            'estado': 'error'
-        }), 500
+        return jsonify({'estado': 'error', 'detalle': str(e)}), 500
 
 # -----------------------------
 # HEALTH CHECK
@@ -441,15 +388,12 @@ def ping():
 @app.errorhandler(Exception)
 def handle_exception(e):
     print(f"❌ Error global: {e}")
-    return jsonify({
-        "error": str(e),
-        "status": "error"
-    }), 500
+    return jsonify({"error": str(e), "status": "error"}), 500
 
 # -----------------------------
 # ENTRYPOINT
 # -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    print(f"🚀 Iniciando servidor en puerto {port}")
+    print(f"🚀 Servidor iniciado en puerto {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
