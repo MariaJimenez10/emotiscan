@@ -276,12 +276,12 @@ def analizar():
         print("1️⃣ Leyendo JSON...")
         data = request.get_json()
 
-        print(data.keys())
-
-        if not data:
+        if data is None:
             print("❌ JSON vacío")
             return jsonify({"error": "No se recibió JSON"}), 400
-
+        
+        print("Datos Recibidos:",data.keys())
+        
         if "image" not in data:
             print("❌ No existe 'image'")
             return jsonify({"error": "No se recibió imagen"}), 400
