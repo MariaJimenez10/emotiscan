@@ -238,7 +238,6 @@
             <div class="card">
                 <h2>Reconocimiento de emociones</h2>
                 <button class="btn-cam" id="btnCamara" onclick="startCamera()">📷 Activar cámara</button>
-                <div id="loadingStatus" class="loading-models">⏳ Cargando modelos de IA...</div>
                 <div class="camera-container">
                     <video id="video" autoplay></video>
                     <canvas id="canvas"></canvas>
@@ -264,7 +263,6 @@
 
     <script>
         // ============ VARIABLES GLOBALES ============
-        let modelsLoaded = false;
         let cameraStarted = false;
         let analizando = false;
         let detectionInterval = null;
@@ -403,62 +401,6 @@
                 }
             }
         });
-
-        // ============ CARGAR MODELOS FACE-API ============
-        async function loadModels() {
-            try {
-                loadingStatus.textContent = "⏳ Cargando modelos de detección facial...";
-
-                if (typeof faceapi === 'undefined') {
-                    throw new Error("FaceAPI no está disponible. Verifica la conexión a internet.");
-                }
-
-                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/';
-
-                console.log("Cargando modelos desde:", MODEL_URL);
-
-                await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
-
-                modelsLoaded = true;
-                loadingStatus.textContent = "✅ Modelos cargados correctamente";
-                loadingStatus.style.color = "#10b981";
-
-                console.log("✅ Modelos de face-api cargados correctamente");
-
-                if (cameraStarted) {
-                    iniciarDeteccionContinua();
-                }
-
-            } catch (error) {
-                console.error("❌ Error cargando modelos:", error);
-                loadingStatus.textContent = "❌ Error cargando modelos: " + error.message;
-                loadingStatus.style.color = "#ef4444";
-
-                // Intentar con CDN alternativa
-                try {
-                    const ALT_MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights/';
-                    await faceapi.nets.tinyFaceDetector.loadFromUri(ALT_MODEL_URL);
-                    await faceapi.nets.faceLandmark68Net.loadFromUri(ALT_MODEL_URL);
-                    await faceapi.nets.faceRecognitionNet.loadFromUri(ALT_MODEL_URL);
-                    await faceapi.nets.faceExpressionNet.loadFromUri(ALT_MODEL_URL);
-
-                    modelsLoaded = true;
-                    loadingStatus.textContent = "✅ Modelos cargados correctamente (CDN alternativa)";
-                    loadingStatus.style.color = "#10b981";
-
-                    if (cameraStarted) {
-                        iniciarDeteccionContinua();
-                    }
-                } catch (altError) {
-                    console.error("❌ Error con CDN alternativa:", altError);
-                    loadingStatus.textContent = "❌ No se pudieron cargar los modelos. Verifica tu conexión a internet.";
-                }
-            }
-        }
-
         // ============ DETECTAR EMOCIÓN ============
         async function detectarEmocion() {
 
@@ -475,7 +417,8 @@
                 const tempCtx = tempCanvas.getContext("2d");
                 tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
-                const image = tempCanvas.toDataURL("image/jpeg");
+                const image = tempCanvas.toDataURL("image/jpeg", 0.8);
+
 
                 const respuesta = await fetch("/analizar", {
 
@@ -497,6 +440,9 @@
 
                     resultado.innerHTML = "⚠ " + data.error;
                     consejo.innerHTML = "";
+
+                    analizando = false;
+
                     return;
                 }
 
@@ -518,20 +464,24 @@
                     ];
 
                     grafica.update();
+                    guardarEstadisticas();
 
                 }
+            }
+            catch (error) {
 
-            } catch (error) {
+                console.error(error);
 
-                console.log(error);
+                resultado.innerHTML = "⚠ Error de conexión";
 
-                resultado.innerHTML = "Error";
+                consejo.innerHTML = "No fue posible comunicarse con el servidor.";
+
+                analizando = false;
 
             }
-
-            analizando = false;
-
         }
+
+
         // ============ GUARDAR ESTADÍSTICAS ============
         function guardarEstadisticas() {
             try {
@@ -595,7 +545,7 @@
                         btnCamara.disabled = false;
                         scanIndicator.classList.add('active');
 
-                       iniciarDeteccionContinua();
+                        iniciarDeteccionContinua();
                     };
 
                     const camera = new Camera(video, {
@@ -637,13 +587,13 @@
         }
 
         // ============ INICIALIZACIÓN ============
-        async function init(){
+        async function init() {
 
-    cargarEstadisticas();
+            cargarEstadisticas();
 
-    resultado.innerHTML="📷 Presiona Activar cámara";
+            resultado.innerHTML = "📷 Presiona Activar cámara";
 
-}
+        }
 
         window.onload = init;
     </script>
