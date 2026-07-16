@@ -420,6 +420,7 @@
 
                 const image = tempCanvas.toDataURL("image/jpeg", 0.8);
 
+                console.log("Enviando imagen al servidor");
                 const respuesta = await fetch("/analizar", {
                     method: "POST",
                     headers: {
