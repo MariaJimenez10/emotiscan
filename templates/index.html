@@ -404,6 +404,7 @@
         console.log("detectarEmocion ejecutándose");
         // ============ DETECTAR EMOCIÓN ============
         async function detectarEmocion() {
+                console.log("🚀 detectarEmocion ejecutándose");
 
             if (analizando) return;
 
@@ -563,6 +564,7 @@
 
         // ============ INICIAR DETECCIÓN CONTINUA ============
         function iniciarDeteccionContinua() {
+                console.log("✅ iniciarDeteccionContinua");
             if (detectionInterval) {
                 clearInterval(detectionInterval);
             }
