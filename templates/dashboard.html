@@ -6,66 +6,173 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body {
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+        * {
             margin: 0;
-            font-family: Arial;
-            display: flex;
-            background: #f4f6fa;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
         }
 
-        /* MENU */
+        body {
+            display: flex;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4f46e5, #06b6d4, #9333ea);
+            background-size: 400% 400%;
+            animation: fondo 12s ease infinite;
+            overflow: hidden;
+        }
+
+        @keyframes fondo {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Sidebar Glass */
 
         .sidebar {
-            width: 220px;
-            background: #667eea;
-            color: white;
+            width: 240px;
             height: 100vh;
-            padding-top: 30px;
+            padding: 30px 20px;
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, .12);
+            border-right: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
         }
 
         .sidebar h2 {
+            color: #fff;
             text-align: center;
             margin-bottom: 40px;
+            font-size: 28px;
         }
 
         .sidebar button {
             width: 100%;
+            margin-bottom: 15px;
             padding: 15px;
             border: none;
-            background: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .12);
             color: white;
-            font-size: 16px;
             cursor: pointer;
             text-align: left;
-            padding-left: 30px;
+            font-size: 16px;
+            transition: .35s;
+            backdrop-filter: blur(10px);
         }
 
         .sidebar button:hover {
-            background: #5563d6;
+            background: rgba(255, 255, 255, .25);
+            transform: translateX(8px);
         }
 
-        /* CONTENIDO */
+        /* Contenido */
 
         .main {
             flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 40px;
         }
 
-        /* SECCIONES */
+        /* Secciones */
 
         .section {
             display: none;
+            width: 100%;
+            max-width: 900px;
         }
 
         .active {
             display: block;
         }
 
+        /* Cards Glass */
+
         .card {
+            background: rgba(255, 255, 255, .15);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, .25);
+            border-radius: 25px;
+            padding: 40px;
+            color: white;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, .2);
+        }
+
+        .card h2 {
+            font-size: 30px;
+            margin-bottom: 20px;
+        }
+
+        .card p {
+            font-size: 18px;
+            color: #eef2ff;
+        }
+
+        /* Canvas */
+
+        canvas {
+            margin-top: 20px;
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 15px;
+        }
+
+        /* Scroll bonito */
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: white;
+            border-radius: 20px;
+        }
+
+        /* Responsive */
+
+        @media(max-width:768px) {
+
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .sidebar h2 {
+                width: 100%;
+            }
+
+            .sidebar button {
+                width: 90%;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .card {
+                padding: 25px;
+            }
+
         }
     </style>
 
