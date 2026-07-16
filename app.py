@@ -101,7 +101,7 @@ except Exception as e:
 # EMOCIONES - DETECCIÓN AUTOMÁTICA
 # =============================
 
-# 🔥 DETECTAR NÚMERO DE EMOCIONES DEL MODELO
+# DETECTAR NÚMERO DE EMOCIONES DEL MODELO
 if num_salidas == 7:
     EMOCIONES = ["Enojo", "Asco", "Miedo", "Felicidad", "Tristeza", "Sorpresa", "Neutral"]
 elif num_salidas == 4:
@@ -113,6 +113,7 @@ else:
 
 print(f"📊 Emociones: {EMOCIONES}")
 
+####los consejos que se mostrara para cada emocion 
 CONSEJOS = {
     "Enojo": "😡 Respira profundamente y cuenta hasta 10.",
     "Felicidad": "😊 ¡Qué bien! Disfruta este momento.",
@@ -125,7 +126,7 @@ CONSEJOS = {
 # FUNCIÓN DE PREDICCIÓN - ULTRA OPTIMIZADA
 # =============================
 
-####detecta la emocion
+####Aqui se sabe que emocion esta siendo detectada
 def predecir_cnn(img):
     """
     Predicción optimizada para Render
