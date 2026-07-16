@@ -1,104 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - EmotiScan AI</title>
 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
     <style>
-        body {
+        * {
             margin: 0;
-            font-family: Arial;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #667eea, #764ba2);
             overflow: hidden;
+            background: linear-gradient(-45deg,
+                    #4f46e5,
+                    #7c3aed,
+                    #06b6d4,
+                    #3b82f6);
+            background-size: 400% 400%;
+            animation: fondo 12s ease infinite;
         }
 
-        /* TARJETA LOGIN */
+        @keyframes fondo {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* CÍRCULOS */
+
+        body::before,
+        body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(20px);
+        }
+
+        body::before {
+            width: 280px;
+            height: 280px;
+            background: rgba(255, 255, 255, .18);
+            top: -60px;
+            left: -60px;
+        }
+
+        body::after {
+            width: 220px;
+            height: 220px;
+            background: rgba(255, 255, 255, .15);
+            bottom: -40px;
+            right: -40px;
+        }
+
+        /* MENSAJE */
+
+        #mensaje {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+            animation: aparecer .5s;
+            z-index: 999;
+        }
+
+        @keyframes aparecer {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        /* TARJETA */
 
         .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
-            width: 300px;
+
+            width: 390px;
+            padding: 45px;
+
+            background: rgba(255, 255, 255, .15);
+
+            backdrop-filter: blur(18px);
+
+            border: 1px solid rgba(255, 255, 255, .25);
+
+            border-radius: 25px;
+
             text-align: center;
-            position: relative;
+
+            color: white;
+
+            box-shadow: 0 15px 40px rgba(0, 0, 0, .25);
+
             z-index: 2;
+
         }
 
-        .login-box h2 {
-            margin-bottom: 25px;
+        .logo {
+            font-size: 65px;
+            margin-bottom: 10px;
+            color: #fff;
         }
 
-        /* INPUTS */
+        h2 {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
 
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
+        p {
+            opacity: .9;
+            margin-bottom: 30px;
             font-size: 14px;
         }
 
-        /* BOTON */
+        /* INPUT */
+
+        .input-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-box i {
+            position: absolute;
+            left: 15px;
+            top: 16px;
+            color: #667eea;
+        }
+
+        .input-box input {
+
+            width: 100%;
+
+            padding: 14px 14px 14px 45px;
+
+            border: none;
+
+            border-radius: 50px;
+
+            outline: none;
+
+            background: rgba(255, 255, 255, .95);
+
+            font-size: 15px;
+
+        }
+
+        .input-box input:focus {
+            box-shadow: 0 0 12px #4f46e5;
+        }
+
+        /* BOTÓN */
 
         button {
+
             width: 100%;
-            padding: 12px;
+
+            padding: 15px;
+
+            border-radius: 50px;
+
             border: none;
-            border-radius: 8px;
-            background: #667eea;
-            color: white;
-            font-size: 16px;
+
             cursor: pointer;
-            transition: 0.3s;
+
+            color: white;
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+            background: linear-gradient(90deg,
+                    #4f46e5,
+                    #7c3aed);
+
+            transition: .3s;
+
         }
 
         button:hover {
-            background: #5563d6;
+
+            transform: translateY(-3px);
+
+            box-shadow: 0 10px 20px rgba(0, 0, 0, .3);
+
         }
 
         /* LINK */
 
         a {
+
             display: block;
-            margin-top: 15px;
-            text-decoration: none;
-            color: #667eea;
-            font-size: 14px;
-        }
 
-        /* MENSAJE DE ÉXITO */
+            margin-top: 20px;
 
-        #mensaje {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4CAF50;
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
-            display: none;
-            animation: fade 0.5s ease;
-            z-index: 10;
+
+            text-decoration: none;
+
+            transition: .3s;
+
         }
 
-        @keyframes fade {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
+        a:hover {
+            color: #FFD700;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            opacity: .8;
+        }
+
+        @media(max-width:500px) {
+
+            .login-box {
+
+                width: 90%;
+                padding: 35px 25px;
+
             }
 
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
         }
     </style>
 
@@ -106,37 +263,64 @@
 
 <body>
 
-    <!-- MENSAJE -->
-    <div id="mensaje">✔ Inicio de sesión exitoso</div>
+    <div id="mensaje">
+        <i class="fa-solid fa-circle-check"></i>
+        Inicio de sesión exitoso
+    </div>
 
     <div class="login-box">
 
-        <h2>🤖 EmotiScan AI</h2>
+        <div class="logo">
+            <i class="fa-solid fa-brain"></i>
+        </div>
+
+        <h2>EmotiScan AI</h2>
+
+        <p>Reconocimiento Inteligente de Emociones</p>
 
         <form action="/login" method="POST" onsubmit="loginExitoso(event)">
 
-            <input name="usuario" placeholder="Usuario" required>
+            <div class="input-box">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" name="usuario" placeholder="Usuario" required>
+            </div>
 
-            <input type="password" name="password" placeholder="Contraseña" required>
+            <div class="input-box">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" name="password" placeholder="Contraseña" required>
+            </div>
 
-            <button type="submit">Entrar</button>
+            <button type="submit">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                Ingresar
+            </button>
 
         </form>
 
-        <a href="/register">Crear cuenta</a>
+        <a href="/register">
+            <i class="fa-solid fa-user-plus"></i>
+            Crear una cuenta
+        </a>
+
+        <div class="footer">
+            © 2026 EmotiScan AI
+        </div>
 
     </div>
 
     <script>
 
         function loginExitoso(e) {
-            e.preventDefault()
 
-            document.getElementById("mensaje").style.display = "block"
+            e.preventDefault();
+
+            document.getElementById("mensaje").style.display = "block";
 
             setTimeout(() => {
-                e.target.submit()
-            }, 1500)
+
+                e.target.submit();
+
+            }, 1500);
 
         }
 
