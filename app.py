@@ -164,6 +164,8 @@ def predecir_cnn(img):
         # Más rápido que predict()
         pred = modelo_cnn(img, training=False).numpy()
 
+        
+
         indice = int(np.argmax(pred))
 
         print("Predicción:", pred)
@@ -273,6 +275,8 @@ def analizar():
         print("1️⃣ Leyendo JSON...")
         data = request.get_json()
 
+        print(data.keys())
+
         if not data:
             print("❌ JSON vacío")
             return jsonify({"error": "No se recibió JSON"}), 400
@@ -298,6 +302,8 @@ def analizar():
         print("✅ Imagen recibida")
         print("Tamaño:", img.shape)
 
+        (480, 640, 3)
+
         print("3️⃣ Ejecutando ResNet50...")
 
         emocion = predecir_cnn(img)
@@ -320,6 +326,8 @@ def analizar():
         conn.close()
 
         print("5️⃣ Enviando respuesta")
+
+        print("Respuesta enviada al navegador") 
 
         return jsonify({
     "success": True,
