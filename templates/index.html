@@ -419,30 +419,26 @@
 
                 const image = tempCanvas.toDataURL("image/jpeg", 0.8);
 
-
                 const respuesta = await fetch("/analizar", {
-
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json"
                     },
-
                     body: JSON.stringify({
                         image: image
                     })
-
                 });
+
+                if (!respuesta.ok) {
+                    throw new Error("Error del servidor");
+                }
 
                 const data = await respuesta.json();
 
                 if (data.error) {
-
                     resultado.innerHTML = "⚠ " + data.error;
                     consejo.innerHTML = "";
-
                     analizando = false;
-
                     return;
                 }
 
@@ -465,23 +461,19 @@
 
                     grafica.update();
                     guardarEstadisticas();
-
                 }
-            }
-            catch (error) {
+
+            } catch (error) {
 
                 console.error(error);
 
                 resultado.innerHTML = "⚠ Error de conexión";
-
-                consejo.innerHTML = "No fue posible comunicarse con el servidor.";
-
-                analizando = false;
+                consejo.innerHTML = error.message;
 
             }
+
+            analizando = false;
         }
-
-
         // ============ GUARDAR ESTADÍSTICAS ============
         function guardarEstadisticas() {
             try {
