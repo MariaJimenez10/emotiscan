@@ -552,12 +552,12 @@
                     });
                     camera.start();
 
-                    resultado.textContent = "👀 Cámara activa, detectando...";
+                    resultado.textContent = "Cámara activa, detectando...";
                 })
                 .catch(err => {
                     alert("Error activando cámara: " + err.message);
                     console.error(err);
-                    btnCamara.textContent = "📷 Activar cámara";
+                    btnCamara.textContent = "Activar cámara";
                     btnCamara.disabled = false;
                 });
         }
