@@ -1,3 +1,6 @@
+from face_detector import detectar_rostro
+from predict import predecir
+from mensajes import obtener_mensaje
 import os
 # 🔥 CONFIGURACIÓN DE MEMORIA - AL PRINCIPIO DE TODO
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -128,65 +131,21 @@ CONSEJOS = {
 
 ####Aqui se sabe que emocion esta siendo detectada
 def predecir_cnn(img):
-    """
-    Predicción optimizada para Render
-    """
 
-    try:
-        print("📷 Imagen recibida:", img.shape)
+    # Detectar y recortar el rostro con DeepFace
+    rostro = detectar_rostro(img)
 
-        # Detectar rostro
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        rostros = face_detector.detectMultiScale(
-            gray,
-            scaleFactor=1.2,
-            minNeighbors=5,
-            minSize=(50, 50)
-        )
-
-        if len(rostros) > 0:
-            x, y, w, h = rostros[0]
-            img = img[y:y+h, x:x+w]
-            print("🙂 Rostro detectado")
-        else:
-            print("⚠ No se detectó rostro, usando imagen completa")
-
-        # Preparar imagen
-        img = cv2.resize(img, (224, 224))
-        img = img.astype(np.float32)
-
-        img = preprocess_input(img)
-
-        img = np.expand_dims(img, axis=0)
-
-        print("🧠 Ejecutando modelo...")
-
-        # Más rápido que predict()
-        pred = modelo_cnn(img, training=False).numpy()
-
-        
-
-        indice = int(np.argmax(pred))
-
-        print("Predicción:", pred)
-        print("Índice:", indice)
-
-        if indice >= len(EMOCIONES):
-            return "Neutral"
-
-        emocion = EMOCIONES[indice]
-
-        print("😊 Emoción:", emocion)
-
-        return emocion
-
-    except Exception as e:
-
-        print("❌ ERROR predecir_cnn")
-        print(e)
-
+    if rostro is None:
         return "Neutral"
+
+    # Predicción con ResNet50
+    emocion, confianza, probabilidades = predecir(rostro)
+
+    print("Emoción:", emocion)
+    print("Confianza:", confianza)
+
+    return emocion
+
 # =============================
 # RUTAS
 # =============================
