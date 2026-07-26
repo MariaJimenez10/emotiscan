@@ -226,8 +226,6 @@ def analizar():
         print("✅ Imagen recibida")
         print("Tamaño:", img.shape)
 
-        (480, 640, 3)
-
         print("3️⃣ Ejecutando ResNet50...")
 
         emocion = predecir_cnn(img)
@@ -319,7 +317,8 @@ def predict_image():
             return jsonify({'estado': 'error', 'detalle': 'Error al leer imagen'}), 400
         
         emocion = predecir_cnn(img)
-
+        print("Emoción recibida:", emocion)
+        
         ##cuando es tristeza hara esta funcion
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         

@@ -26,6 +26,8 @@ EMOCIONES = [
 ]
 
 
+
+
 def preparar_imagen(rostro):
     """
     Prepara la imagen para ResNet50.
@@ -52,29 +54,30 @@ def preparar_imagen(rostro):
     # Agregar dimensión batch
     rostro = np.expand_dims(rostro, axis=0)
 
+    print("Predicciones:", predicciones)
+    print("Índice:", indice)
+    print("Emoción:", emocion)
+    print("Confianza:", confianza)
+    
     return rostro
 
-
 def predecir(rostro):
-    """
-    Predice la emoción del rostro.
-
-    Parámetros:
-        rostro: imagen recortada (BGR)
-
-    Retorna:
-        emocion
-        confianza
-        probabilidades
-    """
 
     imagen = preparar_imagen(rostro)
 
+    print("Imagen preparada:", imagen.shape)
+
     predicciones = modelo.predict(imagen, verbose=0)
+
+    print("Predicciones:", predicciones)
 
     indice = np.argmax(predicciones)
 
+    print("Índice:", indice)
+
     emocion = EMOCIONES[indice]
+
+    print("Emoción:", emocion)
 
     confianza = float(predicciones[0][indice])
 
