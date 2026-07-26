@@ -10,10 +10,10 @@ os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 import tensorflow as tf
-# 🔥 DESACTIVAR GPU Y LIMITAR THREADS
-tf.config.set_visible_devices([], 'GPU')
-tf.config.threading.set_intra_op_parallelism_threads(1)
-tf.config.threading.set_inter_op_parallelism_threads(1)
+
+#tf.config.set_visible_devices([], 'GPU')
+#tf.config.threading.set_intra_op_parallelism_threads(1)
+#tf.config.threading.set_inter_op_parallelism_threads(1)
 
 from tensorflow.keras.models import load_model
 from datetime import datetime
@@ -77,46 +77,10 @@ face_detector = cv2.CascadeClassifier(
     cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 )
 
-# -----------------------------
-# CARGAR MODELO RESNET50 - UNA SOLA VEZ
-# -----------------------------
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "modelo_resnet50_emociones.h5")
-
-print("🔄 Cargando modelo ResNet50...")
-
-try:
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"No se encontró el modelo: {MODEL_PATH}")
-    
-    # 🔥 CARGAR CON COMPILE=FALSE PARA AHORRAR MEMORIA
-    modelo_cnn = load_model(MODEL_PATH, compile=False)
-    print("✅ Modelo ResNet50 cargado correctamente")
-    print(f"📊 Entrada: {modelo_cnn.input_shape}")
-    print(f"📊 Salida: {modelo_cnn.output_shape}")
-    
-    num_salidas = modelo_cnn.output_shape[-1]
-    
-except Exception as e:
-    print(f"❌ Error cargando modelo: {e}")
-    sys.exit(1)
-
 # =============================
 # EMOCIONES - DETECCIÓN AUTOMÁTICA
 # =============================
-
-# DETECTAR NÚMERO DE EMOCIONES DEL MODELO
-if num_salidas == 7:
-    EMOCIONES = ["Enojo", "Asco", "Miedo", "Felicidad", "Tristeza", "Sorpresa", "Neutral"]
-elif num_salidas == 4:
-    EMOCIONES = ["Enojo", "Felicidad", "Tristeza", "Neutral"]
-elif num_salidas == 3:
-    EMOCIONES = ["Enojo", "Felicidad", "Neutral"]
-else:
-    EMOCIONES = [f"Emoción_{i}" for i in range(num_salidas)]
-
-print(f"📊 Emociones: {EMOCIONES}")
-
-####los consejos que se mostrara para cada emocion 
+###los consejos que se mostrara para cada emocion 
 CONSEJOS = {
     "Enojo": "😡 Respira profundamente y cuenta hasta 10.",
     "Felicidad": "😊 ¡Qué bien! Disfruta este momento.",
