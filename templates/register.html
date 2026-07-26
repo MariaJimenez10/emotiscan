@@ -1,430 +1,570 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - EmotiScan AI</title>
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
-        rel="stylesheet">
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-
     <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:'Poppins',sans-serif;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        body{
-            height:100vh;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            overflow:hidden;
-
-            background:linear-gradient(-45deg,
-            #4f46e5,
-            #7c3aed,
-            #06b6d4,
-            #3b82f6);
-
-            background-size:400% 400%;
-            animation:fondo 12s ease infinite;
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
         }
 
-        @keyframes fondo{
-            0%{background-position:0% 50%;}
-            50%{background-position:100% 50%;}
-            100%{background-position:0% 50%;}
-        }
-
+        /* Efecto de burbujas de fondo */
         body::before,
-        body::after{
-            content:"";
-            position:absolute;
-            border-radius:50%;
-            filter:blur(20px);
+        body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: flotar 15s ease-in-out infinite alternate;
         }
 
-        body::before{
-            width:280px;
-            height:280px;
-            background:rgba(255,255,255,.18);
-            top:-70px;
-            left:-70px;
+        body::before {
+            width: 400px;
+            height: 400px;
+            background: #e94560;
+            top: -100px;
+            right: -100px;
         }
 
-        body::after{
-            width:220px;
-            height:220px;
-            background:rgba(255,255,255,.15);
-            bottom:-40px;
-            right:-40px;
+        body::after {
+            width: 350px;
+            height: 350px;
+            background: #0f3460;
+            bottom: -80px;
+            left: -80px;
+            animation-delay: -5s;
         }
 
-        /* TARJETA */
-
-        .register-box{
-
-            width:390px;
-
-            padding:45px;
-
-            border-radius:25px;
-
-            text-align:center;
-
-            background:rgba(255,255,255,.15);
-
-            backdrop-filter:blur(18px);
-
-            border:1px solid rgba(255,255,255,.25);
-
-            color:white;
-
-            box-shadow:0 15px 40px rgba(0,0,0,.25);
-
-            position:relative;
-
-            z-index:10;
-
+        @keyframes flotar {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 50px) scale(1.2); }
         }
 
-        .logo{
-
-            font-size:65px;
-
-            margin-bottom:10px;
-
+        /* ============================================
+           TARJETA PRINCIPAL
+           ============================================ */
+        .register-box {
+            width: 100%;
+            max-width: 420px;
+            padding: 45px 40px;
+            border-radius: 30px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            color: white;
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 0.8s ease;
         }
 
-        h2{
-
-            font-size:30px;
-
-            margin-bottom:5px;
-
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        p{
-
-            opacity:.9;
-
-            margin-bottom:30px;
-
-            font-size:14px;
-
+        /* ============================================
+           LOGO / TÍTULO
+           ============================================ */
+        .logo-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+            display: block;
         }
 
-        .input-box{
-
-            position:relative;
-
-            margin-bottom:20px;
-
+        .register-box h2 {
+            font-size: 30px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
         }
 
-        .input-box i{
-
-            position:absolute;
-
-            top:16px;
-
-            left:15px;
-
-            color:#667eea;
-
+        .register-box .subtitle {
+            color: #a8d8ea;
+            font-size: 14px;
+            margin-top: 5px;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+            -webkit-text-fill-color: #a8d8ea;
         }
 
-        .input-box input{
-
-            width:100%;
-
-            padding:14px 14px 14px 45px;
-
-            border:none;
-
-            outline:none;
-
-            border-radius:50px;
-
-            background:white;
-
-            font-size:15px;
-
+        /* ============================================
+           MENSAJE DE ERROR (INICIALMENTE OCULTO)
+           ============================================ */
+        #error-message {
+            display: none;
+            background: rgba(233, 69, 96, 0.15);
+            border: 2px solid #e94560;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            font-size: 14px;
+            text-align: center;
+            animation: shakeError 0.5s ease;
         }
 
-        .input-box input:focus{
-
-            box-shadow:0 0 12px #4f46e5;
-
+        #error-message.show {
+            display: block;
         }
 
-        button{
-
-            width:100%;
-
-            padding:15px;
-
-            border:none;
-
-            border-radius:50px;
-
-            background:linear-gradient(90deg,#4f46e5,#7c3aed);
-
-            color:white;
-
-            font-size:17px;
-
-            font-weight:600;
-
-            cursor:pointer;
-
-            transition:.3s;
-
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
-        button:hover{
-
-            transform:translateY(-3px);
-
-            box-shadow:0 10px 20px rgba(0,0,0,.3);
-
+        /* ============================================
+           CAMPOS DEL FORMULARIO
+           ============================================ */
+        .input-box {
+            position: relative;
+            margin-bottom: 20px;
         }
 
-        a{
-
-            display:block;
-
-            margin-top:20px;
-
-            text-decoration:none;
-
-            color:white;
-
-            transition:.3s;
-
+        .input-box i {
+            position: absolute;
+            top: 50%;
+            left: 18px;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 18px;
+            transition: color 0.3s ease;
         }
 
-        a:hover{
-
-            color:#FFD700;
-
+        .input-box input {
+            width: 100%;
+            padding: 14px 18px 14px 50px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
         }
 
-        .footer{
-
-            margin-top:20px;
-
-            font-size:12px;
-
-            opacity:.8;
-
+        .input-box input:focus {
+            border-color: #e94560;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.15);
         }
 
-        /* MENSAJE */
-
-        #mensaje{
-
-            position:fixed;
-
-            top:25px;
-
-            left:50%;
-
-            transform:translateX(-50%);
-
-            background:#10b981;
-
-            color:white;
-
-            padding:15px 30px;
-
-            border-radius:30px;
-
-            display:none;
-
-            font-weight:bold;
-
-            box-shadow:0 8px 20px rgba(0,0,0,.2);
-
-            z-index:100;
-
+        .input-box input:focus + i,
+        .input-box input:focus ~ i {
+            color: #e94560;
         }
 
-        /* CONFETTI */
-
-        #confetti{
-
-            position:fixed;
-
-            inset:0;
-
-            pointer-events:none;
-
-            z-index:5;
-
+        .input-box input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
         }
 
-        @media(max-width:500px){
+        .input-box input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px #1a1a2e inset !important;
+            -webkit-text-fill-color: #fff !important;
+        }
 
-            .register-box{
+        /* ============================================
+           BOTÓN REGISTRAR
+           ============================================ */
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #e94560, #c73652);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
 
-                width:90%;
+        .btn-register:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(233, 69, 96, 0.3);
+        }
 
-                padding:35px 25px;
+        .btn-register:active {
+            transform: scale(0.98);
+        }
 
+        .btn-register:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-register .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .btn-register .spinner.show {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============================================
+           ENLACE A LOGIN
+           ============================================ */
+        .login-link {
+            margin-top: 25px;
+            color: #a8d8ea;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #e94560;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #ff6b6b;
+            text-decoration: underline;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            margin-top: 35px;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        /* ============================================
+           CONFETTI / CELEBRACIÓN
+           ============================================ */
+        #confetti {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 500px) {
+            .register-box {
+                padding: 35px 25px;
             }
 
+            .register-box h2 {
+                font-size: 24px;
+            }
+
+            .logo-icon {
+                font-size: 45px;
+            }
         }
-
     </style>
-
 </head>
-
 <body>
 
-<canvas id="confetti"></canvas>
+    <!-- LIENZO PARA CONFETTI -->
+    <canvas id="confetti"></canvas>
 
-<div id="mensaje">
-<i class="fa-solid fa-circle-check"></i>
-Cuenta creada correctamente
-</div>
+    <!-- ============================================
+    TARJETA DE REGISTRO
+    ============================================ -->
+    <div class="register-box">
 
-<div class="register-box">
+        <!-- ICONO -->
+        <span class="logo-icon">🧠</span>
 
-<div class="logo">
-<i class="fa-solid fa-user-plus"></i>
-</div>
+        <!-- TÍTULO -->
+        <h2>EmotiScan AI</h2>
+        <p class="subtitle">Crea una cuenta para comenzar</p>
 
-<h2>EmotiScan AI</h2>
+        <!-- MENSAJE DE ERROR -->
+        <div id="error-message">
+            ❌ El usuario ya existe o los datos son inválidos
+        </div>
 
-<p>Crea una cuenta para comenzar</p>
+        <!-- FORMULARIO -->
+        <form action="/guardar" method="POST" id="register-form">
 
-<form action="/guardar" method="POST" onsubmit="registrar(event)">
+            <div class="input-box">
+                <i class="fas fa-user"></i>
+                <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    placeholder="Usuario"
+                    autocomplete="off"
+                    required
+                >
+            </div>
 
-<div class="input-box">
-<i class="fa-solid fa-user"></i>
-<input type="text" name="usuario" placeholder="Usuario" required>
-</div>
+            <div class="input-box">
+                <i class="fas fa-lock"></i>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Contraseña"
+                    autocomplete="off"
+                    required
+                    minlength="4"
+                >
+            </div>
 
-<div class="input-box">
-<i class="fa-solid fa-lock"></i>
-<input type="password" name="password" placeholder="Contraseña" required>
-</div>
+            <button type="submit" class="btn-register" id="register-btn">
+                <span class="spinner" id="spinner"></span>
+                <span id="btn-text">
+                    <i class="fas fa-user-plus"></i> Registrarme
+                </span>
+            </button>
 
-<button type="submit">
-<i class="fa-solid fa-user-check"></i>
-Registrarme
-</button>
+        </form>
 
-</form>
+        <!-- ENLACE A LOGIN -->
+        <div class="login-link">
+            ¿Ya tienes cuenta? <a href="/">Inicia sesión</a>
+        </div>
 
-<a href="/">
-<i class="fa-solid fa-arrow-left"></i>
-Ya tengo una cuenta
-</a>
+        <!-- FOOTER -->
+        <div class="footer">
+            © 2026 EmotiScan AI
+        </div>
 
-<div class="footer">
-© 2026 EmotiScan AI
-</div>
+    </div>
 
-</div>
+    <!-- ============================================
+    SCRIPTS
+    ============================================ -->
+    <script>
+        // ============================================
+        // 1. CONFETTI
+        // ============================================
+        const canvas = document.getElementById("confetti");
+        const ctx = canvas.getContext("2d");
+        let particulas = [];
+        let animacionActiva = false;
 
-<script>
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-const canvas=document.getElementById("confetti");
-const ctx=canvas.getContext("2d");
+        function crearParticulas() {
+            particulas = [];
+            for (let i = 0; i < 180; i++) {
+                particulas.push({
+                    x: Math.random() * canvas.width,
+                    y: -20,
+                    r: Math.random() * 5 + 2,
+                    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: Math.random() * 5 + 3
+                });
+            }
+        }
 
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+        function animarConfetti() {
+            if (!animacionActiva) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-let particulas=[];
+            let activas = false;
+            particulas.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                p.x += p.vx;
+                p.y += p.vy;
+                if (p.y < canvas.height + 20) activas = true;
+            });
 
-function crearParticulas(){
+            if (activas) {
+                requestAnimationFrame(animarConfetti);
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                animacionActiva = false;
+            }
+        }
 
-    particulas=[];
+        function lanzarConfetti() {
+            crearParticulas();
+            animacionActiva = true;
+            animarConfetti();
+            // Detener después de 5 segundos
+            setTimeout(() => {
+                animacionActiva = false;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 5000);
+        }
 
-    for(let i=0;i<180;i++){
-
-        particulas.push({
-
-            x:Math.random()*canvas.width,
-
-            y:-20,
-
-            r:Math.random()*5+2,
-
-            color:`hsl(${Math.random()*360},100%,60%)`,
-
-            vx:(Math.random()-0.5)*6,
-
-            vy:Math.random()*5+3
-
+        // ============================================
+        // 2. LIMPIAR CAMPOS AL CARGAR
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('usuario').value = '';
+            document.getElementById('password').value = '';
+            ocultarError();
+            console.log('🧹 Página de registro limpiada');
         });
 
-    }
+        // ============================================
+        // 3. MANEJAR ENVÍO DEL FORMULARIO
+        // ============================================
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            const usuario = document.getElementById('usuario').value.trim();
+            const password = document.getElementById('password').value.trim();
 
-}
+            // Validar campos vacíos
+            if (!usuario || !password) {
+                e.preventDefault();
+                mostrarError('⚠️ Por favor completa todos los campos');
+                return;
+            }
 
-function animar(){
+            // Validar longitud mínima
+            if (password.length < 4) {
+                e.preventDefault();
+                mostrarError('⚠️ La contraseña debe tener al menos 4 caracteres');
+                return;
+            }
 
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+            // Mostrar loading
+            const btn = document.getElementById('register-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('spinner');
 
-    particulas.forEach(p=>{
+            btn.disabled = true;
+            btnText.innerHTML = 'Creando cuenta...';
+            spinner.classList.add('show');
+            ocultarError();
 
-        ctx.beginPath();
+            // Lanzar confetti (celebración)
+            lanzarConfetti();
 
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            // El formulario se envía normalmente
+        });
 
-        ctx.fillStyle=p.color;
+        // ============================================
+        // 4. FUNCIONES DE ERROR
+        // ============================================
+        function mostrarError(mensaje) {
+            const errorMsg = document.getElementById('error-message');
+            if (mensaje) {
+                errorMsg.textContent = '❌ ' + mensaje;
+            } else {
+                errorMsg.textContent = '❌ El usuario ya existe o los datos son inválidos';
+            }
+            errorMsg.style.display = 'block';
+            void errorMsg.offsetWidth;
+            errorMsg.classList.add('show');
+        }
 
-        ctx.fill();
+        function ocultarError() {
+            const errorMsg = document.getElementById('error-message');
+            errorMsg.classList.remove('show');
+            errorMsg.style.display = 'none';
+        }
 
-        p.x+=p.vx;
+        // ============================================
+        // 5. LIMPIAR ERROR AL ESCRIBIR
+        // ============================================
+        document.getElementById('usuario').addEventListener('input', ocultarError);
+        document.getElementById('password').addEventListener('input', ocultarError);
 
-        p.y+=p.vy;
+        // ============================================
+        // 6. DETECTAR ERROR DEL SERVIDOR
+        // ============================================
+        window.addEventListener('load', function() {
+            const params = new URLSearchParams(window.location.search);
+            const error = params.get('error');
 
-    });
+            if (error === 'exists') {
+                mostrarError('El usuario ya existe. Prueba con otro nombre');
+                document.getElementById('usuario').value = '';
+                document.getElementById('password').value = '';
 
-    requestAnimationFrame(animar);
+                const btn = document.getElementById('register-btn');
+                const btnText = document.getElementById('btn-text');
+                const spinner = document.getElementById('spinner');
+                btn.disabled = false;
+                btnText.innerHTML = '<i class="fas fa-user-plus"></i> Registrarme';
+                spinner.classList.remove('show');
+            }
+        });
 
-}
+        // ============================================
+        // 7. TIMEOUT PARA ERROR DE CONEXIÓN
+        // ============================================
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            const timeoutId = setTimeout(function() {
+                const btn = document.getElementById('register-btn');
+                const btnText = document.getElementById('btn-text');
+                const spinner = document.getElementById('spinner');
 
-function registrar(e){
+                btn.disabled = false;
+                btnText.innerHTML = '<i class="fas fa-user-plus"></i> Registrarme';
+                spinner.classList.remove('show');
 
-    e.preventDefault();
+                mostrarError('Error de conexión. Intenta nuevamente');
+            }, 10000);
 
-    document.getElementById("mensaje").style.display="block";
+            window._registerTimeout = timeoutId;
+        });
 
-    crearParticulas();
+        window.addEventListener('beforeunload', function() {
+            if (window._registerTimeout) {
+                clearTimeout(window._registerTimeout);
+            }
+        });
 
-    animar();
-
-    setTimeout(()=>{
-
-        e.target.submit();
-
-    },1800);
-
-}
-
-window.onresize=()=>{
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-}
-
-</script>
+        console.log('🚀 EmotiScan Registro cargado correctamente');
+        console.log('💡 Campos vacíos al inicio');
+    </script>
 
 </body>
-
 </html>
