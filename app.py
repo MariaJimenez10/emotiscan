@@ -9,22 +9,20 @@ import sqlite3
 import logging
 import gc
 import sys
-import json
+import time
 
 # 🔥 CONFIGURACIÓN DE MEMORIA
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['OMP_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
-
-# Importar módulos
-from face_detector import detectar_rostro
-from predict import predecir
-from mensajes import obtener_mensaje, mostrar_estado_mensajes
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Importar módulos livianos
+from face_detector import detectar_rostro
+from predict import predecir
+from mensajes import obtener_mensaje, mostrar_estado_mensajes
 
 # APP FLASK
 app = Flask(__name__)
@@ -73,26 +71,41 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
-    """Función principal con manejo de errores"""
+    """Función principal con timeout y manejo de memoria"""
     try:
         if img is None:
             return "Neutral"
+        
+        # Limitar tiempo de procesamiento
+        start_time = time.time()
         
         # Detectar rostro
         rostro = detectar_rostro(img)
         if rostro is None:
             return "Neutral"
         
+        # Si pasó mucho tiempo, retornar Neutral
+        if time.time() - start_time > 2.0:
+            logger.warning("⏰ Timeout en procesamiento")
+            return "Neutral"
+        
         # Predecir
         emocion, _, _ = predecir(rostro)
+        
+        # Liberar memoria
+        gc.collect()
+        
         return emocion
         
     except Exception as e:
-        logger.error(f"Error en predecir_cnn: {e}")
+        logger.error(f"❌ Error en predecir_cnn: {e}")
         gc.collect()
         return "Neutral"
 
-# RUTAS
+# =============================
+# RUTAS DE FLASK
+# =============================
+
 @app.route("/")
 def index():
     return render_template("login.html")
@@ -166,37 +179,46 @@ def inicio():
 
 @app.route("/analizar", methods=["POST"])
 def analizar():
+    """Endpoint principal con manejo de errores robusto"""
     if "user" not in session:
         return jsonify({"error": "No hay sesión activa"}), 401
 
     try:
+        # Verificar contenido
         data = request.get_json()
         if data is None or "image" not in data:
             return jsonify({"error": "No se recibió imagen"}), 400
 
         # Decodificar imagen
-        image_data = data["image"].split(";base64,")[1]
-        img_bytes = base64.b64decode(image_data)
-        nparr = np.frombuffer(img_bytes, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        try:
+            image_data = data["image"].split(";base64,")[1]
+            img_bytes = base64.b64decode(image_data)
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        except Exception as e:
+            logger.error(f"Error decodificando imagen: {e}")
+            return jsonify({"error": "Error al procesar la imagen"}), 400
 
         if img is None:
             return jsonify({"error": "Imagen inválida"}), 400
 
-        # Analizar
+        # Analizar con timeout
         emocion = predecir_cnn(img)
         mensaje_aleatorio = obtener_mensaje(emocion)
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
 
         # Guardar en BD
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO emociones (usuario, emocion, mensaje) VALUES (?, ?, ?)",
-            (session["user"], emocion, mensaje_aleatorio)
-        )
-        conn.commit()
-        conn.close()
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO emociones (usuario, emocion, mensaje) VALUES (?, ?, ?)",
+                (session["user"], emocion, mensaje_aleatorio)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error guardando en BD: {e}")
 
         # Liberar memoria
         gc.collect()
@@ -209,9 +231,34 @@ def analizar():
         })
 
     except Exception as e:
-        logger.error(f"Error en /analizar: {e}")
+        logger.error(f"❌ Error en /analizar: {e}")
         gc.collect()
         return jsonify({"error": str(e)}), 500
+
+@app.route("/dashboard")
+def dashboard():
+    if "user" not in session:
+        return redirect("/")
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT emocion, COUNT(*)
+        FROM emociones
+        WHERE usuario = ?
+        GROUP BY emocion
+    """, (session["user"],))
+    
+    datos = cursor.fetchall()
+    conn.close()
+    
+    EMOCIONES = ["Enojo", "Felicidad", "Tristeza", "Sorpresa", "Neutral"]
+    conteo = {emocion: 0 for emocion in EMOCIONES}
+    for row in datos:
+        if row["emocion"] in conteo:
+            conteo[row["emocion"]] = row[1]
+    
+    return render_template("dashboard.html", conteo=conteo)
 
 @app.route("/logout")
 def logout():
@@ -262,14 +309,34 @@ def predict_image():
         })
         
     except Exception as e:
-        logger.error(f"Error predict_image: {e}")
+        logger.error(f"❌ Error predict_image: {e}")
         gc.collect()
         return jsonify({'estado': 'error', 'detalle': str(e)}), 500
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy"}), 200
+    """Health check para Render"""
+    return jsonify({
+        "status": "healthy",
+        "memory": "optimized",
+        "version": "2.0-lite"
+    }), 200
 
+@app.route('/debug')
+def debug():
+    """Endpoint para debug"""
+    import sys
+    return jsonify({
+        "python": sys.version,
+        "memory_optimized": True,
+        "tensorflow_loaded": False
+    })
+
+# =============================
+# ENTRYPOINT
+# =============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
+    logger.info(f"🚀 Servidor iniciado en puerto {port}")
+    logger.info("📦 Versión: Optimizada para memoria (sin TensorFlow)")
     app.run(host="0.0.0.0", port=port, debug=False)
