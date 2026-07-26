@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - EmotiScan AI</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
     <style>
         * {
             margin: 0;
@@ -143,22 +147,35 @@
         /* ============================================
            CAMPOS DEL FORMULARIO
            ============================================ */
-        .input-box {
-            position: relative;
+        .form-group {
             margin-bottom: 20px;
+            text-align: left;
         }
 
-        .input-box i {
+        .form-group label {
+            display: block;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
             position: absolute;
             top: 50%;
             left: 18px;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.4);
+            color: rgb(226, 229, 233);
             font-size: 18px;
             transition: color 0.3s ease;
         }
 
-        .input-box input {
+        .input-wrapper input {
             width: 100%;
             padding: 14px 18px 14px 50px;
             background: rgba(255, 255, 255, 0.08);
@@ -170,22 +187,22 @@
             outline: none;
         }
 
-        .input-box input:focus {
+        .input-wrapper input:focus {
             border-color: #e94560;
             background: rgba(255, 255, 255, 0.12);
             box-shadow: 0 0 20px rgba(233, 69, 96, 0.15);
         }
 
-        .input-box input:focus + i,
-        .input-box input:focus ~ i {
+        .input-wrapper input:focus + i,
+        .input-wrapper input:focus ~ i {
             color: #e94560;
         }
 
-        .input-box input::placeholder {
+        .input-wrapper input::placeholder {
             color: rgba(255, 255, 255, 0.3);
         }
 
-        .input-box input:-webkit-autofill {
+        .input-wrapper input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 30px #1a1a2e inset !important;
             -webkit-text-fill-color: #fff !important;
         }
@@ -329,35 +346,45 @@
         <!-- FORMULARIO -->
         <form action="/guardar" method="POST" id="register-form">
 
-            <div class="input-box">
-                <i class="fas fa-user"></i>
-                <input
-                    type="text"
-                    id="usuario"
-                    name="usuario"
-                    placeholder="Usuario"
-                    autocomplete="off"
-                    required
-                >
+            <div class="form-group">
+                <label for="usuario">
+                    <i class="fa-solid fa-user" style="color: rgb(226, 229, 233);"></i> Usuario
+                </label>
+                <div class="input-wrapper">
+                    <input
+                        type="text"
+                        id="usuario"
+                        name="usuario"
+                        placeholder="Ingresa tu usuario"
+                        autocomplete="off"
+                        required
+                    >
+                    <i class="fa-solid fa-user" style="color: rgb(226, 229, 233);"></i>
+                </div>
             </div>
 
-            <div class="input-box">
-                <i class="fas fa-lock"></i>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Contraseña"
-                    autocomplete="off"
-                    required
-                    minlength="4"
-                >
+            <div class="form-group">
+                <label for="password">
+                    <i class="fa-solid fa-lock" style="color: rgb(226, 229, 233);"></i> Contraseña
+                </label>
+                <div class="input-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Ingresa tu contraseña"
+                        autocomplete="off"
+                        required
+                        minlength="4"
+                    >
+                    <i class="fa-solid fa-lock" style="color: rgb(226, 229, 233);"></i>
+                </div>
             </div>
 
             <button type="submit" class="btn-register" id="register-btn">
                 <span class="spinner" id="spinner"></span>
                 <span id="btn-text">
-                    <i class="fas fa-user-plus"></i> Registrarme
+                    <i class="fa-solid fa-user-plus"></i> Registrarme
                 </span>
             </button>
 
@@ -435,7 +462,6 @@
             crearParticulas();
             animacionActiva = true;
             animarConfetti();
-            // Detener después de 5 segundos
             setTimeout(() => {
                 animacionActiva = false;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -459,34 +485,28 @@
             const usuario = document.getElementById('usuario').value.trim();
             const password = document.getElementById('password').value.trim();
 
-            // Validar campos vacíos
             if (!usuario || !password) {
                 e.preventDefault();
                 mostrarError('⚠️ Por favor completa todos los campos');
                 return;
             }
 
-            // Validar longitud mínima
             if (password.length < 4) {
                 e.preventDefault();
                 mostrarError('⚠️ La contraseña debe tener al menos 4 caracteres');
                 return;
             }
 
-            // Mostrar loading
             const btn = document.getElementById('register-btn');
             const btnText = document.getElementById('btn-text');
             const spinner = document.getElementById('spinner');
 
             btn.disabled = true;
-            btnText.innerHTML = 'Creando cuenta...';
+            btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando cuenta...';
             spinner.classList.add('show');
             ocultarError();
 
-            // Lanzar confetti (celebración)
             lanzarConfetti();
-
-            // El formulario se envía normalmente
         });
 
         // ============================================
@@ -532,7 +552,7 @@
                 const btnText = document.getElementById('btn-text');
                 const spinner = document.getElementById('spinner');
                 btn.disabled = false;
-                btnText.innerHTML = '<i class="fas fa-user-plus"></i> Registrarme';
+                btnText.innerHTML = '<i class="fa-solid fa-user-plus"></i> Registrarme';
                 spinner.classList.remove('show');
             }
         });
@@ -547,7 +567,7 @@
                 const spinner = document.getElementById('spinner');
 
                 btn.disabled = false;
-                btnText.innerHTML = '<i class="fas fa-user-plus"></i> Registrarme';
+                btnText.innerHTML = '<i class="fa-solid fa-user-plus"></i> Registrarme';
                 spinner.classList.remove('show');
 
                 mostrarError('Error de conexión. Intenta nuevamente');
