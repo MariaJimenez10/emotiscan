@@ -8,7 +8,6 @@ import base64
 import sqlite3
 import logging
 import gc
-import sys
 import time
 
 # Configuración de logging
@@ -67,30 +66,23 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
-    """Función principal con timeout y manejo de memoria"""
+    """Función principal con timeout"""
     try:
         if img is None:
             return "Neutral"
         
-        # Timeout para evitar bloqueos
         start = time.time()
-        
-        # Detectar rostro
         rostro = detectar_rostro(img)
+        
         if rostro is None:
             return "Neutral"
         
-        # Si pasó mucho tiempo
         if time.time() - start > 1.0:
             logger.warning("⏰ Timeout")
             return "Neutral"
         
-        # Predecir
         emocion, _, _ = predecir(rostro)
-        
-        # Liberar memoria
         gc.collect()
-        
         return emocion if emocion else "Neutral"
         
     except Exception as e:
@@ -175,14 +167,12 @@ def inicio():
 
 @app.route("/analizar", methods=["POST"])
 def analizar():
-    """Endpoint principal con manejo de errores extremo"""
-    logger.info("📥 Recibiendo petición /analizar")
+    logger.info("📥 /analizar")
     
     if "user" not in session:
         return jsonify({"error": "No hay sesión"}), 401
 
     try:
-        # Verificar contenido
         data = request.get_json()
         if not data or "image" not in data:
             return jsonify({"error": "No se recibió imagen"}), 400
@@ -200,12 +190,10 @@ def analizar():
         if img is None:
             return jsonify({"error": "Imagen inválida"}), 400
 
-        # Analizar
         emocion = predecir_cnn(img)
         mensaje = obtener_mensaje(emocion)
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
 
-        # Guardar en BD (opcional)
         try:
             conn = get_db()
             cursor = conn.cursor()
@@ -218,10 +206,8 @@ def analizar():
         except Exception as e:
             logger.error(f"❌ Error BD: {e}")
 
-        # Liberar memoria
         gc.collect()
-
-        logger.info(f"✅ Éxito: {emocion}")
+        logger.info(f"✅ {emocion}")
         
         return jsonify({
             "success": True,
@@ -231,7 +217,7 @@ def analizar():
         })
 
     except Exception as e:
-        logger.error(f"❌ Error fatal: {e}")
+        logger.error(f"❌ Error: {e}")
         gc.collect()
         return jsonify({"error": str(e)}), 500
 
@@ -317,15 +303,10 @@ def predict_image():
 def health():
     return jsonify({
         "status": "healthy",
-        "version": "ultra-lite",
-        "memory": "optimized"
+        "version": "ultra-lite"
     }), 200
 
-# =============================
-# ENTRYPOINT
-# =============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     logger.info(f"🚀 Servidor en puerto {port}")
-    logger.info("📦 Versión Ultra-Lite (sin TensorFlow)")
     app.run(host="0.0.0.0", port=port, debug=False)
