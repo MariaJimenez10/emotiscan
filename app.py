@@ -11,18 +11,14 @@ import gc
 import sys
 import time
 
-# 🔥 CONFIGURACIÓN DE MEMORIA
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['OMP_NUM_THREADS'] = '1'
-
-# Configurar logging
+# Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Importar módulos livianos
+# Importar módulos
 from face_detector import detectar_rostro
 from predict import predecir
-from mensajes import obtener_mensaje, mostrar_estado_mensajes
+from mensajes import obtener_mensaje
 
 # APP FLASK
 app = Flask(__name__)
@@ -76,17 +72,17 @@ def predecir_cnn(img):
         if img is None:
             return "Neutral"
         
-        # Limitar tiempo de procesamiento
-        start_time = time.time()
+        # Timeout para evitar bloqueos
+        start = time.time()
         
         # Detectar rostro
         rostro = detectar_rostro(img)
         if rostro is None:
             return "Neutral"
         
-        # Si pasó mucho tiempo, retornar Neutral
-        if time.time() - start_time > 2.0:
-            logger.warning("⏰ Timeout en procesamiento")
+        # Si pasó mucho tiempo
+        if time.time() - start > 1.0:
+            logger.warning("⏰ Timeout")
             return "Neutral"
         
         # Predecir
@@ -95,15 +91,15 @@ def predecir_cnn(img):
         # Liberar memoria
         gc.collect()
         
-        return emocion
+        return emocion if emocion else "Neutral"
         
     except Exception as e:
-        logger.error(f"❌ Error en predecir_cnn: {e}")
+        logger.error(f"❌ Error: {e}")
         gc.collect()
         return "Neutral"
 
 # =============================
-# RUTAS DE FLASK
+# RUTAS
 # =============================
 
 @app.route("/")
@@ -161,8 +157,8 @@ def guardar_usuario():
     except sqlite3.IntegrityError:
         return "⚠️ El usuario ya existe. <a href='/register'>Intentar de nuevo</a>"
     except Exception as e:
-        logger.error(f"Error en registro: {e}")
-        return "❌ Error interno del servidor", 500
+        logger.error(f"Error: {e}")
+        return "❌ Error interno", 500
 
 @app.route("/inicio")
 def inicio():
@@ -179,14 +175,16 @@ def inicio():
 
 @app.route("/analizar", methods=["POST"])
 def analizar():
-    """Endpoint principal con manejo de errores robusto"""
+    """Endpoint principal con manejo de errores extremo"""
+    logger.info("📥 Recibiendo petición /analizar")
+    
     if "user" not in session:
-        return jsonify({"error": "No hay sesión activa"}), 401
+        return jsonify({"error": "No hay sesión"}), 401
 
     try:
         # Verificar contenido
         data = request.get_json()
-        if data is None or "image" not in data:
+        if not data or "image" not in data:
             return jsonify({"error": "No se recibió imagen"}), 400
 
         # Decodificar imagen
@@ -196,42 +194,44 @@ def analizar():
             nparr = np.frombuffer(img_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         except Exception as e:
-            logger.error(f"Error decodificando imagen: {e}")
-            return jsonify({"error": "Error al procesar la imagen"}), 400
+            logger.error(f"❌ Error decodificando: {e}")
+            return jsonify({"error": "Error procesando imagen"}), 400
 
         if img is None:
             return jsonify({"error": "Imagen inválida"}), 400
 
-        # Analizar con timeout
+        # Analizar
         emocion = predecir_cnn(img)
-        mensaje_aleatorio = obtener_mensaje(emocion)
+        mensaje = obtener_mensaje(emocion)
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
 
-        # Guardar en BD
+        # Guardar en BD (opcional)
         try:
             conn = get_db()
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO emociones (usuario, emocion, mensaje) VALUES (?, ?, ?)",
-                (session["user"], emocion, mensaje_aleatorio)
+                (session["user"], emocion, mensaje)
             )
             conn.commit()
             conn.close()
         except Exception as e:
-            logger.error(f"Error guardando en BD: {e}")
+            logger.error(f"❌ Error BD: {e}")
 
         # Liberar memoria
         gc.collect()
 
+        logger.info(f"✅ Éxito: {emocion}")
+        
         return jsonify({
             "success": True,
             "emotion": emocion,
             "advice": consejo,
-            "message": mensaje_aleatorio
+            "message": mensaje
         })
 
     except Exception as e:
-        logger.error(f"❌ Error en /analizar: {e}")
+        logger.error(f"❌ Error fatal: {e}")
         gc.collect()
         return jsonify({"error": str(e)}), 500
 
@@ -286,7 +286,7 @@ def predict_image():
             return jsonify({'estado': 'error', 'detalle': 'Error al leer imagen'}), 400
         
         emocion = predecir_cnn(img)
-        mensaje_aleatorio = obtener_mensaje(emocion)
+        mensaje = obtener_mensaje(emocion)
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         
         if "user" in session:
@@ -294,7 +294,7 @@ def predict_image():
             cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO emociones (usuario, emocion, mensaje) VALUES (?, ?, ?)",
-                (session["user"], emocion, mensaje_aleatorio)
+                (session["user"], emocion, mensaje)
             )
             conn.commit()
             conn.close()
@@ -304,39 +304,28 @@ def predict_image():
         return jsonify({
             'emocion': emocion,
             'consejo': consejo,
-            'mensaje': mensaje_aleatorio,
+            'mensaje': mensaje,
             'estado': 'success'
         })
         
     except Exception as e:
-        logger.error(f"❌ Error predict_image: {e}")
+        logger.error(f"❌ Error: {e}")
         gc.collect()
         return jsonify({'estado': 'error', 'detalle': str(e)}), 500
 
 @app.route('/health')
 def health():
-    """Health check para Render"""
     return jsonify({
         "status": "healthy",
-        "memory": "optimized",
-        "version": "2.0-lite"
+        "version": "ultra-lite",
+        "memory": "optimized"
     }), 200
-
-@app.route('/debug')
-def debug():
-    """Endpoint para debug"""
-    import sys
-    return jsonify({
-        "python": sys.version,
-        "memory_optimized": True,
-        "tensorflow_loaded": False
-    })
 
 # =============================
 # ENTRYPOINT
 # =============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    logger.info(f"🚀 Servidor iniciado en puerto {port}")
-    logger.info("📦 Versión: Optimizada para memoria (sin TensorFlow)")
+    logger.info(f"🚀 Servidor en puerto {port}")
+    logger.info("📦 Versión Ultra-Lite (sin TensorFlow)")
     app.run(host="0.0.0.0", port=port, debug=False)
