@@ -96,7 +96,9 @@ def predecir_cnn(img):
 
 @app.route("/")
 def index():
-    return render_template("login.html")
+    # Verificar si hay error en la URL
+    error = request.args.get('error')
+    return render_template("login.html", error=error)
 
 @app.route("/login", methods=["POST"])
 def validar():
@@ -116,12 +118,8 @@ def validar():
         session["user"] = usuario 
         return redirect("/inicio")
     else:
-        return """
-        <script>
-            alert('❌ Usuario o contraseña incorrectos');
-            window.location.href = '/';
-        </script>
-        """
+        # 🔥 REDIRIGIR CON PARÁMETRO DE ERROR
+        return redirect("/?error=invalid")
 
 @app.route("/register")
 def register():
