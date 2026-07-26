@@ -12,23 +12,12 @@ services:
         --threads 1 \
         --timeout 300 \
         --max-requests 5 \
-        --max-requests-jitter 3 \
-        --preload
+        --max-requests-jitter 3
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
         value: 3.9.0
-      - key: TF_CPP_MIN_LOG_LEVEL
-        value: "3"
-      - key: TF_ENABLE_ONEDNN_OPTS
-        value: "0"
-      - key: OMP_NUM_THREADS
-        value: "1"
-      - key: MKL_NUM_THREADS
-        value: "1"
-      - key: OPENBLAS_NUM_THREADS
-        value: "1"
       - key: PORT
         value: "10000"
     healthCheckPath: /health
