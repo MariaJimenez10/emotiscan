@@ -1,6 +1,6 @@
 from face_detector import detectar_rostro
 from predict import predecir
-from mensajes import obtener_mensaje
+from mensajes import obtener_mensaje, mostrar_estado_mensajes
 import os
 # 🔥 CONFIGURACIÓN DE MEMORIA - AL PRINCIPIO DE TODO
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -108,6 +108,8 @@ def predecir_cnn(img):
     print("Emoción:", emocion)
     print("Confianza:", confianza)
 
+    mostrar_estado_mensajes()
+    
     return emocion
 
 # =============================
@@ -318,7 +320,7 @@ def predict_image():
         
         emocion = predecir_cnn(img)
         print("Emoción recibida:", emocion)
-        
+
         ##cuando es tristeza hara esta funcion
         consejo = CONSEJOS.get(emocion, "Cuida de ti mismo.")
         
