@@ -1,52 +1,31 @@
+# face_detector.py - VERSIÓN SIN DEEPFACE
 import cv2
 import numpy as np
-from deepface import DeepFace
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def detectar_rostro(img):
     """
-    Detecta y recorta el rostro usando DeepFace
-    Retorna: rostro recortado (224,224,3) o None
+    Detecta rostro usando solo OpenCV (sin DeepFace)
     """
+    if img is None:
+        return None
+    
     try:
-        # Guardar imagen temporal para DeepFace
-        temp_path = "temp_face.jpg"
-        cv2.imwrite(temp_path, img)
-        
-        # DeepFace detecta y recorta automáticamente
-        rostro = DeepFace.detectFace(
-            img_path=temp_path,
-            target_size=(224, 224),  # Tamaño para ResNet50
-            detector_backend='opencv',  # Rápido y ligero
-            enforce_detection=False  # No lanza error si no encuentra
-        )
-        
-        # Eliminar archivo temporal
-        import os
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-            
-        return rostro
-        
-    except Exception as e:
-        print(f"⚠️ Error detectando rostro: {e}")
-        # Fallback: usar Haar Cascade
-        return detectar_rostro_haar(img)
-
-def detectar_rostro_haar(img):
-    """
-    Método alternativo usando Haar Cascade (fallback)
-    """
-    try:
-        # Convertir a escala de grises
+        # Convertir a grises
         if len(img.shape) == 3:
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         else:
             gray = img
         
-        # Detectar rostros con Haar Cascade
+        # Detector Haar
         face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         )
+        
+        # Detectar múltiples escalas
         caras = face_cascade.detectMultiScale(
             gray,
             scaleFactor=1.1,
@@ -55,21 +34,37 @@ def detectar_rostro_haar(img):
         )
         
         if len(caras) == 0:
-            print("⚠️ No se detectaron rostros")
+            # Intentar con parámetros más flexibles
+            caras = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.05,
+                minNeighbors=3,
+                minSize=(20, 20)
+            )
+        
+        if len(caras) == 0:
+            logger.warning("⚠️ No se detectaron rostros")
             return None
         
-        # Tomar el primer rostro detectado
-        (x, y, w, h) = caras[0]
+        # Tomar el rostro más grande
+        if len(caras) > 1:
+            areas = [w * h for (x, y, w, h) in caras]
+            idx = np.argmax(areas)
+            (x, y, w, h) = caras[idx]
+        else:
+            (x, y, w, h) = caras[0]
+        
+        # Recortar
         rostro = img[y:y+h, x:x+w]
         
-        # Redimensionar a 224x224
+        # Redimensionar
         rostro = cv2.resize(rostro, (224, 224))
         
-        # Normalizar a [0,1] como espera DeepFace
-        rostro = rostro / 255.0
+        # Normalizar
+        rostro = rostro.astype(np.float32) / 255.0
         
         return rostro
         
     except Exception as e:
-        print(f"❌ Error en detección alternativa: {e}")
+        logger.error(f"❌ Error detectando rostro: {e}")
         return None
