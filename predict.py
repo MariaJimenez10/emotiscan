@@ -44,23 +44,29 @@ def predecir(rostro):
 
     try:
 
-        if rostro is None:
-            return "Neutral", 0.0, None
+        logger.info("Paso 1: Recibí el rostro")
 
-        # Resize por seguridad
-        rostro = cv2.resize(rostro, (224, 224))
+        rostro = cv2.resize(rostro, (224,224))
+
+        logger.info("Paso 2: Resize correcto")
 
         rostro = rostro.astype(np.float32)
 
-        # EXACTAMENTE igual al entrenamiento
+        logger.info("Paso 3: float32")
+
         rostro = preprocess_input(rostro)
+
+        logger.info("Paso 4: preprocess_input")
 
         rostro = np.expand_dims(rostro, axis=0)
 
-        pred = modelo.predict(
-            rostro,
-            verbose=0
-        )[0]
+        logger.info("Paso 5: expand_dims")
+
+        pred = modelo.predict(rostro, verbose=0)
+
+        logger.info("Paso 6: model.predict OK")
+
+        pred = pred[0]
 
         indice = np.argmax(pred)
 
@@ -68,14 +74,12 @@ def predecir(rostro):
 
         confianza = float(pred[indice])
 
-        logger.info(
-            f"Predicción: {emocion} ({confianza:.2f})"
-        )
+        logger.info(f"Predicción: {emocion} ({confianza})")
 
         return emocion, confianza, pred.tolist()
 
     except Exception as e:
-
-        logger.error(e)
-
-        return "Neutral", 0.0, None
+        import traceback
+        logger.error(traceback.format_exc())
+        return "Neutral",0,None
+    
