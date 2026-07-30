@@ -141,6 +141,76 @@
         let isProcessing = false;
 
         // ============================================
+        // FACE MESH - PARA LA MALLA FACIAL
+        // ============================================
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults(results => {
+            // Limpiar y dibujar la imagen del video
+            ctxOverlay.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+            ctxOverlay.save();
+            ctxOverlay.scale(-1, 1);
+            ctxOverlay.drawImage(results.image, -canvasOverlay.width, 0, canvasOverlay.width, canvasOverlay.height);
+            ctxOverlay.restore();
+
+            // === DIBUJAR MALLA FACIAL AZUL ===
+            if (results.multiFaceLandmarks) {
+                for (const landmarks of results.multiFaceLandmarks) {
+                    // Aplicar espejo a los landmarks
+                    const mirroredLandmarks = landmarks.map(lm => ({
+                        x: 1 - lm.x,
+                        y: lm.y,
+                        z: lm.z
+                    }));
+
+                    // 1. MALLA PRINCIPAL (triangulación) - azul claro
+                    drawConnectors(ctxOverlay, mirroredLandmarks, FACEMESH_TESSELATION, {
+                        color: "rgba(0, 150, 255, 0.25)",
+                        lineWidth: 0.8
+                    });
+
+                    // 2. OJOS - azul más brillante
+                    drawConnectors(ctxOverlay, mirroredLandmarks, FACEMESH_RIGHT_EYE, {
+                        color: "rgba(0, 200, 255, 0.7)",
+                        lineWidth: 1.8
+                    });
+                    drawConnectors(ctxOverlay, mirroredLandmarks, FACEMESH_LEFT_EYE, {
+                        color: "rgba(0, 200, 255, 0.7)",
+                        lineWidth: 1.8
+                    });
+
+                    // 3. LABIOS - azul más brillante
+                    drawConnectors(ctxOverlay, mirroredLandmarks, FACEMESH_LIPS, {
+                        color: "rgba(0, 200, 255, 0.7)",
+                        lineWidth: 1.8
+                    });
+
+                    // 4. PUNTOS DE LA CARA (pequeños círculos azules)
+                    for (const lm of mirroredLandmarks) {
+                        const x = lm.x * canvasOverlay.width;
+                        const y = lm.y * canvasOverlay.height;
+                        ctxOverlay.beginPath();
+                        ctxOverlay.arc(x, y, 2, 0, 2 * Math.PI);
+                        ctxOverlay.fillStyle = "rgba(0, 180, 255, 0.6)";
+                        ctxOverlay.fill();
+                    }
+                }
+                scanIndicator.classList.add('active');
+            } else {
+                scanIndicator.classList.remove('active');
+            }
+        });
+
+        // ============================================
         // FUNCIÓN: INICIAR CÁMARA
         // ============================================
         async function startCamera() {
