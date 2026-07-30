@@ -66,28 +66,26 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
-    """Función principal con timeout"""
+
     try:
-        if img is None:
-            return "Neutral"
-        
-        start = time.time()
+
         rostro = detectar_rostro(img)
-        
+
         if rostro is None:
             return "Neutral"
-        
-        if time.time() - start > 1.0:
-            logger.warning("⏰ Timeout")
-            return "Neutral"
-        
-        emocion, _, _ = predecir(rostro)
-        gc.collect()
-        return emocion if emocion else "Neutral"
-        
+
+        emocion, confianza, _ = predecir(rostro)
+
+        logger.info(
+            f"{emocion} - {confianza:.2f}"
+        )
+
+        return emocion
+
     except Exception as e:
-        logger.error(f"❌ Error: {e}")
-        gc.collect()
+
+        logger.error(e)
+
         return "Neutral"
 
 # =============================
