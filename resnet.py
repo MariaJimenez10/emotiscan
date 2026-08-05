@@ -1,7 +1,9 @@
 import os
+import gc
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
@@ -14,26 +16,24 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay
 )
 
+from tensorflow.keras import mixed_precision
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
-from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
-
+from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 # =========================
-# RUTA DEL DATASET
+# REDUCIR MEMORIA
 # =========================
 
-# Si la carpeta dataset está dentro del proyecto:
+mixed_precision.set_global_policy("mixed_float16")
+
+# =========================
+# DATASET
+# =========================
+
 dataset_path = "dataset/train"
-
-# O usa la ruta completa:
-# dataset_path = r"C:\Users\Equipo\OneDrive\Desktop\111\emotiscan\dataset\train"
-
-
-# =========================
-# EMOCIONES
-# =========================
 
 emociones = [
     "Enojo",
@@ -41,11 +41,6 @@ emociones = [
     "Neutral",
     "Tristeza"
 ]
-
-
-# =========================
-# CARGAR DATOS
-# =========================
 
 X = []
 y = []
@@ -57,39 +52,28 @@ for idx, emocion in enumerate(emociones):
     carpeta = os.path.join(dataset_path, emocion)
 
     if not os.path.exists(carpeta):
-        print(f"❌ No existe la carpeta: {carpeta}")
         continue
 
     for archivo in os.listdir(carpeta):
 
         ruta = os.path.join(carpeta, archivo)
 
-        imagen = cv2.imread(ruta)
+        img = cv2.imread(ruta)
 
-        if imagen is None:
+        if img is None:
             continue
 
-        imagen = cv2.resize(imagen, (224, 224))
+        img = cv2.resize(img, (224,224))
 
-        X.append(imagen)
+        X.append(img)
         y.append(idx)
 
 X = np.array(X, dtype=np.float32)
 y = np.array(y)
 
-print("Total imágenes:", len(X))
-
-
-# =========================
-# PREPROCESAMIENTO
-# =========================
+print("Imágenes:", len(X))
 
 X = preprocess_input(X)
-
-
-# =========================
-# TRAIN / TEST
-# =========================
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
@@ -99,15 +83,14 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y
 )
 
-
 # =========================
-# MODELO RESNET50
+# MODELO
 # =========================
 
 base_model = ResNet50(
     weights="imagenet",
     include_top=False,
-    input_shape=(224, 224, 3)
+    input_shape=(224,224,3)
 )
 
 base_model.trainable = False
@@ -117,7 +100,7 @@ x = base_model.output
 x = GlobalAveragePooling2D()(x)
 
 x = Dense(
-    256,
+    128,
     activation="relu"
 )(x)
 
@@ -125,7 +108,8 @@ x = Dropout(0.5)(x)
 
 output = Dense(
     len(emociones),
-    activation="softmax"
+    activation="softmax",
+    dtype="float32"
 )(x)
 
 model = Model(
@@ -133,115 +117,78 @@ model = Model(
     outputs=output
 )
 
-
-# =========================
-# COMPILAR
-# =========================
-
 model.compile(
     optimizer="adam",
     loss="sparse_categorical_crossentropy",
     metrics=["accuracy"]
 )
 
+callbacks = [
 
-model.summary()
+    EarlyStopping(
+        patience=3,
+        restore_best_weights=True
+    ),
 
+    ModelCheckpoint(
+        "mejor_modelo.keras",
+        save_best_only=True
+    )
 
-# =========================
-# ENTRENAMIENTO
-# =========================
+]
 
 history = model.fit(
+
     X_train,
     y_train,
-    validation_data=(X_test, y_test),
+
+    validation_data=(X_test,y_test),
+
     epochs=15,
-    batch_size=32
+
+    batch_size=32,
+
+    callbacks=callbacks
+
 )
 
+print("Guardando modelo...")
 
-# =========================
-# GUARDAR MODELO
-# =========================
+model.save("modelo_resnet50_emociones.keras")
 
 model.save("modelo_resnet50_emociones.h5")
 
-print("\n✅ Modelo guardado correctamente")
-
-
-# =========================
-# PREDICCIONES
-# =========================
+print("Modelo guardado.")
 
 y_pred = model.predict(X_test)
 
 y_pred = np.argmax(y_pred, axis=1)
 
+print("Accuracy:", accuracy_score(y_test,y_pred))
 
-# =========================
-# MÉTRICAS
-# =========================
-
-accuracy = accuracy_score(y_test, y_pred)
-
-precision = precision_score(
+print(classification_report(
     y_test,
     y_pred,
-    average="weighted"
-)
+    target_names=emociones
+))
 
-recall = recall_score(
-    y_test,
-    y_pred,
-    average="weighted"
-)
-
-f1 = f1_score(
-    y_test,
-    y_pred,
-    average="weighted"
-)
-
-
-print("\n========== RESULTADOS ==========")
-print("Accuracy :", accuracy)
-print("Precision:", precision)
-print("Recall   :", recall)
-print("F1 Score :", f1)
-
-
-# =========================
-# REPORTE
-# =========================
-
-print("\n========== REPORTE ==========\n")
-
-print(
-    classification_report(
-        y_test,
-        y_pred,
-        target_names=emociones
-    )
-)
-
-
-# =========================
-# MATRIZ DE CONFUSIÓN
-# =========================
-
-matriz = confusion_matrix(
-    y_test,
-    y_pred
-)
+cm = confusion_matrix(y_test,y_pred)
 
 disp = ConfusionMatrixDisplay(
-    confusion_matrix=matriz,
+    confusion_matrix=cm,
     display_labels=emociones
 )
 
 disp.plot(cmap="Blues")
 
-plt.title("Matriz de Confusión - ResNet50")
-
 plt.show()
+
+del X
+del y
+del X_train
+del X_test
+del model
+
+gc.collect()
+
+tf.keras.backend.clear_session()
