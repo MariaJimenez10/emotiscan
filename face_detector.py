@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 # CASCADE DE RESPALDO
 # ==========================================
 
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades +
-    "haarcascade_frontalface_default.xml"
-)
+from deepface import DeepFace
+
+faces = DeepFace.extract_faces(...)
 
 
 # ==========================================
@@ -74,6 +73,8 @@ def detectar_rostro(img):
                 f"DeepFace falló: {e}"
             )
 
+            rostro = img[y:y+h, x:x+w]
+            rostro = cv2.resize(rostro,(224,224))
         # ==========================================
         # 2. OPENCV (RESPALDO)
         # ==========================================
