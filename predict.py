@@ -1,41 +1,32 @@
 import os
-import gc
 import cv2
-import numpy as np
+import gc
 import logging
+import numpy as np
 import tensorflow as tf
-
-from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.resnet50 import preprocess_input
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ======================================
-# CONFIGURACIÓN TENSORFLOW
-# ======================================
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-
-# ======================================
-# RUTA DEL MODELO
-# ======================================
+# ==========================
+# Cargar modelo TFLite
+# ==========================
 
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
-    "modelo_resnet50_emociones.h5"
+    "modelo_resnet50_emociones.tflite"
 )
 
-logger.info("Cargando modelo...")
+logger.info("Cargando modelo TFLite...")
 
-modelo = load_model(MODEL_PATH, compile=False)
+interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+interpreter.allocate_tensors()
 
-logger.info("Modelo cargado correctamente.")
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-# ======================================
-# EMOCIONES
-# ======================================
+logger.info("Modelo TFLite cargado correctamente.")
 
 EMOCIONES = [
     "Enojo",
@@ -44,26 +35,25 @@ EMOCIONES = [
     "Tristeza"
 ]
 
-# ======================================
-# PREDICCIÓN
-# ======================================
-
 def predecir(rostro):
 
     try:
 
-        if rostro is None:
-            return "Neutral", 0.0, None
-
-        rostro = cv2.resize(rostro, (224, 224))
-
+        rostro = cv2.resize(rostro, (224,224))
         rostro = rostro.astype(np.float32)
-
         rostro = preprocess_input(rostro)
-
         rostro = np.expand_dims(rostro, axis=0)
 
-        pred = modelo.predict(rostro, verbose=0)[0]
+        interpreter.set_tensor(
+            input_details[0]["index"],
+            rostro
+        )
+
+        interpreter.invoke()
+
+        pred = interpreter.get_tensor(
+            output_details[0]["index"]
+        )[0]
 
         indice = np.argmax(pred)
 
@@ -71,9 +61,7 @@ def predecir(rostro):
 
         confianza = float(pred[indice])
 
-        # liberar memoria temporal
         del rostro
-
         gc.collect()
 
         return emocion, confianza, pred.tolist()
@@ -81,7 +69,5 @@ def predecir(rostro):
     except Exception as e:
 
         logger.exception(e)
-
-        gc.collect()
 
         return "Neutral", 0.0, None
