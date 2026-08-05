@@ -1,7 +1,9 @@
 import os
+import gc
 import cv2
 import numpy as np
 import logging
+import tensorflow as tf
 
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.resnet50 import preprocess_input
@@ -9,9 +11,16 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ===========================
-# Ruta del modelo
-# ===========================
+# ======================================
+# CONFIGURACIÓN TENSORFLOW
+# ======================================
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+# ======================================
+# RUTA DEL MODELO
+# ======================================
 
 MODEL_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -20,13 +29,13 @@ MODEL_PATH = os.path.join(
 
 logger.info("Cargando modelo...")
 
-modelo = load_model(MODEL_PATH)
+modelo = load_model(MODEL_PATH, compile=False)
 
 logger.info("Modelo cargado correctamente.")
 
-# ===========================
-# Emociones
-# ===========================
+# ======================================
+# EMOCIONES
+# ======================================
 
 EMOCIONES = [
     "Enojo",
@@ -35,38 +44,26 @@ EMOCIONES = [
     "Tristeza"
 ]
 
-
-# ===========================
-# Predicción
-# ===========================
+# ======================================
+# PREDICCIÓN
+# ======================================
 
 def predecir(rostro):
 
     try:
 
-        logger.info("Paso 1: Recibí el rostro")
+        if rostro is None:
+            return "Neutral", 0.0, None
 
-        rostro = cv2.resize(rostro, (224,224))
-
-        logger.info("Paso 2: Resize correcto")
+        rostro = cv2.resize(rostro, (224, 224))
 
         rostro = rostro.astype(np.float32)
 
-        logger.info("Paso 3: float32")
-
         rostro = preprocess_input(rostro)
-
-        logger.info("Paso 4: preprocess_input")
 
         rostro = np.expand_dims(rostro, axis=0)
 
-        logger.info("Paso 5: expand_dims")
-
-        pred = modelo.predict(rostro, verbose=0)
-
-        logger.info("Paso 6: model.predict OK")
-
-        pred = pred[0]
+        pred = modelo.predict(rostro, verbose=0)[0]
 
         indice = np.argmax(pred)
 
@@ -74,12 +71,17 @@ def predecir(rostro):
 
         confianza = float(pred[indice])
 
-        logger.info(f"Predicción: {emocion} ({confianza})")
+        # liberar memoria temporal
+        del rostro
+
+        gc.collect()
 
         return emocion, confianza, pred.tolist()
 
     except Exception as e:
-        import traceback
-        logger.error(traceback.format_exc())
-        return "Neutral",0,None
-    
+
+        logger.exception(e)
+
+        gc.collect()
+
+        return "Neutral", 0.0, None

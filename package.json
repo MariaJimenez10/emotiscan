@@ -1,14 +1,17 @@
 {
-  "name": "emociones",
+  "name": "emotiscan",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "@playwright/test": "^1.59.1",
-    "@types/node": "^25.6.0"
-  }
+  "description": "EmotiScan - Análisis de emociones con malla facial",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "keywords": ["emociones", "ia", "camera", "face"],
+  "author": "Tu Nombre",
+  "license": "ISC"
 }
