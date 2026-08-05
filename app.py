@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from flask import send_from_directory
 import os
 import cv2
 import numpy as np
@@ -66,26 +67,15 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
-
     try:
-
         rostro = detectar_rostro(img)
-
         if rostro is None:
             return "Neutral"
-
         emocion, confianza, _ = predecir(rostro)
-
-        logger.info(
-            f"{emocion} - {confianza:.2f}"
-        )
-
+        logger.info(f"{emocion} - {confianza:.2f}")
         return emocion
-
     except Exception as e:
-
         logger.error(e)
-
         return "Neutral"
 
 # =============================
@@ -94,7 +84,6 @@ def predecir_cnn(img):
 
 @app.route("/")
 def index():
-    # Verificar si hay error en la URL
     error = request.args.get('error')
     return render_template("login.html", error=error)
 
@@ -116,7 +105,6 @@ def validar():
         session["user"] = usuario 
         return redirect("/inicio")
     else:
-        # 🔥 REDIRIGIR CON PARÁMETRO DE ERROR
         return redirect("/?error=invalid")
 
 @app.route("/register")
@@ -155,7 +143,7 @@ def inicio():
     
     ahora = datetime.now()
     return render_template(
-        "index.html",
+        "index.html",  # ← ESTE ES EL HTML CON LA MALLA FACIAL
         usuario=session["user"],
         fecha=ahora.strftime("%Y-%m-%d"),
         hora=ahora.strftime("%H:%M:%S")
@@ -301,6 +289,13 @@ def health():
         "status": "healthy",
         "version": "ultra-lite"
     }), 200
+
+# ============================================
+# NUEVA RUTA PARA STATIC FILES (OPCIONAL)
+# ============================================
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
