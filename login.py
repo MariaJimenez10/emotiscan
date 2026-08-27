@@ -75,12 +75,9 @@ def abrir_reconocimiento():
     ventana.destroy()
     iniciar_reconocimiento()
 
-# función que abre DeepFace
 def iniciar_reconocimiento():
     import reconocimiento
-
-
-# ventana
+    
 ventana = tk.Tk()
 ventana.title("Login Sistema IA")
 ventana.geometry("300x250")

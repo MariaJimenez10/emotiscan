@@ -67,15 +67,69 @@ CONSEJOS = {
 }
 
 def predecir_cnn(img):
+
     try:
+
+        logger.info("======================================")
+        logger.info("🧠 INICIANDO ANÁLISIS CNN")
+        logger.info(f"Imagen recibida: {img.shape}")
+        logger.info(f"Tipo: {img.dtype}")
+
+        # ==========================================
+        # DETECTAR ROSTRO
+        # ==========================================
+
         rostro = detectar_rostro(img)
+
         if rostro is None:
+
+            logger.warning(
+                "❌ No se pudo detectar rostro"
+            )
+
             return "Neutral"
-        emocion, confianza, _ = predecir(rostro)
-        logger.info(f"{emocion} - {confianza:.2f}")
+
+
+        logger.info(
+            f"✅ Rostro enviado a predict(): "
+            f"{rostro.shape}"
+        )
+
+
+        # ==========================================
+        # PREDICCIÓN
+        # ==========================================
+
+        emocion, confianza, predicciones = predecir(
+            rostro
+        )
+
+
+        logger.info(
+            f"🎯 Resultado: {emocion}"
+        )
+
+        logger.info(
+            f"🎯 Confianza: {confianza:.4f}"
+        )
+
+        logger.info(
+            f"🎯 Predicciones: {predicciones}"
+        )
+
+
+        logger.info("======================================")
+
+
         return emocion
+
+
     except Exception as e:
-        logger.error(e)
+
+        logger.exception(
+            f"❌ Error en predecir_cnn: {e}"
+        )
+
         return "Neutral"
 
 # =============================
