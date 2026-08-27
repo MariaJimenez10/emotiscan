@@ -13,16 +13,17 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 # ==========================================================
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 
 # ==========================================================
-# CARPETA DEBUG
+# RUTAS
 # ==========================================================
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 DEBUG_DIR = os.path.join(
-    os.path.dirname(__file__),
+    BASE_DIR,
     "debug_rostros"
 )
 
@@ -37,30 +38,26 @@ os.makedirs(
 # ==========================================================
 
 MODEL_PATH = os.path.join(
-    os.path.dirname(__file__),
+    BASE_DIR,
     "modelo_resnet50_emociones.tflite"
 )
 
 
-logger.info(
-    "======================================"
-)
-
-logger.info(
-    "🧠 CARGANDO MODELO TFLITE"
-)
-
-logger.info(
-    f"Modelo: {MODEL_PATH}"
-)
+logger.info("======================================")
+logger.info("🧠 CARGANDO MODELO TFLITE")
+logger.info(f"📁 Ubicación del modelo: {MODEL_PATH}")
 
 
 if not os.path.exists(MODEL_PATH):
 
     raise FileNotFoundError(
-        f"No existe el modelo: {MODEL_PATH}"
+        f"❌ No existe el modelo: {MODEL_PATH}"
     )
 
+
+# ==========================================================
+# CARGAR INTERPRETER
+# ==========================================================
 
 interpreter = tf.lite.Interpreter(
     model_path=MODEL_PATH
@@ -74,38 +71,35 @@ interpreter.allocate_tensors()
 # ==========================================================
 
 input_details = interpreter.get_input_details()
-
 output_details = interpreter.get_output_details()
 
 
-logger.info(
-    "✅ Modelo TFLite cargado correctamente"
-)
-
+logger.info("✅ Modelo TFLite cargado correctamente")
 
 logger.info(
-    f"Entrada modelo: {input_details[0]['shape']}"
+    f"📥 Entrada modelo: {input_details[0]['shape']}"
 )
 
 logger.info(
-    f"Tipo entrada: {input_details[0]['dtype']}"
+    f"📥 Tipo entrada: {input_details[0]['dtype']}"
 )
 
 logger.info(
-    f"Salida modelo: {output_details[0]['shape']}"
+    f"📤 Salida modelo: {output_details[0]['shape']}"
 )
 
 logger.info(
-    f"Tipo salida: {output_details[0]['dtype']}"
+    f"📤 Tipo salida: {output_details[0]['dtype']}"
 )
 
-logger.info(
-    "======================================"
-)
+logger.info("======================================")
 
 
 # ==========================================================
 # EMOCIONES
+# IMPORTANTE:
+# ESTE ORDEN DEBE SER EXACTAMENTE EL MISMO
+# QUE SE UTILIZÓ DURANTE EL ENTRENAMIENTO
 # ==========================================================
 
 EMOCIONES = [
@@ -117,20 +111,34 @@ EMOCIONES = [
 
 
 # ==========================================================
-# PREDECIR
+# PREDECIR EMOCIÓN
 # ==========================================================
 
 def predecir(rostro):
 
     try:
 
-        logger.info(
-            "======================================"
-        )
+        logger.info("")
+        logger.info("======================================")
+        logger.info("🔍 INICIANDO PREDICCIÓN")
+        logger.info("======================================")
 
-        logger.info(
-            "🔍 INICIANDO PREDICCIÓN"
-        )
+
+        # ==================================================
+        # VERIFICAR QUE EL ROSTRO EXISTA
+        # ==================================================
+
+        if rostro is None:
+
+            logger.error(
+                "❌ ERROR: No se recibió ningún rostro"
+            )
+
+            return (
+                "Neutral",
+                0.0,
+                None
+            )
 
 
         # ==================================================
@@ -138,19 +146,39 @@ def predecir(rostro):
         # ==================================================
 
         logger.info(
-            f"Rostro recibido: {rostro.shape}"
+            f"📷 Rostro recibido: {rostro.shape}"
         )
 
         logger.info(
-            f"Tipo: {rostro.dtype}"
+            f"📷 Tipo: {rostro.dtype}"
         )
 
         logger.info(
-            f"MIN: {rostro.min()}"
+            f"📷 MIN: {rostro.min()}"
         )
 
         logger.info(
-            f"MAX: {rostro.max()}"
+            f"📷 MAX: {rostro.max()}"
+        )
+
+
+        # ==================================================
+        # GUARDAR ROSTRO ORIGINAL RECIBIDO
+        # ==================================================
+
+        ruta_original = os.path.join(
+            DEBUG_DIR,
+            "01_rostro_recibido.jpg"
+        )
+
+        cv2.imwrite(
+            ruta_original,
+            rostro
+        )
+
+        logger.info(
+            f"📸 Rostro original guardado: "
+            f"{ruta_original}"
         )
 
 
@@ -163,61 +191,99 @@ def predecir(rostro):
             (224, 224)
         )
 
-
         logger.info(
-            f"Después de resize: {rostro.shape}"
+            f"📐 Después de resize: {rostro.shape}"
         )
 
 
         # ==================================================
-        # GUARDAR ROSTRO ANTES DEL PREPROCESAMIENTO
+        # GUARDAR ROSTRO REDIMENSIONADO
+        # TODAVÍA EN FORMATO BGR
         # ==================================================
 
-        ruta_debug = os.path.join(
+        ruta_resize = os.path.join(
             DEBUG_DIR,
-            "04_rostro_entrada_visual.jpg"
+            "02_rostro_resize_bgr.jpg"
         )
 
         cv2.imwrite(
-            ruta_debug,
+            ruta_resize,
             rostro
         )
 
 
         # ==================================================
-        # CONVERTIR FLOAT32
+        # CONVERTIR BGR -> RGB
+        # IMPORTANTE PARA RESNET50
+        # ==================================================
+
+        rostro = cv2.cvtColor(
+            rostro,
+            cv2.COLOR_BGR2RGB
+        )
+
+        logger.info(
+            "🎨 Conversión BGR -> RGB realizada"
+        )
+
+
+        # ==================================================
+        # GUARDAR ROSTRO RGB
+        #
+        # OpenCV guarda esperando BGR, por eso convertimos
+        # nuevamente solo para poder visualizarlo correctamente
+        # ==================================================
+
+        ruta_rgb = os.path.join(
+            DEBUG_DIR,
+            "03_rostro_rgb.jpg"
+        )
+
+        rostro_visual = cv2.cvtColor(
+            rostro,
+            cv2.COLOR_RGB2BGR
+        )
+
+        cv2.imwrite(
+            ruta_rgb,
+            rostro_visual
+        )
+
+        del rostro_visual
+
+
+        # ==================================================
+        # CONVERTIR A FLOAT32
         # ==================================================
 
         rostro = rostro.astype(
             np.float32
         )
 
-
         logger.info(
-            f"Después de float32: {rostro.dtype}"
+            f"🔢 Después de float32: {rostro.dtype}"
         )
 
 
         # ==================================================
-        # PREPROCESS RESNET50
+        # PREPROCESAMIENTO RESNET50
         # ==================================================
 
         rostro = preprocess_input(
             rostro
         )
 
-
         logger.info(
-            "Preprocesamiento ResNet50 realizado"
+            "🧠 Preprocesamiento ResNet50 realizado"
         )
 
         logger.info(
-            f"MIN después preprocess: "
+            f"📊 MIN después preprocess: "
             f"{rostro.min():.2f}"
         )
 
         logger.info(
-            f"MAX después preprocess: "
+            f"📊 MAX después preprocess: "
             f"{rostro.max():.2f}"
         )
 
@@ -231,15 +297,14 @@ def predecir(rostro):
             axis=0
         )
 
-
         logger.info(
-            f"Entrada FINAL al modelo: "
+            f"➡️ Entrada FINAL al modelo: "
             f"{rostro.shape}"
         )
 
 
         # ==================================================
-        # VERIFICAR FORMA ESPERADA
+        # VERIFICAR FORMA ESPERADA POR EL MODELO
         # ==================================================
 
         forma_modelo = tuple(
@@ -252,19 +317,18 @@ def predecir(rostro):
 
 
         logger.info(
-            f"Modelo espera: {forma_modelo}"
+            f"🧠 Modelo espera: {forma_modelo}"
         )
 
         logger.info(
-            f"Estamos enviando: {forma_rostro}"
+            f"➡️ Estamos enviando: {forma_rostro}"
         )
 
 
         if forma_modelo != forma_rostro:
 
             logger.error(
-                "❌ ERROR: Las dimensiones "
-                "NO coinciden."
+                "❌ ERROR: Las dimensiones NO coinciden"
             )
 
             return (
@@ -275,14 +339,31 @@ def predecir(rostro):
 
 
         # ==================================================
-        # ENVIAR AL MODELO
+        # VERIFICAR TIPO DE DATO ESPERADO
+        # ==================================================
+
+        tipo_esperado = input_details[0]["dtype"]
+
+        if rostro.dtype != tipo_esperado:
+
+            logger.warning(
+                f"⚠️ Convirtiendo entrada de "
+                f"{rostro.dtype} a {tipo_esperado}"
+            )
+
+            rostro = rostro.astype(
+                tipo_esperado
+            )
+
+
+        # ==================================================
+        # ENVIAR IMAGEN AL MODELO
         # ==================================================
 
         interpreter.set_tensor(
             input_details[0]["index"],
             rostro
         )
-
 
         logger.info(
             "➡️ Imagen enviada al modelo"
@@ -293,22 +374,14 @@ def predecir(rostro):
         # EJECUTAR MODELO
         # ==================================================
 
-        logger.info("🚀 ANTES DE EJECUTAR MODELO")
+        logger.info(
+            "🚀 EJECUTANDO MODELO..."
+        )
 
         interpreter.invoke()
 
-        logger.info("✅ DESPUÉS DE EJECUTAR MODELO")
-
-        pred = interpreter.get_tensor(
-        output_details[0]["index"]
-    )[0]
-
-        logger.info(f"🔥 PREDICCIÓN CRUDA: {pred}")
-
-
-
         logger.info(
-            "✅ Modelo ejecutado"
+            "✅ Modelo ejecutado correctamente"
         )
 
 
@@ -322,7 +395,7 @@ def predecir(rostro):
 
 
         logger.info(
-            f"Predicción cruda: {pred}"
+            f"🔥 PREDICCIÓN CRUDA: {pred}"
         )
 
 
@@ -333,9 +406,9 @@ def predecir(rostro):
         if len(pred) != len(EMOCIONES):
 
             logger.error(
-                f"❌ El modelo devuelve "
-                f"{len(pred)} clases, pero "
-                f"tenemos {len(EMOCIONES)} emociones."
+                f"❌ El modelo devuelve {len(pred)} "
+                f"clases, pero tenemos "
+                f"{len(EMOCIONES)} emociones"
             )
 
             return (
@@ -346,7 +419,31 @@ def predecir(rostro):
 
 
         # ==================================================
-        # OBTENER ÍNDICE
+        # MOSTRAR PROBABILIDADES DE TODAS LAS EMOCIONES
+        # ==================================================
+
+        logger.info("")
+        logger.info("======================================")
+        logger.info("📊 PROBABILIDADES POR EMOCIÓN")
+        logger.info("======================================")
+
+
+        for i, valor in enumerate(pred):
+
+            porcentaje = float(valor) * 100
+
+            logger.info(
+                f"{i} - {EMOCIONES[i]}: "
+                f"{float(valor):.6f} "
+                f"({porcentaje:.2f}%)"
+            )
+
+
+        logger.info("======================================")
+
+
+        # ==================================================
+        # OBTENER ÍNDICE GANADOR
         # ==================================================
 
         indice = int(
@@ -364,7 +461,7 @@ def predecir(rostro):
 
 
         # ==================================================
-        # CONFIANZA
+        # OBTENER CONFIANZA
         # ==================================================
 
         confianza = float(
@@ -373,15 +470,17 @@ def predecir(rostro):
 
 
         logger.info(
-            f"🎯 Índice: {indice}"
+            f"🏆 ÍNDICE GANADOR: {indice}"
         )
 
         logger.info(
-            f"🎯 Emoción: {emocion}"
+            f"🏆 EMOCIÓN FINAL: {emocion}"
         )
 
         logger.info(
-            f"🎯 Confianza: {confianza:.4f}"
+            f"🏆 CONFIANZA: "
+            f"{confianza:.6f} "
+            f"({confianza * 100:.2f}%)"
         )
 
 
@@ -389,8 +488,14 @@ def predecir(rostro):
         # GUARDAR RESULTADO VISUAL
         # ==================================================
 
+        ruta_resultado = os.path.join(
+            DEBUG_DIR,
+            "05_resultado_emocion.jpg"
+        )
+
+
         imagen_resultado = cv2.imread(
-            ruta_debug
+            ruta_resize
         )
 
 
@@ -398,7 +503,7 @@ def predecir(rostro):
 
             texto = (
                 f"{emocion} "
-                f"({confianza:.2f})"
+                f"({confianza * 100:.1f}%)"
             )
 
 
@@ -407,15 +512,9 @@ def predecir(rostro):
                 texto,
                 (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
+                0.7,
                 (0, 255, 0),
                 2
-            )
-
-
-            ruta_resultado = os.path.join(
-                DEBUG_DIR,
-                "05_resultado_emocion.jpg"
             )
 
 
@@ -431,24 +530,42 @@ def predecir(rostro):
             )
 
 
+        # ==================================================
+        # FINALIZAR
+        # ==================================================
+
+        logger.info(
+            "======================================"
+        )
+
+        logger.info(
+            "✅ PREDICCIÓN FINALIZADA"
+        )
+
         logger.info(
             "======================================"
         )
 
 
+        resultado_pred = pred.tolist()
+
+
         # ==================================================
-        # LIMPIAR
+        # LIMPIAR MEMORIA
         # ==================================================
 
         del rostro
-
         gc.collect()
 
+
+        # ==================================================
+        # RETORNAR RESULTADO
+        # ==================================================
 
         return (
             emocion,
             confianza,
-            pred.tolist()
+            resultado_pred
         )
 
 
