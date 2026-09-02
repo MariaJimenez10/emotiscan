@@ -2,392 +2,99 @@ import cv2
 import os
 import logging
 
-
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN Y LOGGING
 # ==========================================================
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-# ==========================================================
-# RUTAS
-# ==========================================================
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "modelo_emociones.xml")
+DEBUG_DIR = os.path.join(BASE_DIR, "debug_rostros")
 
-MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "modelo_emociones.xml"
-)
+# Crear directorio de debug de forma segura
+try:
+    os.makedirs(DEBUG_DIR, exist_ok=True)
+except Exception as e:
+    logger.warning(f"No se pudo crear carpeta debug: {e}")
 
-DEBUG_DIR = os.path.join(
-    BASE_DIR,
-    "debug_rostros"
-)
-
-os.makedirs(
-    DEBUG_DIR,
-    exist_ok=True
-)
-
-
-# ==========================================================
-# EMOCIONES
-#
-# MISMO ORDEN UTILIZADO EN entrenamiento.py
-# ==========================================================
-
-EMOCIONES = [
-    "Enojo",
-    "Felicidad",
-    "Neutral",
-    "Tristeza"
-]
-
-
-# ==========================================================
-# TAMAÑO DEL ROSTRO
-#
-# Tus imágenes de entrenamiento son 48x48
-# ==========================================================
-
+EMOCIONES = ["Enojo", "Felicidad", "Neutral", "Tristeza"]
 IMG_SIZE = (48, 48)
 
-
 # ==========================================================
-# CARGAR MODELO LBPH
+# VARIABLES GLOBALES (Carga Diferida / Lazy Loading)
 # ==========================================================
+emotion_recognizer = None
+face_cascade = None
 
-logger.info("==========================================")
-logger.info("       CARGANDO MODELO DE EMOCIONES")
-logger.info("==========================================")
+def cargar_modelos():
+    """Carga los modelos en memoria solo cuando sea necesario para no colapsar la RAM al arrancar Gunicorn."""
+    global emotion_recognizer, face_cascade
+    
+    if emotion_recognizer is None:
+        logger.info("==========================================")
+        logger.info("       CARGANDO MODELO DE EMOCIONES")
+        logger.info("==========================================")
+        logger.info(f"📁 Ubicación del modelo: {MODEL_PATH}")
 
-logger.info(
-    f"📁 Ubicación del modelo: {MODEL_PATH}"
-)
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(f"❌ No se encontró el modelo en {MODEL_PATH}")
 
+        emotion_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        emotion_recognizer.read(MODEL_PATH)
+        logger.info("✅ Modelo LBPH cargado correctamente en RAM")
 
-if not os.path.exists(MODEL_PATH):
-
-    raise FileNotFoundError(
-        f"❌ No se encontró el modelo:\n{MODEL_PATH}"
-    )
-
-
-# Crear reconocedor LBPH
-emotion_recognizer = cv2.face.LBPHFaceRecognizer_create()
-
-
-# Cargar modelo XML
-emotion_recognizer.read(MODEL_PATH)
-
-
-logger.info("✅ Modelo LBPH cargado correctamente")
-
-
-# ==========================================================
-# CARGAR DETECTOR DE ROSTROS
-# ==========================================================
-
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades +
-    "haarcascade_frontalface_default.xml"
-)
-
-
-if face_cascade.empty():
-
-    raise RuntimeError(
-        "❌ No se pudo cargar el detector Haar Cascade"
-    )
-
-
-logger.info("✅ Detector de rostros cargado")
-logger.info("==========================================")
-
+    if face_cascade is None:
+        face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+        if face_cascade.empty():
+            raise RuntimeError("❌ No se pudo cargar el detector Haar Cascade")
+        logger.info("✅ Detector de rostros Haar Cascade cargado")
 
 # ==========================================================
 # FUNCIÓN PARA PREDECIR EMOCIÓN
 # ==========================================================
-
 def predecir(rostro):
-
     try:
+        # Asegurar que los modelos estén cargados antes de ejecutar la predicción
+        cargar_modelos()
 
-        logger.info("")
-        logger.info("==========================================")
         logger.info("🔍 INICIANDO PREDICCIÓN")
-        logger.info("==========================================")
-
-
-        # ==================================================
-        # VERIFICAR ROSTRO
-        # ==================================================
 
         if rostro is None:
+            logger.error("❌ No se recibió ningún rostro")
+            return ("Neutral", 0.0, None)
 
-            logger.error(
-                "❌ No se recibió ningún rostro"
-            )
+        logger.info(f"📷 Rostro recibido: {rostro.shape}, Tipo: {rostro.dtype}")
 
-            return (
-                "Neutral",
-                0.0,
-                None
-            )
+        # Guardar copia para debug si el entorno lo permite
+        try:
+            ruta_original = os.path.join(DEBUG_DIR, "01_rostro_recibido.jpg")
+            cv2.imwrite(ruta_original, rostro)
+        except Exception:
+            pass
 
-
-        logger.info(
-            f"📷 Rostro recibido: {rostro.shape}"
-        )
-
-        logger.info(
-            f"📷 Tipo: {rostro.dtype}"
-        )
-
-
-        # ==================================================
-        # GUARDAR ROSTRO ORIGINAL
-        # ==================================================
-
-        ruta_original = os.path.join(
-            DEBUG_DIR,
-            "01_rostro_recibido.jpg"
-        )
-
-        cv2.imwrite(
-            ruta_original,
-            rostro
-        )
-
-        logger.info(
-            f"📸 Rostro original guardado:\n"
-            f"{ruta_original}"
-        )
-
-
-        # ==================================================
-        # CONVERTIR A ESCALA DE GRISES
-        # ==================================================
-
+        # Convertir a escala de grises
         if len(rostro.shape) == 3:
-
-            rostro_gray = cv2.cvtColor(
-                rostro,
-                cv2.COLOR_BGR2GRAY
-            )
-
+            rostro_gray = cv2.cvtColor(rostro, cv2.COLOR_BGR2GRAY)
         else:
-
             rostro_gray = rostro.copy()
 
+        # Redimensionar a 48x48 (mismo tamaño de entrenamiento)
+        rostro_gray = cv2.resize(rostro_gray, IMG_SIZE)
 
-        logger.info(
-            f"⚫ Rostro en gris: "
-            f"{rostro_gray.shape}"
-        )
-
-
-        # ==================================================
-        # GUARDAR ROSTRO EN GRIS
-        # ==================================================
-
-        ruta_gris = os.path.join(
-            DEBUG_DIR,
-            "02_rostro_gris.jpg"
-        )
-
-        cv2.imwrite(
-            ruta_gris,
-            rostro_gray
-        )
-
-
-        # ==================================================
-        # REDIMENSIONAR A 48x48
-        #
-        # IGUAL QUE EL DATASET DE ENTRENAMIENTO
-        # ==================================================
-
-        rostro_gray = cv2.resize(
-            rostro_gray,
-            IMG_SIZE
-        )
-
-
-        logger.info(
-            f"📐 Rostro después de resize: "
-            f"{rostro_gray.shape}"
-        )
-
-
-        # ==================================================
-        # GUARDAR EXACTAMENTE LO QUE SE ENVÍA
-        # ==================================================
-
-        ruta_modelo = os.path.join(
-            DEBUG_DIR,
-            "03_rostro_para_modelo.jpg"
-        )
-
-        cv2.imwrite(
-            ruta_modelo,
-            rostro_gray
-        )
-
-
-        logger.info(
-            f"📸 Rostro enviado al modelo guardado:\n"
-            f"{ruta_modelo}"
-        )
-
-
-        # ==================================================
-        # EJECUTAR MODELO LBPH
-        # ==================================================
-
-        logger.info(
-            "🚀 EJECUTANDO MODELO LBPH..."
-        )
-
-
-        label, distancia = emotion_recognizer.predict(
-            rostro_gray
-        )
-
-
-        logger.info(
-            "✅ Modelo ejecutado correctamente"
-        )
-
-
-        logger.info(
-            f"🏷️ Label obtenido: {label}"
-        )
-
-
-        logger.info(
-            f"📏 Distancia LBPH: {distancia:.4f}"
-        )
-
-
-        # ==================================================
-        # VERIFICAR LABEL
-        # ==================================================
+        # Ejecutar Modelo LBPH
+        label, distancia = emotion_recognizer.predict(rostro_gray)
 
         if label < 0 or label >= len(EMOCIONES):
-
-            logger.error(
-                f"❌ Label inválido: {label}"
-            )
-
-            return (
-                "Neutral",
-                0.0,
-                None
-            )
-
-
-        # ==================================================
-        # OBTENER EMOCIÓN
-        # ==================================================
+            logger.error(f"❌ Label inválido: {label}")
+            return ("Neutral", 0.0, None)
 
         emocion = EMOCIONES[label]
+        confianza = max(0.0, min(100.0, 100.0 - distancia))
 
-
-        # ==================================================
-        # CONFIANZA APROXIMADA
-        #
-        # LBPH devuelve DISTANCIA.
-        #
-        # Menor distancia = mejor coincidencia.
-        #
-        # NO es una probabilidad real.
-        # ==================================================
-
-        confianza = max(
-            0.0,
-            min(
-                100.0,
-                100.0 - distancia
-            )
-        )
-
-
-        # ==================================================
-        # MOSTRAR RESULTADO
-        # ==================================================
-
-        logger.info(
-            f"🏆 EMOCIÓN FINAL: {emocion}"
-        )
-
-        logger.info(
-            f"🏆 DISTANCIA: {distancia:.4f}"
-        )
-
-        logger.info(
-            f"🏆 CONFIANZA APROXIMADA: "
-            f"{confianza:.2f}%"
-        )
-
-
-        # ==================================================
-        # GUARDAR RESULTADO
-        # ==================================================
-
-        imagen_resultado = cv2.imread(
-            ruta_modelo
-        )
-
-
-        if imagen_resultado is not None:
-
-            texto = (
-                f"{emocion} "
-                f"({confianza:.1f}%)"
-            )
-
-
-            cv2.putText(
-                imagen_resultado,
-                texto,
-                (2, 15),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.4,
-                (0, 255, 0),
-                1
-            )
-
-
-            ruta_resultado = os.path.join(
-                DEBUG_DIR,
-                "04_resultado_emocion.jpg"
-            )
-
-
-            cv2.imwrite(
-                ruta_resultado,
-                imagen_resultado
-            )
-
-
-            logger.info(
-                f"📸 Resultado guardado:\n"
-                f"{ruta_resultado}"
-            )
-
-
-        logger.info("==========================================")
-        logger.info("✅ PREDICCIÓN FINALIZADA")
-        logger.info("==========================================")
-
-
-        # ==================================================
-        # RETORNAR
-        # ==================================================
+        logger.info(f"🏆 EMOCIÓN: {emocion} | DISTANCIA: {distancia:.4f} | CONFIANZA: {confianza:.2f}%")
 
         return (
             emocion,
@@ -398,134 +105,39 @@ def predecir(rostro):
             }
         )
 
-
     except Exception as e:
-
-        logger.exception(
-            f"❌ Error en predicción: {e}"
-        )
-
-        return (
-            "Neutral",
-            0.0,
-            None
-        )
-
+        logger.exception(f"❌ Error en predicción: {e}")
+        return ("Neutral", 0.0, None)
 
 # ==========================================================
-# EJECUTAR CÁMARA
+# EJECUTAR CÁMARA (MODO LOCAL)
 # ==========================================================
-
 if __name__ == "__main__":
-
-    logger.info("")
-    logger.info("==========================================")
-    logger.info("       🎥 INICIANDO CÁMARA")
-    logger.info("==========================================")
-
-
+    logger.info("🎥 INICIANDO CÁMARA EN MODO LOCAL")
+    cargar_modelos()
+    
     cap = cv2.VideoCapture(0)
-
-
     if not cap.isOpened():
-
-        raise RuntimeError(
-            "❌ No se pudo abrir la cámara"
-        )
-
+        raise RuntimeError("❌ No se pudo abrir la cámara")
 
     while True:
-
-        # ==================================================
-        # LEER FRAME
-        # ==================================================
-
         ret, frame = cap.read()
-
-
         if not ret:
-
-            logger.error(
-                "❌ No se pudo leer la cámara"
-            )
-
             break
 
-
-        # ==================================================
-        # CONVERTIR FRAME A GRIS
-        # ==================================================
-
-        gray = cv2.cvtColor(
-            frame,
-            cv2.COLOR_BGR2GRAY
-        )
-
-
-        # ==================================================
-        # DETECTAR ROSTROS
-        # ==================================================
-
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rostros = face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.3,
-            minNeighbors=5,
-            minSize=(80, 80)
+            gray, scaleFactor=1.3, minNeighbors=5, minSize=(80, 80)
         )
-
-
-        # ==================================================
-        # PROCESAR CADA ROSTRO
-        # ==================================================
 
         for (x, y, w, h) in rostros:
+            rostro = frame[y:y+h, x:x+w]
+            emocion, confianza, datos = predecir(rostro)
 
-
-            # ==============================================
-            # EXTRAER ROSTRO
-            # ==============================================
-
-            rostro = frame[
-                y:y+h,
-                x:x+w
-            ]
-
-
-            # ==============================================
-            # PREDECIR
-            # ==============================================
-
-            emocion, confianza, datos = predecir(
-                rostro
-            )
-
-
-            # ==============================================
-            # DIBUJAR RECTÁNGULO
-            # ==============================================
-
-            cv2.rectangle(
-                frame,
-                (x, y),
-                (x + w, y + h),
-                (0, 255, 0),
-                2
-            )
-
-
-            # ==============================================
-            # MOSTRAR EMOCIÓN
-            # ==============================================
-
-            texto = (
-                f"{emocion} "
-                f"{confianza:.1f}%"
-            )
-
-
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(
                 frame,
-                texto,
+                f"{emocion} {confianza:.1f}%",
                 (x, y - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,
@@ -533,38 +145,9 @@ if __name__ == "__main__":
                 2
             )
 
-
-        # ==================================================
-        # MOSTRAR CÁMARA
-        # ==================================================
-
-        cv2.imshow(
-            "EmotiScan - Reconocimiento de emociones",
-            frame
-        )
-
-
-        # ==================================================
-        # SALIR CON ESC
-        # ==================================================
-
-        tecla = cv2.waitKey(1) & 0xFF
-
-
-        if tecla == 27:
-
+        cv2.imshow("EmotiScan - Reconocimiento de emociones", frame)
+        if cv2.waitKey(1) & 0xFF == 27:
             break
 
-
-    # ======================================================
-    # CERRAR CÁMARA
-    # ======================================================
-
     cap.release()
-
     cv2.destroyAllWindows()
-
-
-    logger.info(
-        "👋 Programa finalizado"
-    )
