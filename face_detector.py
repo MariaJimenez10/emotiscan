@@ -3,24 +3,23 @@ import cv2
 import logging
 import numpy as np
 
-from deepface import DeepFace
-
 
 # ==========================================================
 # CONFIGURACIÓN
 # ==========================================================
 
 logging.basicConfig(level=logging.INFO)
-
 logger = logging.getLogger(__name__)
 
 
 # ==========================================================
-# CARPETA PARA DIAGNÓSTICO
+# CARPETA DE DEBUG
 # ==========================================================
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 DEBUG_DIR = os.path.join(
-    os.path.dirname(__file__),
+    BASE_DIR,
     "debug_rostros"
 )
 
@@ -28,13 +27,53 @@ os.makedirs(DEBUG_DIR, exist_ok=True)
 
 
 # ==========================================================
-# DETECTOR OPENCV DE RESPALDO
+# DETECTOR OPENCV
 # ==========================================================
 
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades +
     "haarcascade_frontalface_default.xml"
 )
+
+if face_cascade.empty():
+    logger.error("❌ No se pudo cargar Haar Cascade")
+else:
+    logger.info("✅ Haar Cascade cargado correctamente")
+
+
+# ==========================================================
+# DEEPFACE
+# ==========================================================
+
+DeepFace = None
+
+
+def cargar_deepface():
+
+    global DeepFace
+
+    if DeepFace is not None:
+        return DeepFace
+
+    try:
+
+        logger.info("🧠 Cargando DeepFace...")
+
+        from deepface import DeepFace as DF
+
+        DeepFace = DF
+
+        logger.info("✅ DeepFace cargado correctamente")
+
+        return DeepFace
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error cargando DeepFace: {e}"
+        )
+
+        return None
 
 
 # ==========================================================
@@ -46,9 +85,12 @@ def guardar_debug(nombre, imagen):
     try:
 
         if imagen is None:
-            logger.warning(
-                f"⚠️ No se puede guardar {nombre}: imagen None"
-            )
+            return
+
+        if not isinstance(imagen, np.ndarray):
+            return
+
+        if imagen.size == 0:
             return
 
         ruta = os.path.join(
@@ -56,27 +98,19 @@ def guardar_debug(nombre, imagen):
             nombre
         )
 
-        resultado = cv2.imwrite(
+        cv2.imwrite(
             ruta,
             imagen
         )
 
-        if resultado:
-
-            logger.info(
-                f"📸 Imagen guardada: {ruta}"
-            )
-
-        else:
-
-            logger.warning(
-                f"⚠️ OpenCV no pudo guardar: {ruta}"
-            )
+        logger.info(
+            f"📸 Debug guardado: {ruta}"
+        )
 
     except Exception as e:
 
         logger.warning(
-            f"⚠️ No se pudo guardar {nombre}: {e}"
+            f"⚠️ Error guardando debug: {e}"
         )
 
 
@@ -86,7 +120,9 @@ def guardar_debug(nombre, imagen):
 
 def detectar_rostro(img):
 
-    print("🔥 detectar_rostro() FUE LLAMADA")
+    logger.info(
+        "🔥 detectar_rostro() FUE LLAMADA"
+    )
 
     try:
 
@@ -97,7 +133,7 @@ def detectar_rostro(img):
         if img is None:
 
             logger.error(
-                "❌ La imagen recibida es None."
+                "❌ La imagen es None"
             )
 
             return None
@@ -106,8 +142,7 @@ def detectar_rostro(img):
         if not isinstance(img, np.ndarray):
 
             logger.error(
-                f"❌ La imagen no es numpy.ndarray: "
-                f"{type(img)}"
+                f"❌ Tipo de imagen inválido: {type(img)}"
             )
 
             return None
@@ -116,22 +151,26 @@ def detectar_rostro(img):
         if img.size == 0:
 
             logger.error(
-                "❌ La imagen está vacía."
+                "❌ La imagen está vacía"
             )
 
             return None
 
 
         logger.info(
+            "=========================================="
+        )
+
+        logger.info(
             "🔍 INICIANDO DETECCIÓN DE ROSTRO"
         )
 
         logger.info(
-            f"Imagen original: {img.shape}"
+            f"📷 Imagen: {img.shape}"
         )
 
         logger.info(
-            f"Tipo imagen: {img.dtype}"
+            f"📷 Tipo: {img.dtype}"
         )
 
 
@@ -156,118 +195,103 @@ def detectar_rostro(img):
             )
 
 
-            faces = DeepFace.extract_faces(
-                img_path=img,
-                detector_backend="opencv",
-                enforce_detection=True,
-                align=True
-            )
+            DF = cargar_deepface()
 
 
-            logger.info(
-                f"DeepFace detectó {len(faces)} rostro(s)"
-            )
+            if DF is not None:
 
-
-            if len(faces) > 0:
-
-                # ==================================================
-                # TOMAR PRIMER ROSTRO
-                # ==================================================
-
-                rostro = faces[0]["face"]
-
-
-                logger.info(
-                    f"Rostro DeepFace original: "
-                    f"{rostro.shape}"
+                faces = DF.extract_faces(
+                    img_path=img,
+                    detector_backend="opencv",
+                    enforce_detection=True,
+                    align=True
                 )
 
 
-                # ==================================================
-                # DEEPFACE PUEDE DEVOLVER VALORES 0-1
-                # ==================================================
-
-                if rostro.max() <= 1:
-
-                    rostro = (
-                        rostro * 255
-                    ).astype(np.uint8)
+                logger.info(
+                    f"👤 DeepFace detectó {len(faces)} rostro(s)"
+                )
 
 
-                # ==================================================
-                # RGB → BGR
-                # ==================================================
+                if len(faces) > 0:
 
-                if len(rostro.shape) == 3:
+                    rostro = faces[0]["face"]
 
-                    rostro = cv2.cvtColor(
-                        rostro,
-                        cv2.COLOR_RGB2BGR
+
+                    logger.info(
+                        f"📷 Rostro DeepFace: {rostro.shape}"
                     )
 
 
-                # ==================================================
-                # GUARDAR ROSTRO DETECTADO
-                # ==================================================
+                    # ==========================================
+                    # DEEPFACE PUEDE DEVOLVER VALORES 0-1
+                    # ==========================================
 
-                guardar_debug(
-                    "02_rostro_deepface_original.jpg",
-                    rostro
-                )
+                    if rostro.max() <= 1.0:
 
-
-                # ==================================================
-                # REDIMENSIONAR
-                # ==================================================
-
-                rostro = cv2.resize(
-                    rostro,
-                    (224, 224),
-                    interpolation=cv2.INTER_AREA
-                )
+                        rostro = (
+                            rostro * 255
+                        ).astype(np.uint8)
 
 
-                logger.info(
-                    "✅ Rostro detectado con DeepFace"
-                )
+                    # ==========================================
+                    # CONVERTIR RGB → BGR
+                    # ==========================================
 
-                logger.info(
-                    f"Rostro final: {rostro.shape}"
-                )
+                    if len(rostro.shape) == 3:
 
-
-                # ==================================================
-                # GUARDAR ROSTRO ANTES DEL MODELO
-                # ==================================================
-
-                guardar_debug(
-                    "03_rostro_antes_modelo.jpg",
-                    rostro
-                )
+                        rostro = cv2.cvtColor(
+                            rostro,
+                            cv2.COLOR_RGB2BGR
+                        )
 
 
-                logger.info(
-                    "======================================"
-                )
+                    # ==========================================
+                    # GUARDAR ROSTRO
+                    # ==========================================
+
+                    guardar_debug(
+                        "02_rostro_deepface.jpg",
+                        rostro
+                    )
 
 
-                return rostro
+                    logger.info(
+                        f"✅ Rostro obtenido con DeepFace: "
+                        f"{rostro.shape}"
+                    )
+
+
+                    logger.info(
+                        "➡️ Enviando rostro a predict.py"
+                    )
+
+
+                    return rostro
 
 
         except Exception as e:
 
             logger.warning(
-                f"⚠️ DeepFace falló: {e}"
+                f"⚠️ DeepFace no pudo detectar el rostro: {e}"
             )
 
             logger.info(
-                "🔄 Utilizando detector OpenCV..."
+                "🔄 Cambiando a OpenCV Haar..."
             )
 
 
         # ==================================================
-        # OPENCV - RESPALDO
+        # OPENCV COMO RESPALDO
+        # ==================================================
+
+        logger.info(
+            "🔎 Detectando rostro con OpenCV Haar..."
+        )
+
+
+        # ==================================================
+        # CONVERTIR A GRIS
         # ==================================================
 
         gray = cv2.cvtColor(
@@ -275,6 +299,10 @@ def detectar_rostro(img):
             cv2.COLOR_BGR2GRAY
         )
 
+
+        # ==================================================
+        # DETECTAR ROSTROS
+        # ==================================================
 
         caras = face_cascade.detectMultiScale(
             gray,
@@ -284,23 +312,26 @@ def detectar_rostro(img):
         )
 
 
+        # ==================================================
+        # VERIFICAR
+        # ==================================================
+
         if len(caras) == 0:
 
             logger.warning(
-                "❌ No se detectó ningún rostro."
+                "❌ OpenCV tampoco detectó ningún rostro"
             )
 
             return None
 
 
         logger.info(
-            f"👤 Rostros detectados con OpenCV: "
-            f"{len(caras)}"
+            f"👤 OpenCV detectó {len(caras)} rostro(s)"
         )
 
 
         # ==================================================
-        # SELECCIONAR ROSTRO MÁS GRANDE
+        # SELECCIONAR EL ROSTRO MÁS GRANDE
         # ==================================================
 
         x, y, w, h = max(
@@ -310,13 +341,12 @@ def detectar_rostro(img):
 
 
         logger.info(
-            f"Rostro detectado: "
-            f"x={x}, y={y}, w={w}, h={h}"
+            f"📐 Rostro: x={x}, y={y}, w={w}, h={h}"
         )
 
 
         # ==================================================
-        # AGREGAR MARGEN
+        # MARGEN
         # ==================================================
 
         margen = int(
@@ -324,24 +354,24 @@ def detectar_rostro(img):
         )
 
 
-        x = max(
+        x1 = max(
             0,
             x - margen
         )
 
-        y = max(
+        y1 = max(
             0,
             y - margen
         )
 
-        w = min(
-            img.shape[1] - x,
-            w + margen * 2
+        x2 = min(
+            img.shape[1],
+            x + w + margen
         )
 
-        h = min(
-            img.shape[0] - y,
-            h + margen * 2
+        y2 = min(
+            img.shape[0],
+            y + h + margen
         )
 
 
@@ -350,57 +380,31 @@ def detectar_rostro(img):
         # ==================================================
 
         rostro = img[
-            y:y + h,
-            x:x + w
+            y1:y2,
+            x1:x2
         ]
 
 
-        if rostro.size == 0:
+        if rostro is None or rostro.size == 0:
 
             logger.warning(
-                "❌ El recorte del rostro está vacío."
+                "❌ El recorte está vacío"
             )
 
             return None
 
 
         logger.info(
-            f"Rostro recortado: {rostro.shape}"
+            f"📷 Rostro OpenCV: {rostro.shape}"
         )
 
 
         # ==================================================
-        # GUARDAR ROSTRO OPENCV
+        # GUARDAR ROSTRO
         # ==================================================
 
         guardar_debug(
-            "02_rostro_opencv_original.jpg",
-            rostro
-        )
-
-
-        # ==================================================
-        # REDIMENSIONAR
-        # ==================================================
-
-        rostro = cv2.resize(
-            rostro,
-            (224, 224),
-            interpolation=cv2.INTER_AREA
-        )
-
-
-        logger.info(
-            f"Rostro final: {rostro.shape}"
-        )
-
-
-        # ==================================================
-        # GUARDAR ROSTRO ANTES DEL MODELO
-        # ==================================================
-
-        guardar_debug(
-            "03_rostro_antes_modelo.jpg",
+            "02_rostro_opencv.jpg",
             rostro
         )
 
@@ -409,8 +413,9 @@ def detectar_rostro(img):
             "✅ Rostro detectado con OpenCV"
         )
 
+
         logger.info(
-            "======================================"
+            "➡️ Enviando rostro a predict.py"
         )
 
 
@@ -420,7 +425,7 @@ def detectar_rostro(img):
     except Exception as e:
 
         logger.exception(
-            f"❌ Error detectando rostro: {e}"
+            f"❌ Error en detectar_rostro(): {e}"
         )
 
         return None
