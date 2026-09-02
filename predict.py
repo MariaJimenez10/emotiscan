@@ -2,7 +2,9 @@ import os
 import cv2
 import logging
 import numpy as np
-import tensorflow as tf
+
+from tflite_runtime.interpreter import Interpreter
+
 
 # ==========================================================
 # CONFIGURACIÓN
@@ -18,15 +20,22 @@ MODEL_PATH = os.path.join(
     "modelo_resnet50_emociones.tflite"
 )
 
+# ==========================================================
+# EMOCIONES
+# ==========================================================
+#
 # IMPORTANTE:
-# El orden debe coincidir con el orden usado durante
-# el entrenamiento del modelo.
+# Este orden DEBE coincidir con el orden utilizado
+# durante el entrenamiento del modelo.
+#
+
 EMOCIONES = [
     "Enojo",
     "Felicidad",
     "Neutral",
     "Tristeza"
 ]
+
 
 # ==========================================================
 # VARIABLES DEL MODELO
@@ -47,47 +56,90 @@ def cargar_modelo():
     global input_details
     global output_details
 
+    # Si ya está cargado, no volver a cargarlo
     if interpreter is not None:
         return
 
     logger.info("======================================")
-    logger.info("🧠 CARGANDO MODELO TFLITE")
+    logger.info("🧠 CARGANDO MODELO RESNET50 TFLITE")
     logger.info("📁 Modelo: %s", MODEL_PATH)
 
+    # ------------------------------------------------------
+    # Verificar que exista
+    # ------------------------------------------------------
+
     if not os.path.exists(MODEL_PATH):
+
         raise FileNotFoundError(
             f"No se encontró el modelo: {MODEL_PATH}"
         )
 
+    # ------------------------------------------------------
+    # Tamaño del archivo
+    # ------------------------------------------------------
+
+    tamanio_kb = os.path.getsize(MODEL_PATH) / 1024
+
     logger.info(
         "📦 Tamaño del modelo: %.2f KB",
-        os.path.getsize(MODEL_PATH) / 1024
+        tamanio_kb
     )
 
-    # Crear intérprete TFLite
-    interpreter = tf.lite.Interpreter(
+    # ------------------------------------------------------
+    # Crear intérprete
+    # ------------------------------------------------------
+
+    logger.info("⚙️ Creando intérprete TFLite...")
+
+    interpreter = Interpreter(
         model_path=MODEL_PATH,
         num_threads=1
     )
+
+    # ------------------------------------------------------
+    # Reservar tensores
+    # ------------------------------------------------------
 
     logger.info("⚙️ Asignando tensores...")
 
     interpreter.allocate_tensors()
 
+    # ------------------------------------------------------
+    # Obtener información de entrada y salida
+    # ------------------------------------------------------
+
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    logger.info("✅ Modelo TFLite cargado correctamente")
+    logger.info("✅ MODELO CARGADO CORRECTAMENTE")
 
+    # Entrada
     logger.info(
-        "📥 Entrada: shape=%s dtype=%s",
-        input_details[0]["shape"],
-        input_details[0]["dtype"]
+        "📥 Entrada:"
     )
 
     logger.info(
-        "📤 Salida: shape=%s dtype=%s",
-        output_details[0]["shape"],
+        "   Shape: %s",
+        input_details[0]["shape"]
+    )
+
+    logger.info(
+        "   Tipo: %s",
+        input_details[0]["dtype"]
+    )
+
+    # Salida
+    logger.info(
+        "📤 Salida:"
+    )
+
+    logger.info(
+        "   Shape: %s",
+        output_details[0]["shape"]
+    )
+
+    logger.info(
+        "   Tipo: %s",
         output_details[0]["dtype"]
     )
 
@@ -101,16 +153,19 @@ def cargar_modelo():
 def preparar_rostro(rostro):
 
     if rostro is None:
-        raise ValueError("El rostro recibido es None")
+
+        raise ValueError(
+            "El rostro recibido es None"
+        )
 
     logger.info(
-        "👤 Preparando rostro: shape=%s dtype=%s",
+        "👤 Rostro recibido: shape=%s dtype=%s",
         rostro.shape,
         rostro.dtype
     )
 
     # ------------------------------------------------------
-    # Obtener tamaño esperado por el modelo
+    # Obtener tamaño que necesita el modelo
     # ------------------------------------------------------
 
     input_shape = input_details[0]["shape"]
@@ -119,7 +174,7 @@ def preparar_rostro(rostro):
     ancho = int(input_shape[2])
 
     logger.info(
-        "📐 Tamaño requerido por el modelo: %sx%s",
+        "📐 Tamaño requerido: %sx%s",
         ancho,
         alto
     )
@@ -135,11 +190,17 @@ def preparar_rostro(rostro):
             cv2.COLOR_BGR2RGB
         )
 
-    else:
+    elif len(rostro.shape) == 2:
 
         rostro_rgb = cv2.cvtColor(
             rostro,
             cv2.COLOR_GRAY2RGB
+        )
+
+    else:
+
+        raise ValueError(
+            f"Formato de rostro no válido: {rostro.shape}"
         )
 
     # ------------------------------------------------------
@@ -148,35 +209,56 @@ def preparar_rostro(rostro):
 
     rostro_rgb = cv2.resize(
         rostro_rgb,
-        (ancho, alto)
+        (ancho, alto),
+        interpolation=cv2.INTER_AREA
     )
 
     # ------------------------------------------------------
-    # Convertir a float32 o uint8
+    # Obtener tipo de entrada
     # ------------------------------------------------------
 
     input_dtype = input_details[0]["dtype"]
 
+    logger.info(
+        "🔢 Tipo de entrada esperado: %s",
+        input_dtype
+    )
+
+    # ------------------------------------------------------
+    # Preparar según el tipo
+    # ------------------------------------------------------
+
     if input_dtype == np.float32:
 
-        rostro_rgb = rostro_rgb.astype(np.float32)
+        rostro_rgb = rostro_rgb.astype(
+            np.float32
+        )
 
-        # Normalización típica para modelos entrenados
-        # con imágenes entre 0 y 1.
+        # Normalización 0-1
         rostro_rgb = rostro_rgb / 255.0
 
     elif input_dtype == np.uint8:
 
-        rostro_rgb = rostro_rgb.astype(np.uint8)
+        rostro_rgb = rostro_rgb.astype(
+            np.uint8
+        )
+
+    elif input_dtype == np.int8:
+
+        rostro_rgb = rostro_rgb.astype(
+            np.int8
+        )
 
     else:
 
         logger.warning(
-            "⚠️ Tipo de entrada no esperado: %s",
+            "⚠️ Tipo de entrada no contemplado: %s",
             input_dtype
         )
 
-        rostro_rgb = rostro_rgb.astype(input_dtype)
+        rostro_rgb = rostro_rgb.astype(
+            input_dtype
+        )
 
     # ------------------------------------------------------
     # Agregar dimensión batch
@@ -207,8 +289,15 @@ def predecir(rostro):
         logger.info("======================================")
         logger.info("🎯 INICIANDO PREDICCIÓN")
 
+        # --------------------------------------------------
         # Cargar modelo
+        # --------------------------------------------------
+
         cargar_modelo()
+
+        # --------------------------------------------------
+        # Verificar rostro
+        # --------------------------------------------------
 
         if rostro is None:
 
@@ -226,13 +315,17 @@ def predecir(rostro):
         # Preparar rostro
         # --------------------------------------------------
 
-        imagen = preparar_rostro(rostro)
+        imagen = preparar_rostro(
+            rostro
+        )
 
         # --------------------------------------------------
-        # Pasar imagen al modelo
+        # Enviar imagen al modelo
         # --------------------------------------------------
 
-        logger.info("📤 Enviando rostro al modelo...")
+        logger.info(
+            "📤 Enviando rostro al modelo..."
+        )
 
         interpreter.set_tensor(
             input_details[0]["index"],
@@ -240,17 +333,21 @@ def predecir(rostro):
         )
 
         # --------------------------------------------------
-        # Ejecutar modelo
+        # Ejecutar inferencia
         # --------------------------------------------------
 
-        logger.info("🧠 Ejecutando inferencia...")
+        logger.info(
+            "🧠 Ejecutando ResNet50..."
+        )
 
         interpreter.invoke()
 
-        logger.info("✅ Inferencia terminada")
+        logger.info(
+            "✅ Inferencia terminada"
+        )
 
         # --------------------------------------------------
-        # Obtener resultado
+        # Obtener salida
         # --------------------------------------------------
 
         resultado = interpreter.get_tensor(
@@ -260,12 +357,63 @@ def predecir(rostro):
         predicciones = resultado[0]
 
         logger.info(
-            "📊 Predicciones: %s",
+            "📊 Predicciones crudas: %s",
             predicciones
         )
 
         # --------------------------------------------------
-        # Obtener clase con mayor probabilidad
+        # Verificar cantidad de clases
+        # --------------------------------------------------
+
+        if len(predicciones) != len(EMOCIONES):
+
+            logger.error(
+                "❌ El modelo devuelve %d clases, "
+                "pero EMOCIONES tiene %d",
+                len(predicciones),
+                len(EMOCIONES)
+            )
+
+            return (
+                "Neutral",
+                0.0,
+                {
+                    "predicciones": predicciones.tolist()
+                }
+            )
+
+        # --------------------------------------------------
+        # Convertir predicciones a probabilidades
+        # --------------------------------------------------
+
+        predicciones = np.array(
+            predicciones,
+            dtype=np.float32
+        )
+
+        # Si la salida no parece estar normalizada,
+        # aplicar Softmax.
+
+        suma = np.sum(predicciones)
+
+        if (
+            np.any(predicciones < 0)
+            or suma < 0.9
+            or suma > 1.1
+        ):
+
+            exp_values = np.exp(
+                predicciones -
+                np.max(predicciones)
+            )
+
+            predicciones = (
+                exp_values /
+                np.sum(exp_values)
+            )
+
+        # --------------------------------------------------
+        # Obtener emoción principal
         # --------------------------------------------------
 
         indice = int(
@@ -276,66 +424,39 @@ def predecir(rostro):
             predicciones[indice]
         )
 
-        # --------------------------------------------------
-        # Convertir a porcentaje si está entre 0 y 1
-        # --------------------------------------------------
-
-        if confianza <= 1.0:
-
-            confianza_porcentaje = (
-                confianza * 100
-            )
-
-        else:
-
-            confianza_porcentaje = confianza
+        confianza_porcentaje = (
+            confianza * 100
+        )
 
         # --------------------------------------------------
-        # Validar índice
+        # Nombre de la emoción
         # --------------------------------------------------
-
-        if indice < 0 or indice >= len(EMOCIONES):
-
-            logger.warning(
-                "⚠️ Índice inválido: %s",
-                indice
-            )
-
-            return (
-                "Neutral",
-                0.0,
-                {
-                    "indice": indice,
-                    "predicciones": predicciones.tolist()
-                }
-            )
 
         emocion = EMOCIONES[indice]
 
         # --------------------------------------------------
-        # Crear diccionario de resultados
+        # Crear resultados de todas las emociones
         # --------------------------------------------------
 
         resultados = {}
 
-        for i, emocion_nombre in enumerate(EMOCIONES):
+        for i, nombre in enumerate(EMOCIONES):
 
-            if i < len(predicciones):
+            porcentaje = float(
+                predicciones[i] * 100
+            )
 
-                valor = float(
-                    predicciones[i]
-                )
+            resultados[nombre] = round(
+                porcentaje,
+                2
+            )
 
-                if valor <= 1.0:
-                    valor *= 100
-
-                resultados[emocion_nombre] = round(
-                    valor,
-                    2
-                )
+        # --------------------------------------------------
+        # Logs
+        # --------------------------------------------------
 
         logger.info(
-            "🎭 EMOCIÓN: %s",
+            "🎭 EMOCIÓN DETECTADA: %s",
             emocion
         )
 
@@ -351,6 +472,10 @@ def predecir(rostro):
 
         logger.info("======================================")
 
+        # --------------------------------------------------
+        # Retornar resultado
+        # --------------------------------------------------
+
         return (
             emocion,
             confianza_porcentaje,
@@ -360,7 +485,7 @@ def predecir(rostro):
     except Exception as e:
 
         logger.exception(
-            "❌ Error en predicción: %s",
+            "❌ ERROR EN PREDICCIÓN: %s",
             e
         )
 
