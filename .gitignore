@@ -5,6 +5,4 @@ node_modules/
 .env
 *.db
 emociones.db
-node_modules
-node_modules
 mejor_modelo.keras
