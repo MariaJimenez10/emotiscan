@@ -10,13 +10,6 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "modelo_emociones.xml")
-DEBUG_DIR = os.path.join(BASE_DIR, "debug_rostros")
-
-# Crear directorio de debug de forma segura
-try:
-    os.makedirs(DEBUG_DIR, exist_ok=True)
-except Exception as e:
-    logger.warning(f"No se pudo crear carpeta debug: {e}")
 
 EMOCIONES = ["Enojo", "Felicidad", "Neutral", "Tristeza"]
 IMG_SIZE = (48, 48)
@@ -28,7 +21,7 @@ emotion_recognizer = None
 face_cascade = None
 
 def cargar_modelos():
-    """Carga los modelos en memoria solo cuando sea necesario para no colapsar la RAM al arrancar Gunicorn."""
+    """Carga los modelos en memoria solo cuando sea necesario para no agotar la RAM al iniciar el servidor."""
     global emotion_recognizer, face_cascade
     
     if emotion_recognizer is None:
@@ -57,34 +50,23 @@ def cargar_modelos():
 # ==========================================================
 def predecir(rostro):
     try:
-        # Asegurar que los modelos estén cargados antes de ejecutar la predicción
+        # Carga diferida de modelos
         cargar_modelos()
-
-        logger.info("🔍 INICIANDO PREDICCIÓN")
 
         if rostro is None:
             logger.error("❌ No se recibió ningún rostro")
             return ("Neutral", 0.0, None)
 
-        logger.info(f"📷 Rostro recibido: {rostro.shape}, Tipo: {rostro.dtype}")
-
-        # Guardar copia para debug si el entorno lo permite
-        try:
-            ruta_original = os.path.join(DEBUG_DIR, "01_rostro_recibido.jpg")
-            cv2.imwrite(ruta_original, rostro)
-        except Exception:
-            pass
-
-        # Convertir a escala de grises
+        # 1. Convertir a escala de grises en memoria
         if len(rostro.shape) == 3:
             rostro_gray = cv2.cvtColor(rostro, cv2.COLOR_BGR2GRAY)
         else:
             rostro_gray = rostro.copy()
 
-        # Redimensionar a 48x48 (mismo tamaño de entrenamiento)
+        # 2. Redimensionar a 48x48 (mismo tamaño de entrenamiento)
         rostro_gray = cv2.resize(rostro_gray, IMG_SIZE)
 
-        # Ejecutar Modelo LBPH
+        # 3. Predicción con Modelo LBPH
         label, distancia = emotion_recognizer.predict(rostro_gray)
 
         if label < 0 or label >= len(EMOCIONES):
