@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>EmotiScan - Registrarse</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            font-family: Arial, sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    #273469 0%,
+                    #1a1a2e 45%,
+                    #0f0f1f 100%
+                );
+
+            color: white;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 20px;
+
+        }
+
+
+        .contenedor {
+
+            width: 100%;
+
+            max-width: 450px;
+
+            background:
+                rgba(22, 33, 62, 0.97);
+
+            padding: 40px;
+
+            border-radius: 25px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0, 0, 0, 0.45);
+
+        }
+
+
+        /* ==================================================
+           LOGO
+        ================================================== */
+
+        .logo {
+
+            width: 80px;
+
+            height: 80px;
+
+            margin: 0 auto 15px;
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e94560,
+                    #8e44ad
+                );
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 40px;
+
+        }
+
+
+        /* ==================================================
+           TITULO
+        ================================================== */
+
+        h1 {
+
+            text-align: center;
+
+            margin: 10px 0;
+
+            font-size: 34px;
+
+        }
+
+
+        .subtitulo {
+
+            text-align: center;
+
+            color: #a8d8ea;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        /* ==================================================
+           CAMPOS
+        ================================================== */
+
+        label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-weight: bold;
+
+        }
+
+
+        input {
+
+            width: 100%;
+
+            padding: 14px;
+
+            margin-bottom: 20px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #0f3460;
+
+            color: white;
+
+            font-size: 16px;
+
+            outline: none;
+
+        }
+
+
+        input::placeholder {
+
+            color: #a9b3c6;
+
+        }
+
+
+        input:focus {
+
+            outline: 2px solid #e94560;
+
+        }
+
+
+        /* ==================================================
+           BOTÓN
+        ================================================== */
+
+        button {
+
+            width: 100%;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e94560,
+                    #c73652
+                );
+
+            color: white;
+
+            font-size: 18px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.3s;
+
+        }
+
+
+        button:hover {
+
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 8px 20px
+                rgba(233, 69, 96, 0.4);
+
+        }
+
+
+        button:disabled {
+
+            opacity: 0.7;
+
+            cursor: not-allowed;
+
+            transform: none;
+
+        }
+
+
+        /* ==================================================
+           MENSAJES
+        ================================================== */
+
+        .mensaje {
+
+            margin-top: 20px;
+
+            padding: 12px;
+
+            border-radius: 8px;
+
+            text-align: center;
+
+            display: none;
+
+        }
+
+
+        .error {
+
+            background:
+                rgba(255, 70, 70, 0.15);
+
+            color: #ff8080;
+
+        }
+
+
+        .exito {
+
+            background:
+                rgba(70, 200, 120, 0.15);
+
+            color: #70e0a0;
+
+        }
+
+
+        /* ==================================================
+           ENLACES
+        ================================================== */
+
+        .links {
+
+            text-align: center;
+
+            margin-top: 25px;
+
+            color: #a8a8bb;
+
+        }
+
+
+        .links a {
+
+            color: #a8d8ea;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+        }
+
+
+        .links a:hover {
+
+            text-decoration: underline;
+
+        }
+
+
+        .volver {
+
+            display: block;
+
+            text-align: center;
+
+            margin-top: 20px;
+
+            color: #888;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+        }
+
+
+        .volver:hover {
+
+            color: white;
+
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+        ================================================== */
+
+        @media (max-width: 500px) {
+
+            .contenedor {
+
+                padding: 30px 20px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="contenedor">
+
+
+    <!-- ==================================================
+         LOGO
+    ================================================== -->
+
+    <div class="logo">
+
+        🧠
+
+    </div>
+
+
+    <!-- ==================================================
+         TITULO
+    ================================================== -->
+
+    <h1>
+
+        Crear cuenta
+
+    </h1>
+
+
+    <div class="subtitulo">
+
+        Regístrate para comenzar a usar EmotiScan
+
+    </div>
+
+
+    <!-- ==================================================
+         FORMULARIO
+    ================================================== -->
+
+    <form id="formRegistro">
+
+
+        <!-- NOMBRE -->
+
+        <label for="nombre">
+
+            Nombre completo
+
+        </label>
+
+        <input
+            type="text"
+            id="nombre"
+            name="nombre"
+            placeholder="Ingresa tu nombre"
+            required
+        >
+
+
+        <!-- CORREO -->
+
+        <label for="email">
+
+            Correo electrónico
+
+        </label>
+
+        <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="ejemplo@correo.com"
+            required
+        >
+
+
+        <!-- CONTRASEÑA -->
+
+        <label for="password">
+
+            Contraseña
+
+        </label>
+
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Ingresa una contraseña"
+            minlength="4"
+            required
+        >
+
+
+        <!-- CONFIRMAR CONTRASEÑA -->
+
+        <label for="confirmarPassword">
+
+            Confirmar contraseña
+
+        </label>
+
+        <input
+            type="password"
+            id="confirmarPassword"
+            name="confirmarPassword"
+            placeholder="Repite tu contraseña"
+            minlength="4"
+            required
+        >
+
+
+        <!-- BOTÓN -->
+
+        <button
+            type="submit"
+            id="btnRegistro"
+        >
+
+            📝 Crear cuenta
+
+        </button>
+
+
+    </form>
+
+
+    <!-- ==================================================
+         MENSAJE
+    ================================================== -->
+
+    <div
+        id="mensaje"
+        class="mensaje"
+    ></div>
+
+
+    <!-- ==================================================
+         LOGIN
+    ================================================== -->
+
+    <div class="links">
+
+        ¿Ya tienes una cuenta?
+
+        <a href="/login">
+
+            Inicia sesión
+
+        </a>
+
+    </div>
+
+
+    <!-- ==================================================
+         VOLVER
+    ================================================== -->
+
+    <a
+        href="/"
+        class="volver"
+    >
+
+        ← Volver al inicio
+
+    </a>
+
+
+</div>
+
+
+<script>
+
+
+    const formulario =
+        document.getElementById(
+            "formRegistro"
+        );
+
+
+    const mensaje =
+        document.getElementById(
+            "mensaje"
+        );
+
+
+    const boton =
+        document.getElementById(
+            "btnRegistro"
+        );
+
+
+    formulario.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const nombre =
+                document.getElementById(
+                    "nombre"
+                ).value.trim();
+
+
+            const email =
+                document.getElementById(
+                    "email"
+                ).value.trim();
+
+
+            const password =
+                document.getElementById(
+                    "password"
+                ).value;
+
+
+            const confirmarPassword =
+                document.getElementById(
+                    "confirmarPassword"
+                ).value;
+
+
+            mensaje.style.display =
+                "none";
+
+
+            /* ==========================================
+               VALIDAR CONTRASEÑAS
+            ========================================== */
+
+            if (
+                password !==
+                confirmarPassword
+            ) {
+
+                mensaje.className =
+                    "mensaje error";
+
+                mensaje.textContent =
+                    "❌ Las contraseñas no coinciden.";
+
+                mensaje.style.display =
+                    "block";
+
+                return;
+
+            }
+
+
+            /* ==========================================
+               VALIDAR LONGITUD
+            ========================================== */
+
+            if (
+                password.length < 4
+            ) {
+
+                mensaje.className =
+                    "mensaje error";
+
+                mensaje.textContent =
+                    "❌ La contraseña debe tener al menos 4 caracteres.";
+
+                mensaje.style.display =
+                    "block";
+
+                return;
+
+            }
+
+
+            /* ==========================================
+               DESACTIVAR BOTÓN
+            ========================================== */
+
+            boton.disabled =
+                true;
+
+            boton.textContent =
+                "Creando cuenta...";
+
+
+            try {
+
+
+                /* ======================================
+                   ENVIAR AL SERVIDOR
+                ====================================== */
+
+                const respuesta =
+                    await fetch(
+                        "/registro",
+                        {
+
+                            method: "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    nombre:
+                                        nombre,
+
+                                    email:
+                                        email,
+
+                                    password:
+                                        password
+
+                                })
+
+                        }
+                    );
+
+
+                const datos =
+                    await respuesta.json();
+
+
+                /* ======================================
+                   REGISTRO EXITOSO
+                ====================================== */
+
+                if (
+                    datos.success
+                ) {
+
+                    mensaje.className =
+                        "mensaje exito";
+
+                    mensaje.textContent =
+                        "✅ Registro exitoso. Redirigiendo al inicio de sesión...";
+
+                    mensaje.style.display =
+                        "block";
+
+
+                    setTimeout(
+                        function() {
+
+                            window.location.href =
+                                datos.redirect ||
+                                "/login";
+
+                        },
+                        1500
+                    );
+
+
+                }
+
+                /* ======================================
+                   ERROR
+                ====================================== */
+
+                else {
+
+                    mensaje.className =
+                        "mensaje error";
+
+                    mensaje.textContent =
+                        "❌ " +
+                        (
+                            datos.error ||
+                            "No se pudo crear la cuenta."
+                        );
+
+                    mensaje.style.display =
+                        "block";
+
+
+                    boton.disabled =
+                        false;
+
+                    boton.textContent =
+                        "📝 Crear cuenta";
+
+                }
+
+
+            }
+
+            catch (error) {
+
+
+                console.error(
+                    error
+                );
+
+
+                mensaje.className =
+                    "mensaje error";
+
+                mensaje.textContent =
+                    "❌ No se pudo conectar con el servidor.";
+
+                mensaje.style.display =
+                    "block";
+
+
+                boton.disabled =
+                    false;
+
+                boton.textContent =
+                    "📝 Crear cuenta";
+
+            }
+
+        }
+    );
+
+
+</script>
+
+
+</body>
+
+</html>

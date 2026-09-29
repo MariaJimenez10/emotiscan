@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>EmotiScan - Inicio</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            font-family: Arial, sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    #273469 0%,
+                    #1a1a2e 45%,
+                    #0f0f1f 100%
+                );
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 20px;
+
+        }
+
+
+        .container {
+
+            width: 100%;
+
+            max-width: 1000px;
+
+            background: rgba(
+                22,
+                33,
+                62,
+                0.95
+            );
+
+            border-radius: 25px;
+
+            padding: 50px 40px;
+
+            box-shadow:
+                0 20px 60px
+                rgba(0, 0, 0, 0.45);
+
+            text-align: center;
+
+            animation: aparecer 0.8s ease;
+
+        }
+
+
+        /* ==================================================
+           LOGO
+           ================================================== */
+
+        .logo {
+
+            width: 110px;
+
+            height: 110px;
+
+            margin: 0 auto 20px;
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e94560,
+                    #8e44ad
+                );
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 55px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(233, 69, 96, 0.35);
+
+        }
+
+
+        /* ==================================================
+           TITULOS
+           ================================================== */
+
+        h1 {
+
+            font-size: 52px;
+
+            margin: 10px 0;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #ffffff,
+                    #a8d8ea
+                );
+
+            -webkit-background-clip: text;
+
+            -webkit-text-fill-color: transparent;
+
+        }
+
+
+        .subtitulo {
+
+            font-size: 24px;
+
+            color: #a8d8ea;
+
+            margin: 10px 0 20px;
+
+        }
+
+
+        .descripcion {
+
+            max-width: 700px;
+
+            margin: 0 auto;
+
+            font-size: 18px;
+
+            line-height: 1.7;
+
+            color: #d7d7e8;
+
+        }
+
+
+        /* ==================================================
+           EMOCIONES
+           ================================================== */
+
+        .emociones {
+
+            display: flex;
+
+            justify-content: center;
+
+            gap: 20px;
+
+            flex-wrap: wrap;
+
+            margin: 35px 0;
+
+        }
+
+
+        .emocion {
+
+            min-width: 130px;
+
+            padding: 18px 15px;
+
+            border-radius: 15px;
+
+            background: #0f3460;
+
+            border: 1px solid
+                rgba(168, 216, 234, 0.15);
+
+            transition:
+                transform 0.3s,
+                box-shadow 0.3s;
+
+        }
+
+
+        .emocion:hover {
+
+            transform: translateY(-7px);
+
+            box-shadow:
+                0 10px 25px
+                rgba(0, 0, 0, 0.3);
+
+        }
+
+
+        .emoji {
+
+            display: block;
+
+            font-size: 42px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+        .nombre-emocion {
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+        }
+
+
+        /* ==================================================
+           BOTON PRINCIPAL
+           ================================================== */
+
+        .btn-principal {
+
+            display: inline-block;
+
+            text-decoration: none;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e94560,
+                    #c73652
+                );
+
+            color: white;
+
+            border: none;
+
+            padding: 17px 45px;
+
+            border-radius: 12px;
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 8px 25px
+                rgba(233, 69, 96, 0.35);
+
+            transition:
+                transform 0.3s,
+                box-shadow 0.3s;
+
+        }
+
+
+        .btn-principal:hover {
+
+            transform: translateY(-3px)
+                       scale(1.03);
+
+            box-shadow:
+                0 12px 30px
+                rgba(233, 69, 96, 0.5);
+
+        }
+
+
+        /* ==================================================
+           BOTONES SECUNDARIOS
+           ================================================== */
+
+        .acciones {
+
+            display: flex;
+
+            justify-content: center;
+
+            gap: 15px;
+
+            flex-wrap: wrap;
+
+            margin-top: 25px;
+
+        }
+
+
+        .btn-secundario {
+
+            display: inline-block;
+
+            text-decoration: none;
+
+            color: #a8d8ea;
+
+            border: 1px solid #0f3460;
+
+            padding: 12px 25px;
+
+            border-radius: 10px;
+
+            font-size: 16px;
+
+            transition:
+                background 0.3s,
+                color 0.3s,
+                transform 0.3s;
+
+        }
+
+
+        .btn-secundario:hover {
+
+            background: #0f3460;
+
+            color: white;
+
+            transform: translateY(-2px);
+
+        }
+
+
+        /* ==================================================
+           USUARIO
+           ================================================== */
+
+        .usuario {
+
+            margin-top: 30px;
+
+            color: #aaa;
+
+            font-size: 15px;
+
+        }
+
+
+        .usuario strong {
+
+            color: #a8d8ea;
+
+        }
+
+
+        /* ==================================================
+           INFORMACIÓN
+           ================================================== */
+
+        .info {
+
+            margin-top: 35px;
+
+            padding-top: 25px;
+
+            border-top:
+                1px solid
+                rgba(255,255,255,0.1);
+
+            color: #888;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* ==================================================
+           ANIMACIÓN
+           ================================================== */
+
+        @keyframes aparecer {
+
+            from {
+
+                opacity: 0;
+
+                transform:
+                    translateY(30px)
+                    scale(0.97);
+
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0)
+                    scale(1);
+
+            }
+
+        }
+
+
+        /* ==================================================
+           RESPONSIVE
+           ================================================== */
+
+        @media (max-width: 600px) {
+
+            body {
+
+                padding: 10px;
+
+            }
+
+
+            .container {
+
+                padding: 35px 20px;
+
+            }
+
+
+            h1 {
+
+                font-size: 40px;
+
+            }
+
+
+            .subtitulo {
+
+                font-size: 20px;
+
+            }
+
+
+            .descripcion {
+
+                font-size: 16px;
+
+            }
+
+
+            .logo {
+
+                width: 90px;
+
+                height: 90px;
+
+                font-size: 45px;
+
+            }
+
+
+            .btn-principal {
+
+                width: 90%;
+
+                padding: 15px;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- ==================================================
+         LOGO
+         ================================================== -->
+
+    <div class="logo">
+
+        🧠
+
+    </div>
+
+
+    <!-- ==================================================
+         TITULO
+         ================================================== -->
+
+    <h1>
+
+        EmotiScan
+
+    </h1>
+
+
+    <div class="subtitulo">
+
+        Reconocimiento de emociones con Inteligencia Artificial
+
+    </div>
+
+
+    <!-- ==================================================
+         DESCRIPCIÓN
+         ================================================== -->
+
+    <p class="descripcion">
+
+        Bienvenido a <strong>EmotiScan</strong>, una aplicación
+        desarrollada para analizar expresiones faciales mediante
+        Inteligencia Artificial y reconocer diferentes estados
+        emocionales.
+
+    </p>
+
+
+    <!-- ==================================================
+         EMOCIONES
+         ================================================== -->
+
+    <div class="emociones">
+
+
+        <div class="emocion">
+
+            <span class="emoji">
+
+                😊
+
+            </span>
+
+            <span class="nombre-emocion">
+
+                Felicidad
+
+            </span>
+
+        </div>
+
+
+        <div class="emocion">
+
+            <span class="emoji">
+
+                😢
+
+            </span>
+
+            <span class="nombre-emocion">
+
+                Tristeza
+
+            </span>
+
+        </div>
+
+
+        <div class="emocion">
+
+            <span class="emoji">
+
+                😡
+
+            </span>
+
+            <span class="nombre-emocion">
+
+                Furia
+
+            </span>
+
+        </div>
+
+
+        <div class="emocion">
+
+            <span class="emoji">
+
+                😐
+
+            </span>
+
+            <span class="nombre-emocion">
+
+                Neutral
+
+            </span>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ==================================================
+         BOTÓN PRINCIPAL
+         ================================================== -->
+
+    <a
+        href="/camara"
+        class="btn-principal"
+    >
+
+        🚀 Comenzar detección
+
+    </a>
+
+
+    <!-- ==================================================
+         BOTONES LOGIN / REGISTRO
+         ================================================== -->
+
+    <div class="acciones">
+
+        <a
+            href="/login"
+            class="btn-secundario"
+        >
+
+            🔐 Iniciar sesión
+
+        </a>
+
+        <a
+            href="/registro"
+            class="btn-secundario"
+        >
+
+            📝 Registrarse
+
+        </a>
+
+
+    </div>
+
+
+    <!-- ==================================================
+         USUARIO
+         ================================================== -->
+
+    {% if session.get("usuario_id") %}
+
+    <div class="usuario">
+
+        👋 Sesión iniciada como:
+
+        <strong>
+
+            {{ session.get("usuario_nombre", "Usuario") }}
+
+        </strong>
+
+        <br>
+
+        <a
+            href="/logout"
+            style="
+                color:#e94560;
+                text-decoration:none;
+                display:inline-block;
+                margin-top:10px;
+            "
+        >
+
+            Cerrar sesión
+
+        </a>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ==================================================
+         INFORMACIÓN
+         ================================================== -->
+
+    <div class="info">
+
+        🧠 EmotiScan utiliza Inteligencia Artificial para
+        realizar el reconocimiento de emociones a partir
+        de expresiones faciales.
+
+        <br><br>
+
+        Las emociones analizadas son:
+
+        <strong>
+
+            Felicidad, Tristeza, Furia y Neutral.
+
+        </strong>
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

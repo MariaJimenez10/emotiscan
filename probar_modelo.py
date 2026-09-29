@@ -11,15 +11,27 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 # CONFIGURACIÓN
 # ==========================================================
 
-MODEL_PATH = "modelo_resnet50_emociones.h5"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATASET_PATH = "dataset/train"
+MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "modelo",
+    "mejor_modelo.keras"
+)
 
-EMOCIONES = [
+TEST_DIR = os.path.join(
+    BASE_DIR,
+    "dataset",
+    "test"
+)
+
+IMG_SIZE = 224
+
+CLASSES = [
     "Enojo",
     "Felicidad",
-    "Neutral",
-    "Tristeza"
+    "Tristeza",
+    "Neutral"
 ]
 
 
@@ -27,48 +39,105 @@ EMOCIONES = [
 # CARGAR MODELO
 # ==========================================================
 
-print("======================================")
+print("=" * 70)
 print("CARGANDO MODELO")
-print("======================================")
+print("=" * 70)
 
-model = load_model(MODEL_PATH)
+model = load_model(
+    MODEL_PATH,
+    compile=False
+)
 
-print("Modelo cargado correctamente")
+print("Modelo cargado.")
+print("Entrada:", model.input_shape)
+print("Salida :", model.output_shape)
+
+print()
 
 
 # ==========================================================
-# PROBAR UNA IMAGEN DE CADA CLASE
+# PREPARAR IMAGEN
 # ==========================================================
 
-for clase_idx, emocion in enumerate(EMOCIONES):
+def preparar_imagen(ruta):
 
-    carpeta = os.path.join(
-        DATASET_PATH,
-        emocion
+    imagen = cv2.imread(ruta)
+
+    if imagen is None:
+        raise ValueError(
+            f"No se pudo leer: {ruta}"
+        )
+
+    # OpenCV = BGR
+    # entrenamiento = RGB
+    imagen = cv2.cvtColor(
+        imagen,
+        cv2.COLOR_BGR2RGB
     )
 
-    if not os.path.exists(carpeta):
+    imagen = cv2.resize(
+        imagen,
+        (IMG_SIZE, IMG_SIZE),
+        interpolation=cv2.INTER_AREA
+    )
 
-        print(f"\n❌ No existe: {carpeta}")
+    imagen = imagen.astype(
+        np.float32
+    )
 
-        continue
+    imagen = preprocess_input(
+        imagen
+    )
 
+    imagen = np.expand_dims(
+        imagen,
+        axis=0
+    )
+
+    return imagen
+
+
+# ==========================================================
+# BUSCAR UNA IMAGEN DE CADA CLASE
+# ==========================================================
+
+print("=" * 70)
+print("PROBANDO UNA IMAGEN REAL DEL DATASET POR CLASE")
+print("=" * 70)
+
+
+for clase_real in CLASSES:
+
+    carpeta = os.path.join(
+        TEST_DIR,
+        clase_real
+    )
 
     archivos = [
-        f for f in os.listdir(carpeta)
-        if f.lower().endswith(
-            (".jpg", ".jpeg", ".png")
+        archivo
+        for archivo in os.listdir(carpeta)
+        if archivo.lower().endswith(
+            (
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".bmp",
+                ".webp"
+            )
         )
     ]
 
+    if not archivos:
 
-    if len(archivos) == 0:
-
-        print(f"\n❌ No hay imágenes en {emocion}")
+        print()
+        print(
+            f"No existen imágenes para {clase_real}"
+        )
 
         continue
 
 
+    # Primera imagen
     archivo = archivos[0]
 
     ruta = os.path.join(
@@ -77,91 +146,15 @@ for clase_idx, emocion in enumerate(EMOCIONES):
     )
 
 
-    print("\n======================================")
-    print(f"CLASE REAL: {emocion}")
-    print(f"IMAGEN: {archivo}")
-    print("======================================")
-
-
-    # ======================================================
-    # CARGAR
-    # ======================================================
-
-    img = cv2.imread(ruta)
-
-
-    if img is None:
-
-        print("❌ No se pudo cargar")
-
-        continue
-
-
-    print("Imagen original:", img.shape)
-    print("Tipo:", img.dtype)
-
-
-    # ======================================================
-    # RESIZE
-    # ======================================================
-
-    img = cv2.resize(
-        img,
-        (224, 224)
+    imagen = preparar_imagen(
+        ruta
     )
 
-
-    # ======================================================
-    # FLOAT32
-    # ======================================================
-
-    img = img.astype(
-        np.float32
-    )
-
-
-    # ======================================================
-    # PREPROCESS
-    # ======================================================
-
-    img = preprocess_input(img)
-
-
-    # ======================================================
-    # BATCH
-    # ======================================================
-
-    img = np.expand_dims(
-        img,
-        axis=0
-    )
-
-
-    print(
-        "Entrada modelo:",
-        img.shape
-    )
-
-
-    # ======================================================
-    # PREDICCIÓN
-    # ======================================================
 
     pred = model.predict(
-        img,
+        imagen,
         verbose=0
     )[0]
-
-
-    print("\nPredicción:")
-
-    for i, valor in enumerate(pred):
-
-        print(
-            f"{EMOCIONES[i]}: "
-            f"{valor:.6f} "
-            f"({valor * 100:.2f}%)"
-        )
 
 
     indice = int(
@@ -169,21 +162,40 @@ for clase_idx, emocion in enumerate(EMOCIONES):
     )
 
 
-    print("\n--------------------------------------")
+    clase_predicha = CLASSES[
+        indice
+    ]
+
+
+    print()
+    print("-" * 70)
 
     print(
-        "REAL:",
-        emocion
+        f"REAL      : {clase_real}"
     )
 
     print(
-        "PREDICCIÓN:",
-        EMOCIONES[indice]
+        f"PREDICCIÓN: {clase_predicha}"
     )
 
     print(
-        "CONFIANZA:",
-        f"{pred[indice] * 100:.2f}%"
+        f"ARCHIVO   : {archivo}"
     )
 
-    print("--------------------------------------")
+    print()
+
+    for nombre, prob in zip(
+        CLASSES,
+        pred
+    ):
+
+        print(
+            f"{nombre:12s}: "
+            f"{float(prob) * 100:6.2f}%"
+        )
+
+
+print()
+print("=" * 70)
+print("PRUEBA TERMINADA")
+print("=" * 70)
