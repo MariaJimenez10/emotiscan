@@ -6,3 +6,5 @@ node_modules/
 *.db
 emociones.db
 mejor_modelo.keras
+modelo/modelo_emociones.keras
+dataset.zip
