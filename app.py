@@ -1,18 +1,13 @@
-<<<<<<< HEAD
-=======
 from flask import Flask, render_template, request, redirect, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask import send_from_directory
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 import os
 import cv2
 import base64
 import logging
 import numpy as np
-<<<<<<< HEAD
 import sqlite3
-
 from flask import Flask, render_template, request, jsonify, session, redirect
 from flask_cors import CORS
 
@@ -486,8 +481,6 @@ def historial():
 # ==========================================================
 # LOGOUT
 # ==========================================================
-
-=======
 import base64
 import sqlite3
 import logging
@@ -766,8 +759,6 @@ def dashboard():
             conteo[row["emocion"]] = row[1]
     
     return render_template("dashboard.html", conteo=conteo)
-
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 @app.route("/logout")
 def logout():
 
@@ -785,8 +776,6 @@ def logout():
 
 
     return redirect("/")
-
-<<<<<<< HEAD
 
 # ==========================================================
 # ANALIZAR EMOCIÓN
@@ -1295,7 +1284,6 @@ if __name__ == "__main__":
         debug=False
 
     )
-=======
 @app.route('/imagen')
 def imagen():
     return render_template('imagen.html')
@@ -1362,4 +1350,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     logger.info(f"🚀 Servidor en puerto {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
