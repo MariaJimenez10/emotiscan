@@ -1,28 +1,17 @@
 import os
-<<<<<<< HEAD
 import logging
 import cv2
 import numpy as np
-import tensorflow as tf
 import time
 import random
 
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.resnet50 import preprocess_input
-=======
-import cv2
-import logging
-import numpy as np
-
 from tflite_runtime.interpreter import Interpreter
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
 
 # ==========================================================
 # CONFIGURACIÓN
 # ==========================================================
 
-<<<<<<< HEAD
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s"
@@ -41,13 +30,12 @@ BASE_DIR = os.path.dirname(
 
 
 # ==========================================================
-# MODELO
+# MODELO TFLITE
 # ==========================================================
 
 MODEL_PATH = os.path.join(
     BASE_DIR,
-    "modelo",
-    "mejor_modelo.keras"
+    "modelo_resnet50_emociones.tflite"
 )
 
 
@@ -80,41 +68,21 @@ os.makedirs(
 INTERVALO_GUARDADO = 2.0
 
 
-=======
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-MODEL_PATH = os.path.join(
-    BASE_DIR,
-    "modelo_resnet50_emociones.tflite"
-)
-
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 # ==========================================================
 # EMOCIONES
 # ==========================================================
-#
+
 # IMPORTANTE:
-<<<<<<< HEAD
 #
-# Este orden debe ser EXACTAMENTE el mismo
-# que utilizó el generador durante el entrenamiento.
+# Este orden DEBE coincidir exactamente con el orden
+# utilizado durante el entrenamiento del modelo.
 #
-# En tu dataset:
-#
-# Enojo
-# Felicidad
-# Neutral
-# Tristeza
+# 0 -> Enojo
+# 1 -> Felicidad
+# 2 -> Neutral
+# 3 -> Tristeza
 #
 # ==========================================================
-=======
-# Este orden DEBE coincidir con el orden utilizado
-# durante el entrenamiento del modelo.
-#
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
 EMOCIONES = [
     "Enojo",
@@ -125,7 +93,6 @@ EMOCIONES = [
 
 
 # ==========================================================
-<<<<<<< HEAD
 # CONSEJOS
 # ==========================================================
 
@@ -190,111 +157,181 @@ CONSEJOS = {
 
 
 # ==========================================================
-# VARIABLE GLOBAL DEL MODELO
-# ==========================================================
-
-model = None
-
-
-# ==========================================================
-# VARIABLES PARA EL CONSEJO
-# ==========================================================
-
-ultima_emocion_consejo = None
-consejo_actual = None
-
-
-# ==========================================================
-# CARGAR MODELO
-=======
-# VARIABLES DEL MODELO
+# VARIABLES GLOBALES DEL MODELO
 # ==========================================================
 
 interpreter = None
+
 input_details = None
+
 output_details = None
 
 
 # ==========================================================
+# VARIABLES DEL CONSEJO
+# ==========================================================
+
+ultima_emocion_consejo = None
+
+consejo_actual = None
+
+
+# ==========================================================
 # CARGAR MODELO TFLITE
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 # ==========================================================
 
 def cargar_modelo():
 
-<<<<<<< HEAD
-    global model
-
-    logger.info("=" * 60)
-
-    logger.info(
-        "🧠 CARGANDO MODELO RESNET50"
-    )
-
-    logger.info("=" * 60)
-
-    logger.info(
-        f"📁 Modelo: {MODEL_PATH}"
-    )
-=======
     global interpreter
     global input_details
     global output_details
 
-    # Si ya está cargado, no volver a cargarlo
+    # ------------------------------------------------------
+    # Si ya está cargado
+    # ------------------------------------------------------
+
     if interpreter is not None:
-        return
 
-    logger.info("======================================")
-    logger.info("🧠 CARGANDO MODELO RESNET50 TFLITE")
-    logger.info("📁 Modelo: %s", MODEL_PATH)
+        return interpreter
+
+    logger.info(
+        "=" * 60
+    )
+
+    logger.info(
+        "🧠 CARGANDO MODELO RESNET50 TFLITE"
+    )
+
+    logger.info(
+        "📁 Modelo: %s",
+        MODEL_PATH
+    )
+
+    logger.info(
+        "=" * 60
+    )
 
     # ------------------------------------------------------
-    # Verificar que exista
+    # Verificar existencia
     # ------------------------------------------------------
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
     if not os.path.exists(MODEL_PATH):
 
         raise FileNotFoundError(
-<<<<<<< HEAD
-            f"No existe el modelo:\n{MODEL_PATH}"
+            f"No se encontró el modelo TFLite:\n{MODEL_PATH}"
         )
 
-    model = load_model(
-        MODEL_PATH,
-        compile=False
+    # ------------------------------------------------------
+    # Tamaño del modelo
+    # ------------------------------------------------------
+
+    tamanio_mb = (
+        os.path.getsize(MODEL_PATH)
+        /
+        (1024 * 1024)
     )
 
     logger.info(
-        "✅ MODELO CARGADO CORRECTAMENTE"
+        "📦 Tamaño del modelo: %.2f MB",
+        tamanio_mb
+    )
+
+    # ------------------------------------------------------
+    # Crear intérprete
+    # ------------------------------------------------------
+
+    logger.info(
+        "⚙️ Creando intérprete TFLite..."
+    )
+
+    interpreter = Interpreter(
+        model_path=MODEL_PATH,
+        num_threads=1
+    )
+
+    # ------------------------------------------------------
+    # Reservar tensores
+    # ------------------------------------------------------
+
+    logger.info(
+        "⚙️ Asignando tensores..."
+    )
+
+    interpreter.allocate_tensors()
+
+    # ------------------------------------------------------
+    # Obtener información
+    # ------------------------------------------------------
+
+    input_details = (
+        interpreter.get_input_details()
+    )
+
+    output_details = (
+        interpreter.get_output_details()
+    )
+
+    # ------------------------------------------------------
+    # Mostrar entrada
+    # ------------------------------------------------------
+
+    logger.info(
+        "📥 Entrada del modelo:"
     )
 
     logger.info(
-        f"📥 Entrada esperada: {model.input_shape}"
+        "   Shape: %s",
+        input_details[0]["shape"]
     )
 
     logger.info(
-        f"📤 Salida: {model.output_shape}"
+        "   Tipo: %s",
+        input_details[0]["dtype"]
+    )
+
+    # ------------------------------------------------------
+    # Mostrar salida
+    # ------------------------------------------------------
+
+    logger.info(
+        "📤 Salida del modelo:"
     )
 
     logger.info(
-        f"🎭 Orden de clases utilizado:"
+        "   Shape: %s",
+        output_details[0]["shape"]
+    )
+
+    logger.info(
+        "   Tipo: %s",
+        output_details[0]["dtype"]
+    )
+
+    # ------------------------------------------------------
+    # Mostrar clases
+    # ------------------------------------------------------
+
+    logger.info(
+        "🎭 Orden de clases:"
     )
 
     for i, emocion in enumerate(EMOCIONES):
 
         logger.info(
-            f"   Índice {i} → {emocion}"
+            "   Índice %d → %s",
+            i,
+            emocion
         )
 
     logger.info(
-        f"📂 Rostros guardados en: {ROSTROS_DIR}"
+        "✅ MODELO TFLITE CARGADO CORRECTAMENTE"
     )
 
-    logger.info("=" * 60)
+    logger.info(
+        "=" * 60
+    )
 
-    return model
+    return interpreter
 
 
 # ==========================================================
@@ -305,6 +342,10 @@ def obtener_consejo(emocion):
 
     global ultima_emocion_consejo
     global consejo_actual
+
+    # ------------------------------------------------------
+    # Cambió la emoción
+    # ------------------------------------------------------
 
     if emocion != ultima_emocion_consejo:
 
@@ -330,98 +371,24 @@ def obtener_consejo(emocion):
 
 
 # ==========================================================
-# PREPARAR IMAGEN
-# ==========================================================
-
-def preparar_imagen(rostro):
-=======
-            f"No se encontró el modelo: {MODEL_PATH}"
-        )
-
-    # ------------------------------------------------------
-    # Tamaño del archivo
-    # ------------------------------------------------------
-
-    tamanio_kb = os.path.getsize(MODEL_PATH) / 1024
-
-    logger.info(
-        "📦 Tamaño del modelo: %.2f KB",
-        tamanio_kb
-    )
-
-    # ------------------------------------------------------
-    # Crear intérprete
-    # ------------------------------------------------------
-
-    logger.info("⚙️ Creando intérprete TFLite...")
-
-    interpreter = Interpreter(
-        model_path=MODEL_PATH,
-        num_threads=1
-    )
-
-    # ------------------------------------------------------
-    # Reservar tensores
-    # ------------------------------------------------------
-
-    logger.info("⚙️ Asignando tensores...")
-
-    interpreter.allocate_tensors()
-
-    # ------------------------------------------------------
-    # Obtener información de entrada y salida
-    # ------------------------------------------------------
-
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-
-    logger.info("✅ MODELO CARGADO CORRECTAMENTE")
-
-    # Entrada
-    logger.info(
-        "📥 Entrada:"
-    )
-
-    logger.info(
-        "   Shape: %s",
-        input_details[0]["shape"]
-    )
-
-    logger.info(
-        "   Tipo: %s",
-        input_details[0]["dtype"]
-    )
-
-    # Salida
-    logger.info(
-        "📤 Salida:"
-    )
-
-    logger.info(
-        "   Shape: %s",
-        output_details[0]["shape"]
-    )
-
-    logger.info(
-        "   Tipo: %s",
-        output_details[0]["dtype"]
-    )
-
-    logger.info("======================================")
-
-
-# ==========================================================
 # PREPARAR ROSTRO
 # ==========================================================
 
 def preparar_rostro(rostro):
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
     if rostro is None:
 
         raise ValueError(
-<<<<<<< HEAD
             "El rostro recibido es None."
+        )
+
+    if not isinstance(
+        rostro,
+        np.ndarray
+    ):
+
+        raise ValueError(
+            "El rostro debe ser un numpy.ndarray."
         )
 
     if rostro.size == 0:
@@ -430,8 +397,14 @@ def preparar_rostro(rostro):
             "El rostro está vacío."
         )
 
+    logger.info(
+        "👤 Rostro recibido: shape=%s dtype=%s",
+        rostro.shape,
+        rostro.dtype
+    )
+
     # ======================================================
-    # DETERMINAR CANALES
+    # CONVERTIR A RGB
     # ======================================================
 
     if len(rostro.shape) == 2:
@@ -458,88 +431,12 @@ def preparar_rostro(rostro):
         and rostro.shape[2] == 3
     ):
 
-        # OpenCV recibe BGR.
-        # ResNet50 espera RGB.
-=======
-            "El rostro recibido es None"
-        )
-
-    logger.info(
-        "👤 Rostro recibido: shape=%s dtype=%s",
-        rostro.shape,
-        rostro.dtype
-    )
-
-    # ------------------------------------------------------
-    # Obtener tamaño que necesita el modelo
-    # ------------------------------------------------------
-
-    input_shape = input_details[0]["shape"]
-
-    alto = int(input_shape[1])
-    ancho = int(input_shape[2])
-
-    logger.info(
-        "📐 Tamaño requerido: %sx%s",
-        ancho,
-        alto
-    )
-
-    # ------------------------------------------------------
-    # Convertir BGR → RGB
-    # ------------------------------------------------------
-
-    if len(rostro.shape) == 3:
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+        # OpenCV trabaja en BGR.
+        # El modelo fue entrenado con RGB.
 
         rostro_rgb = cv2.cvtColor(
             rostro,
             cv2.COLOR_BGR2RGB
-        )
-
-<<<<<<< HEAD
-    else:
-
-        raise ValueError(
-            f"Formato de imagen no soportado: "
-            f"{rostro.shape}"
-        )
-
-    # ======================================================
-    # REDIMENSIONAR
-    # ======================================================
-
-    rostro_rgb = cv2.resize(
-        rostro_rgb,
-        (IMG_SIZE, IMG_SIZE),
-        interpolation=cv2.INTER_AREA
-    )
-
-    # ======================================================
-    # FLOAT32
-    # ======================================================
-
-    rostro_rgb = rostro_rgb.astype(
-        np.float32
-    )
-
-    # ======================================================
-    # PREPROCESAMIENTO RESNET50
-    # ======================================================
-
-    rostro_rgb = preprocess_input(
-        rostro_rgb
-    )
-
-    # ======================================================
-    # AGREGAR BATCH
-    # ======================================================
-=======
-    elif len(rostro.shape) == 2:
-
-        rostro_rgb = cv2.cvtColor(
-            rostro,
-            cv2.COLOR_GRAY2RGB
         )
 
     else:
@@ -548,9 +445,29 @@ def preparar_rostro(rostro):
             f"Formato de rostro no válido: {rostro.shape}"
         )
 
-    # ------------------------------------------------------
-    # Redimensionar
-    # ------------------------------------------------------
+    # ======================================================
+    # OBTENER TAMAÑO DEL MODELO
+    # ======================================================
+
+    input_shape = input_details[0]["shape"]
+
+    alto = int(
+        input_shape[1]
+    )
+
+    ancho = int(
+        input_shape[2]
+    )
+
+    logger.info(
+        "📐 Tamaño requerido por modelo: %sx%s",
+        ancho,
+        alto
+    )
+
+    # ======================================================
+    # REDIMENSIONAR
+    # ======================================================
 
     rostro_rgb = cv2.resize(
         rostro_rgb,
@@ -558,9 +475,9 @@ def preparar_rostro(rostro):
         interpolation=cv2.INTER_AREA
     )
 
-    # ------------------------------------------------------
-    # Obtener tipo de entrada
-    # ------------------------------------------------------
+    # ======================================================
+    # OBTENER TIPO DE ENTRADA
+    # ======================================================
 
     input_dtype = input_details[0]["dtype"]
 
@@ -569,30 +486,84 @@ def preparar_rostro(rostro):
         input_dtype
     )
 
-    # ------------------------------------------------------
-    # Preparar según el tipo
-    # ------------------------------------------------------
+    # ======================================================
+    # PREPROCESAMIENTO
+    # ======================================================
 
     if input_dtype == np.float32:
+
+        # --------------------------------------------------
+        # IMPORTANTE
+        #
+        # ResNet50 normalmente utiliza la transformación:
+        #
+        # RGB 0-255
+        #        ↓
+        # preprocess_input
+        #
+        # equivalente a la normalización utilizada por
+        # ResNet50 de Keras.
+        #
+        # --------------------------------------------------
 
         rostro_rgb = rostro_rgb.astype(
             np.float32
         )
 
-        # Normalización 0-1
-        rostro_rgb = rostro_rgb / 255.0
+        rostro_rgb = (
+            rostro_rgb / 127.5
+        ) - 1.0
 
     elif input_dtype == np.uint8:
 
-        rostro_rgb = rostro_rgb.astype(
+        rostro_rgb = np.clip(
+            rostro_rgb,
+            0,
+            255
+        ).astype(
             np.uint8
         )
 
     elif input_dtype == np.int8:
 
-        rostro_rgb = rostro_rgb.astype(
-            np.int8
+        # --------------------------------------------------
+        # Para modelos int8 utilizamos cuantización
+        # si el modelo proporciona escala y zero point.
+        # --------------------------------------------------
+
+        scale, zero_point = (
+            input_details[0].get(
+                "quantization",
+                (0.0, 0)
+            )
         )
+
+        if scale != 0:
+
+            rostro_rgb = (
+                rostro_rgb.astype(
+                    np.float32
+                )
+                / scale
+            ) + zero_point
+
+            rostro_rgb = np.clip(
+                rostro_rgb,
+                -128,
+                127
+            ).astype(
+                np.int8
+            )
+
+        else:
+
+            rostro_rgb = np.clip(
+                rostro_rgb,
+                -128,
+                127
+            ).astype(
+                np.int8
+            )
 
     else:
 
@@ -605,30 +576,25 @@ def preparar_rostro(rostro):
             input_dtype
         )
 
-    # ------------------------------------------------------
-    # Agregar dimensión batch
-    # ------------------------------------------------------
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+    # ======================================================
+    # AGREGAR BATCH
+    # ======================================================
 
     rostro_rgb = np.expand_dims(
         rostro_rgb,
         axis=0
     )
 
-<<<<<<< HEAD
-=======
     logger.info(
         "✅ Rostro preparado: shape=%s dtype=%s",
         rostro_rgb.shape,
         rostro_rgb.dtype
     )
 
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     return rostro_rgb
 
 
 # ==========================================================
-<<<<<<< HEAD
 # SOFTMAX
 # ==========================================================
 
@@ -641,183 +607,324 @@ def softmax(x):
 
     x = x - np.max(x)
 
-    exp_x = np.exp(x)
+    exp_x = np.exp(
+        x
+    )
+
+    suma = np.sum(
+        exp_x
+    )
+
+    if suma == 0:
+
+        return np.ones_like(
+            exp_x
+        ) / len(exp_x)
 
     return (
-        exp_x /
-        np.sum(exp_x)
+        exp_x / suma
     )
 
 
 # ==========================================================
-=======
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-# PREDICCIÓN
+# CONVERTIR SALIDA A PROBABILIDADES
 # ==========================================================
 
-def predecir(rostro):
+def convertir_probabilidades(predicciones):
 
-<<<<<<< HEAD
-    global model
-
-    if model is None:
-
-        cargar_modelo()
-
-    # ======================================================
-    # PREPARAR IMAGEN
-    # ======================================================
-
-    imagen = preparar_imagen(
-        rostro
-    )
-
-    # ======================================================
-    # PREDICCIÓN
-    # ======================================================
-
-    predicciones = model.predict(
-        imagen,
-        verbose=0
-    )
-
-    probabilidades = np.squeeze(
-        predicciones
-    )
-
-    probabilidades = np.asarray(
-        probabilidades,
+    predicciones = np.asarray(
+        predicciones,
         dtype=np.float32
     )
 
-    # ======================================================
-    # COMPROBAR SALIDA
-    # ======================================================
+    # ------------------------------------------------------
+    # Aplanar
+    # ------------------------------------------------------
 
-    if len(probabilidades) != len(
+    predicciones = np.squeeze(
+        predicciones
+    )
+
+    # ------------------------------------------------------
+    # Verificar cantidad
+    # ------------------------------------------------------
+
+    if len(predicciones) != len(
         EMOCIONES
     ):
 
         raise ValueError(
             f"El modelo devuelve "
-            f"{len(probabilidades)} clases, "
+            f"{len(predicciones)} clases, "
             f"pero EMOCIONES tiene "
             f"{len(EMOCIONES)}."
         )
 
-    # ======================================================
-    # CONVERTIR A PROBABILIDADES
-    # ======================================================
+    # ------------------------------------------------------
+    # Verificar si ya son probabilidades
+    # ------------------------------------------------------
 
     suma = float(
-        np.sum(probabilidades)
+        np.sum(predicciones)
     )
 
-    if (
-        np.all(probabilidades >= 0)
+    son_probabilidades = (
+        np.all(predicciones >= 0)
         and
-        np.all(probabilidades <= 1)
+        np.all(predicciones <= 1)
         and
         abs(suma - 1.0) < 0.05
-    ):
+    )
+
+    if son_probabilidades:
 
         if suma > 0:
 
-            probabilidades = (
-                probabilidades / suma
+            predicciones = (
+                predicciones / suma
             )
 
     else:
 
-        probabilidades = softmax(
-            probabilidades
+        predicciones = softmax(
+            predicciones
         )
 
-    # ======================================================
-    # MOSTRAR PROBABILIDADES REALES
-    # ======================================================
+    return predicciones
 
-    logger.info("")
-    logger.info("==========================================")
-    logger.info("📊 PREDICCIÓN DEL MODELO")
-    logger.info("==========================================")
 
-    for i, nombre in enumerate(EMOCIONES):
+# ==========================================================
+# PREDICCIÓN
+# ==========================================================
+
+def predecir(rostro):
+
+    try:
 
         logger.info(
-            f"{nombre:<12}: "
-            f"{probabilidades[i] * 100:6.2f}%"
+            "=========================================="
         )
 
-    # ======================================================
-    # EMOCIÓN PRINCIPAL
-    # ======================================================
-
-    indice = int(
-        np.argmax(
-            probabilidades
+        logger.info(
+            "🎯 INICIANDO PREDICCIÓN"
         )
-    )
 
-    emocion = EMOCIONES[
-        indice
-    ]
+        # ==================================================
+        # CARGAR MODELO
+        # ==================================================
 
-    confianza = float(
-        probabilidades[indice] * 100
-    )
+        cargar_modelo()
 
-    logger.info("------------------------------------------")
+        # ==================================================
+        # VALIDAR ROSTRO
+        # ==================================================
 
-    logger.info(
-        f"🎯 EMOCIÓN: {emocion}"
-    )
+        if rostro is None:
 
-    logger.info(
-        f"📈 CONFIANZA: {confianza:.2f}%"
-    )
+            logger.warning(
+                "⚠️ No se recibió ningún rostro"
+            )
 
-    logger.info(
-        f"🔢 ÍNDICE: {indice}"
-    )
+            return (
+                "Neutral",
+                0.0,
+                {
+                    "Enojo": 0.0,
+                    "Felicidad": 0.0,
+                    "Neutral": 100.0,
+                    "Tristeza": 0.0
+                },
+                obtener_consejo("Neutral")
+            )
 
-    logger.info("==========================================")
+        # ==================================================
+        # PREPARAR ROSTRO
+        # ==================================================
 
-    # ======================================================
-    # TODAS LAS EMOCIONES
-    # ======================================================
+        imagen = preparar_rostro(
+            rostro
+        )
 
-    todas = {}
+        # ==================================================
+        # ENVIAR AL MODELO
+        # ==================================================
 
-    for i, nombre in enumerate(
-        EMOCIONES
-    ):
+        logger.info(
+            "📤 Enviando rostro al modelo..."
+        )
 
-        todas[nombre] = round(
-            float(
+        interpreter.set_tensor(
+            input_details[0]["index"],
+            imagen
+        )
+
+        # ==================================================
+        # EJECUTAR INFERENCIA
+        # ==================================================
+
+        logger.info(
+            "🧠 Ejecutando ResNet50 TFLite..."
+        )
+
+        interpreter.invoke()
+
+        logger.info(
+            "✅ Inferencia terminada"
+        )
+
+        # ==================================================
+        # OBTENER SALIDA
+        # ==================================================
+
+        resultado = interpreter.get_tensor(
+            output_details[0]["index"]
+        )
+
+        logger.info(
+            "📊 Salida cruda: %s",
+            resultado
+        )
+
+        # ==================================================
+        # PROBABILIDADES
+        # ==================================================
+
+        probabilidades = (
+            convertir_probabilidades(
+                resultado
+            )
+        )
+
+        # ==================================================
+        # MOSTRAR PROBABILIDADES
+        # ==================================================
+
+        logger.info(
+            "=========================================="
+        )
+
+        logger.info(
+            "📊 PROBABILIDADES"
+        )
+
+        logger.info(
+            "=========================================="
+        )
+
+        for i, nombre in enumerate(
+            EMOCIONES
+        ):
+
+            logger.info(
+                "%-12s: %6.2f%%",
+                nombre,
                 probabilidades[i] * 100
-            ),
-            2
+            )
+
+        # ==================================================
+        # EMOCIÓN PRINCIPAL
+        # ==================================================
+
+        indice = int(
+            np.argmax(
+                probabilidades
+            )
         )
 
-    # ======================================================
-    # CONSEJO
-    # ======================================================
+        emocion = EMOCIONES[
+            indice
+        ]
 
-    consejo = obtener_consejo(
-        emocion
-    )
+        confianza = float(
+            probabilidades[indice]
+            * 100
+        )
 
-    # ======================================================
-    # RESULTADO
-    # ======================================================
+        # ==================================================
+        # TODAS LAS EMOCIONES
+        # ==================================================
 
-    return (
-        emocion,
-        confianza,
-        todas,
-        consejo
-    )
+        todas = {}
+
+        for i, nombre in enumerate(
+            EMOCIONES
+        ):
+
+            todas[nombre] = round(
+                float(
+                    probabilidades[i]
+                    * 100
+                ),
+                2
+            )
+
+        # ==================================================
+        # CONSEJO
+        # ==================================================
+
+        consejo = obtener_consejo(
+            emocion
+        )
+
+        # ==================================================
+        # LOGS
+        # ==================================================
+
+        logger.info(
+            "------------------------------------------"
+        )
+
+        logger.info(
+            "🎯 EMOCIÓN: %s",
+            emocion
+        )
+
+        logger.info(
+            "📈 CONFIANZA: %.2f%%",
+            confianza
+        )
+
+        logger.info(
+            "📊 TODAS: %s",
+            todas
+        )
+
+        logger.info(
+            "=========================================="
+        )
+
+        # ==================================================
+        # RETORNAR RESULTADO
+        # ==================================================
+
+        return (
+            emocion,
+            confianza,
+            todas,
+            consejo
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            "❌ ERROR EN PREDICCIÓN: %s",
+            e
+        )
+
+        return (
+            "Neutral",
+            0.0,
+            {
+                "Enojo": 0.0,
+                "Felicidad": 0.0,
+                "Neutral": 0.0,
+                "Tristeza": 0.0
+            },
+            {
+                "titulo": "Sin resultado",
+                "mensaje": "No fue posible analizar el rostro."
+            }
+        )
 
 
 # ==========================================================
@@ -829,70 +936,89 @@ def guardar_rostro(
     emocion=None
 ):
 
-    if rostro is None:
+    try:
+
+        if rostro is None:
+
+            return None
+
+        if not isinstance(
+            rostro,
+            np.ndarray
+        ):
+
+            return None
+
+        if rostro.size == 0:
+
+            return None
+
+        # ==================================================
+        # NOMBRE
+        # ==================================================
+
+        timestamp = time.strftime(
+            "%Y%m%d_%H%M%S"
+        )
+
+        milisegundos = int(
+            (time.time() % 1) * 1000
+        )
+
+        if emocion:
+
+            nombre_archivo = (
+                f"rostro_"
+                f"{timestamp}_"
+                f"{milisegundos:03d}_"
+                f"{emocion}.jpg"
+            )
+
+        else:
+
+            nombre_archivo = (
+                f"rostro_"
+                f"{timestamp}_"
+                f"{milisegundos:03d}.jpg"
+            )
+
+        ruta = os.path.join(
+            ROSTROS_DIR,
+            nombre_archivo
+        )
+
+        # ==================================================
+        # GUARDAR
+        # ==================================================
+
+        guardado = cv2.imwrite(
+            ruta,
+            rostro
+        )
+
+        if guardado:
+
+            logger.info(
+                "📸 Rostro guardado: %s",
+                ruta
+            )
+
+            return ruta
+
+        logger.warning(
+            "⚠️ No se pudo guardar el rostro."
+        )
 
         return None
 
-    if rostro.size == 0:
+    except Exception as e:
+
+        logger.warning(
+            "⚠️ Error guardando rostro: %s",
+            e
+        )
 
         return None
-
-    # ======================================================
-    # GENERAR NOMBRE
-    # ======================================================
-
-    timestamp = time.strftime(
-        "%Y%m%d_%H%M%S"
-    )
-
-    milisegundos = int(
-        (time.time() % 1) * 1000
-    )
-
-    if emocion:
-
-        nombre_archivo = (
-            f"rostro_"
-            f"{timestamp}_"
-            f"{milisegundos:03d}_"
-            f"{emocion}.jpg"
-        )
-
-    else:
-
-        nombre_archivo = (
-            f"rostro_"
-            f"{timestamp}_"
-            f"{milisegundos:03d}.jpg"
-        )
-
-    ruta = os.path.join(
-        ROSTROS_DIR,
-        nombre_archivo
-    )
-
-    # ======================================================
-    # GUARDAR
-    # ======================================================
-
-    guardado = cv2.imwrite(
-        ruta,
-        rostro
-    )
-
-    if guardado:
-
-        logger.info(
-            f"📸 Rostro guardado: {ruta}"
-        )
-
-        return ruta
-
-    logger.warning(
-        "⚠️ No se pudo guardar el rostro."
-    )
-
-    return None
 
 
 # ==========================================================
@@ -923,7 +1049,7 @@ def dibujar_resultado(
     )
 
     # ======================================================
-    # EMOCIÓN PRINCIPAL
+    # EMOCIÓN
     # ======================================================
 
     texto_principal = (
@@ -931,18 +1057,15 @@ def dibujar_resultado(
         f"{confianza:.1f}%"
     )
 
-    cv2.rectangle(
-        frame,
-        (x, y - 40),
-        (x + w, y),
-        (0, 0, 0),
-        -1
+    texto_y = max(
+        30,
+        y - 10
     )
 
     cv2.putText(
         frame,
         texto_principal,
-        (x + 5, y - 12),
+        (x, texto_y),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.65,
         (255, 255, 255),
@@ -979,6 +1102,21 @@ def dibujar_resultado(
     if panel_x < 0:
 
         panel_x = 5
+
+    if (
+        panel_y + panel_height
+        >
+        frame.shape[0]
+    ):
+
+        panel_y = max(
+            5,
+            frame.shape[0]
+            -
+            panel_height
+            -
+            5
+        )
 
     cv2.rectangle(
         frame,
@@ -1063,6 +1201,15 @@ def dibujar_consejo(
     panel_width = 650
     panel_height = 110
 
+    # ------------------------------------------------------
+    # Ajustar al tamaño del frame
+    # ------------------------------------------------------
+
+    panel_width = min(
+        panel_width,
+        frame.shape[1] - 40
+    )
+
     cv2.rectangle(
         frame,
         (
@@ -1091,9 +1238,14 @@ def dibujar_consejo(
         cv2.LINE_AA
     )
 
+    # ======================================================
+    # DIVIDIR MENSAJE
+    # ======================================================
+
     palabras = mensaje.split()
 
     linea1 = ""
+
     linea2 = ""
 
     for palabra in palabras:
@@ -1109,6 +1261,10 @@ def dibujar_consejo(
             linea2 += (
                 palabra + " "
             )
+
+    # ======================================================
+    # MOSTRAR LÍNEAS
+    # ======================================================
 
     cv2.putText(
         frame,
@@ -1142,624 +1298,73 @@ def dibujar_consejo(
 
 
 # ==========================================================
-# CÁMARA EN VIVO
-# ==========================================================
-
-def iniciar_camara():
-
-    logger.info("")
-    logger.info("=" * 60)
-    logger.info("📷 INICIANDO CÁMARA")
-    logger.info("=" * 60)
-
-    logger.info(
-        "🎥 Presiona Q para salir."
-    )
-
-    logger.info(
-        "🙂 Coloca tu rostro frente a la cámara."
-    )
-
-    logger.info(
-        "💡 Los consejos aparecerán según la emoción."
-    )
-
-    logger.info(
-        f"📂 Los rostros se guardarán en:"
-    )
-
-    logger.info(
-        f"   {ROSTROS_DIR}"
-    )
-
-    logger.info("=" * 60)
-
-    # ======================================================
-    # DETECTOR
-    # ======================================================
-
-    cascade_path = (
-        cv2.data.haarcascades
-        +
-        "haarcascade_frontalface_default.xml"
-    )
-
-    face_detector = cv2.CascadeClassifier(
-        cascade_path
-    )
-
-    if face_detector.empty():
-
-        raise RuntimeError(
-            "No se pudo cargar el detector de rostros."
-        )
-
-    # ======================================================
-    # CÁMARA
-    # ======================================================
-
-    camera = cv2.VideoCapture(
-        0
-    )
-
-    if not camera.isOpened():
-
-        raise RuntimeError(
-            "❌ No se pudo abrir la cámara."
-        )
-
-    camera.set(
-        cv2.CAP_PROP_FRAME_WIDTH,
-        1280
-    )
-
-    camera.set(
-        cv2.CAP_PROP_FRAME_HEIGHT,
-        720
-    )
-
-    # ======================================================
-    # CONTROL
-    # ======================================================
-
-    contador = 0
-
-    resultado_anterior = None
-
-    ultimo_guardado = 0
-
-    PREDICT_EVERY = 3
-
-    try:
-
-        while True:
-
-            # ==================================================
-            # LEER FRAME
-            # ==================================================
-
-            ret, frame = camera.read()
-
-            if not ret:
-
-                logger.error(
-                    "❌ No se pudo leer la cámara."
-                )
-
-                break
-
-            # ==================================================
-            # ESPEJO
-            # ==================================================
-
-            frame = cv2.flip(
-                frame,
-                1
-            )
-
-            # ==================================================
-            # GRISES
-            # ==================================================
-
-            gray = cv2.cvtColor(
-                frame,
-                cv2.COLOR_BGR2GRAY
-            )
-
-            # ==================================================
-            # DETECTAR ROSTROS
-            # ==================================================
-
-            rostros = face_detector.detectMultiScale(
-                gray,
-                scaleFactor=1.1,
-                minNeighbors=5,
-                minSize=(80, 80)
-            )
-
-            # ==================================================
-            # PROCESAR ROSTROS
-            # ==================================================
-
-            for (
-                x,
-                y,
-                w,
-                h
-            ) in rostros:
-
-                # ------------------------------------------
-                # MARGEN
-                # ------------------------------------------
-
-                margen = int(
-                    min(w, h) * 0.15
-                )
-
-                x1 = max(
-                    0,
-                    x - margen
-                )
-
-                y1 = max(
-                    0,
-                    y - margen
-                )
-
-                x2 = min(
-                    frame.shape[1],
-                    x + w + margen
-                )
-
-                y2 = min(
-                    frame.shape[0],
-                    y + h + margen
-                )
-
-                rostro = frame[
-                    y1:y2,
-                    x1:x2
-                ]
-
-                # ------------------------------------------
-                # PREDICCIÓN
-                # ------------------------------------------
-
-                if (
-                    contador % PREDICT_EVERY == 0
-                    or resultado_anterior is None
-                ):
-
-                    try:
-
-                        resultado_anterior = predecir(
-                            rostro
-                        )
-
-                    except Exception as e:
-
-                        logger.error(
-                            f"❌ Error prediciendo: {e}"
-                        )
-
-                        resultado_anterior = None
-
-                # ------------------------------------------
-                # GUARDAR ROSTRO
-                # ------------------------------------------
-
-                tiempo_actual = time.time()
-
-                if (
-                    tiempo_actual
-                    -
-                    ultimo_guardado
-                    >=
-                    INTERVALO_GUARDADO
-                ):
-
-                    emocion_guardado = None
-
-                    if resultado_anterior is not None:
-
-                        emocion_guardado = (
-                            resultado_anterior[0]
-                        )
-
-                    guardar_rostro(
-                        rostro,
-                        emocion_guardado
-                    )
-
-                    ultimo_guardado = tiempo_actual
-
-                # ------------------------------------------
-                # MOSTRAR RESULTADO
-                # ------------------------------------------
-
-                if resultado_anterior is not None:
-
-                    (
-                        emocion,
-                        confianza,
-                        todas,
-                        consejo
-                    ) = resultado_anterior
-
-                    dibujar_resultado(
-                        frame,
-                        x,
-                        y,
-                        w,
-                        h,
-                        emocion,
-                        confianza,
-                        todas
-                    )
-
-                    dibujar_consejo(
-                        frame,
-                        consejo
-                    )
-
-                else:
-
-                    cv2.rectangle(
-                        frame,
-                        (x, y),
-                        (x + w, y + h),
-                        (0, 255, 255),
-                        2
-                    )
-
-                    cv2.putText(
-                        frame,
-                        "Analizando...",
-                        (x, y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (255, 255, 255),
-                        2,
-                        cv2.LINE_AA
-                    )
-
-            # ==================================================
-            # SIN ROSTRO
-            # ==================================================
-
-            if len(rostros) == 0:
-
-                resultado_anterior = None
-
-                cv2.putText(
-                    frame,
-                    "No se detecta rostro",
-                    (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (255, 255, 255),
-                    2,
-                    cv2.LINE_AA
-                )
-
-            # ==================================================
-            # INFORMACIÓN
-            # ==================================================
-
-            cv2.putText(
-                frame,
-                "Presiona Q para salir",
-                (
-                    20,
-                    frame.shape[0] - 20
-                ),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.65,
-                (255, 255, 255),
-                2,
-                cv2.LINE_AA
-            )
-
-            # ==================================================
-            # MOSTRAR
-            # ==================================================
-
-            cv2.imshow(
-                "EmotiScan - ResNet50",
-                frame
-            )
-
-            # ==================================================
-            # TECLADO
-            # ==================================================
-
-            tecla = (
-                cv2.waitKey(1)
-                &
-                0xFF
-            )
-
-            if tecla == ord("q"):
-
-                break
-
-            contador += 1
-
-    finally:
-
-        camera.release()
-
-        cv2.destroyAllWindows()
-
-        logger.info("")
-        logger.info(
-            "📷 Cámara cerrada."
-        )
-
-
-# ==========================================================
-# PROGRAMA PRINCIPAL
+# PRUEBA LOCAL DEL MODELO
 # ==========================================================
 
 if __name__ == "__main__":
 
-    print("=" * 60)
-
     print(
-        "🧠 EMOTISCAN - RESNET50"
+        "=" * 60
     )
 
     print(
-        "🎥 RECONOCIMIENTO DE EMOCIONES EN VIVO"
+        "🧠 EMOTISCAN - TFLITE"
     )
 
     print(
-        "📸 GUARDADO AUTOMÁTICO DE ROSTROS"
+        "🔍 PRUEBA DE CARGA DEL MODELO"
     )
 
     print(
-        "💡 CONSEJOS PARA LAS 4 EMOCIONES"
+        "=" * 60
     )
-
-    print("=" * 60)
 
     try:
 
         cargar_modelo()
 
-        iniciar_camara()
-
-    except KeyboardInterrupt:
-
-        print("")
+        print()
 
         print(
-            "⛔ Programa detenido."
-=======
-    try:
-
-        logger.info("======================================")
-        logger.info("🎯 INICIANDO PREDICCIÓN")
-
-        # --------------------------------------------------
-        # Cargar modelo
-        # --------------------------------------------------
-
-        cargar_modelo()
-
-        # --------------------------------------------------
-        # Verificar rostro
-        # --------------------------------------------------
-
-        if rostro is None:
-
-            logger.warning(
-                "❌ No se recibió rostro"
-            )
-
-            return (
-                "Neutral",
-                0.0,
-                {}
-            )
-
-        # --------------------------------------------------
-        # Preparar rostro
-        # --------------------------------------------------
-
-        imagen = preparar_rostro(
-            rostro
+            "✅ El modelo TFLite se cargó correctamente."
         )
 
-        # --------------------------------------------------
-        # Enviar imagen al modelo
-        # --------------------------------------------------
-
-        logger.info(
-            "📤 Enviando rostro al modelo..."
+        print(
+            "📁 Modelo:",
+            MODEL_PATH
         )
 
-        interpreter.set_tensor(
-            input_details[0]["index"],
-            imagen
+        print(
+            "📥 Entrada:",
+            input_details[0]["shape"]
         )
 
-        # --------------------------------------------------
-        # Ejecutar inferencia
-        # --------------------------------------------------
-
-        logger.info(
-            "🧠 Ejecutando ResNet50..."
+        print(
+            "📤 Salida:",
+            output_details[0]["shape"]
         )
 
-        interpreter.invoke()
-
-        logger.info(
-            "✅ Inferencia terminada"
+        print(
+            "🎭 Clases:",
+            EMOCIONES
         )
 
-        # --------------------------------------------------
-        # Obtener salida
-        # --------------------------------------------------
-
-        resultado = interpreter.get_tensor(
-            output_details[0]["index"]
-        )
-
-        predicciones = resultado[0]
-
-        logger.info(
-            "📊 Predicciones crudas: %s",
-            predicciones
-        )
-
-        # --------------------------------------------------
-        # Verificar cantidad de clases
-        # --------------------------------------------------
-
-        if len(predicciones) != len(EMOCIONES):
-
-            logger.error(
-                "❌ El modelo devuelve %d clases, "
-                "pero EMOCIONES tiene %d",
-                len(predicciones),
-                len(EMOCIONES)
-            )
-
-            return (
-                "Neutral",
-                0.0,
-                {
-                    "predicciones": predicciones.tolist()
-                }
-            )
-
-        # --------------------------------------------------
-        # Convertir predicciones a probabilidades
-        # --------------------------------------------------
-
-        predicciones = np.array(
-            predicciones,
-            dtype=np.float32
-        )
-
-        # Si la salida no parece estar normalizada,
-        # aplicar Softmax.
-
-        suma = np.sum(predicciones)
-
-        if (
-            np.any(predicciones < 0)
-            or suma < 0.9
-            or suma > 1.1
-        ):
-
-            exp_values = np.exp(
-                predicciones -
-                np.max(predicciones)
-            )
-
-            predicciones = (
-                exp_values /
-                np.sum(exp_values)
-            )
-
-        # --------------------------------------------------
-        # Obtener emoción principal
-        # --------------------------------------------------
-
-        indice = int(
-            np.argmax(predicciones)
-        )
-
-        confianza = float(
-            predicciones[indice]
-        )
-
-        confianza_porcentaje = (
-            confianza * 100
-        )
-
-        # --------------------------------------------------
-        # Nombre de la emoción
-        # --------------------------------------------------
-
-        emocion = EMOCIONES[indice]
-
-        # --------------------------------------------------
-        # Crear resultados de todas las emociones
-        # --------------------------------------------------
-
-        resultados = {}
-
-        for i, nombre in enumerate(EMOCIONES):
-
-            porcentaje = float(
-                predicciones[i] * 100
-            )
-
-            resultados[nombre] = round(
-                porcentaje,
-                2
-            )
-
-        # --------------------------------------------------
-        # Logs
-        # --------------------------------------------------
-
-        logger.info(
-            "🎭 EMOCIÓN DETECTADA: %s",
-            emocion
-        )
-
-        logger.info(
-            "📈 CONFIANZA: %.2f%%",
-            confianza_porcentaje
-        )
-
-        logger.info(
-            "📊 TODAS LAS EMOCIONES: %s",
-            resultados
-        )
-
-        logger.info("======================================")
-
-        # --------------------------------------------------
-        # Retornar resultado
-        # --------------------------------------------------
-
-        return (
-            emocion,
-            confianza_porcentaje,
-            resultados
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+        print(
+            "=" * 60
         )
 
     except Exception as e:
 
-<<<<<<< HEAD
-        print("")
+        print()
 
-        print("=" * 60)
-
-        print("❌ ERROR")
-
-        print("=" * 60)
-
-        print(e)
-
-        print("=" * 60)
-=======
-        logger.exception(
-            "❌ ERROR EN PREDICCIÓN: %s",
-            e
+        print(
+            "❌ ERROR:"
         )
 
-        return (
-            "Neutral",
-            0.0,
-            {
-                "error": str(e)
-            }
+        print(
+            str(e)
         )
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+
+        print(
+            "=" * 60
+        )
