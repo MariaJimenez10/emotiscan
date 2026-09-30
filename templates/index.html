@@ -1,2093 +1,384 @@
 <!DOCTYPE html>
-<<<<<<< HEAD
 <html lang="es">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>EmotiScan - Cámara</title>
-
-<style>
-
-/* =====================================================
-   GENERAL
-   ===================================================== */
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #1a1a2e;
-    color: white;
-    margin: 0;
-    padding: 20px;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    background: #16213e;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-h1 {
-    margin-bottom: 5px;
-}
-
-h2 {
-    margin-top: 5px;
-    color: #a8d8ea;
-}
-
-
-/* =====================================================
-   VIDEO
-   ===================================================== */
-
-video {
-    width: 100%;
-    max-width: 640px;
-    border-radius: 10px;
-    border: 2px solid #0f3460;
-    background: black;
-}
-
-
-/* =====================================================
-   BOTONES
-   ===================================================== */
-
-button {
-    background: #e94560;
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    font-size: 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 10px;
-    transition: all 0.3s;
-}
-
-button:hover {
-    transform: scale(1.05);
-    background: #c73652;
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-
-/* =====================================================
-   ESTADO
-   ===================================================== */
-
-#status {
-    padding: 10px;
-    background: #1a1a2e;
-    border-radius: 5px;
-    margin: 10px 0;
-    font-weight: bold;
-}
-
-.success {
-    color: #51cf66;
-}
-
-.error {
-    color: #ff6b6b;
-}
-
-
-/* =====================================================
-   RESULTADO
-   ===================================================== */
-
-#result {
-    margin: 20px 0;
-    padding: 25px;
-    background: #0f3460;
-    border-radius: 10px;
-    min-height: 150px;
-}
-
-
-/* =====================================================
-   LOADING
-   ===================================================== */
-
-.loading {
-    display: none;
-    color: #ffd700;
-    font-size: 20px;
-    margin-bottom: 15px;
-}
-
-
-/* =====================================================
-   EMOCIÓN PRINCIPAL
-   ===================================================== */
-
-.emocion-detectada {
-    border: 3px solid #ffd700;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    background: rgba(255, 215, 0, 0.08);
-    box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
-    animation: aparecer 0.5s ease;
-}
-
-.emoji-grande {
-    display: block;
-    font-size: 70px;
-    margin-bottom: 5px;
-}
-
-.emocion-principal {
-    font-size: 52px;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin: 5px 0 15px;
-}
-
-.confianza {
-    font-size: 24px;
-    margin-bottom: 5px;
-}
-
-.confianza strong {
-    font-size: 34px;
-    color: #ffd700;
-}
-
-@keyframes aparecer {
-
-    from {
-        opacity: 0;
-        transform: scale(0.7);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-}
-
-
-/* =====================================================
-   MENSAJE
-   ===================================================== */
-
-.mensaje {
-    font-size: 24px;
-    margin: 30px 0 10px;
-    color: #ffd700;
-    font-weight: bold;
-}
-
-
-/* =====================================================
-   CONSEJO
-   ===================================================== */
-
-.consejo {
-    font-size: 18px;
-    color: #a8d8ea;
-    background: #16213e;
-    padding: 20px;
-    border-radius: 12px;
-    margin-top: 15px;
-    line-height: 1.6;
-    border-left: 5px solid #ffd700;
-}
-
-.consejo-titulo {
-    font-size: 22px;
-    color: #ffd700;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-
-/* =====================================================
-   GRÁFICA CIRCULAR
-   ===================================================== */
-
-#graficaContainer {
-    display: none;
-    margin: 25px auto;
-    padding: 25px;
-    max-width: 550px;
-    background: #0f3460;
-    border-radius: 20px;
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-#graficaContainer h3 {
-    color: white;
-    font-size: 22px;
-    margin-top: 0;
-    margin-bottom: 25px;
-}
-
-#graficaCircular {
-    width: 300px;
-    height: 300px;
-
-    border-radius: 50%;
-
-    margin: 0 auto 25px auto;
-
-    background: conic-gradient(
-        #e74c3c 0deg 0deg,
-        #f1c40f 0deg 0deg,
-        #95a5a6 0deg 0deg,
-        #3498db 0deg 360deg
-    );
-
-    box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.35),
-        inset 0 0 20px rgba(255, 255, 255, 0.08);
-
-    transition: background 0.6s ease;
-}
-
-
-/* =====================================================
-   LEYENDA
-   ===================================================== */
-
-.leyendaGrafica {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.itemLeyenda {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    padding: 12px;
-
-    background: rgba(255, 255, 255, 0.08);
-
-    border-radius: 10px;
-
-    color: white;
-}
-
-.itemLeyenda strong {
-    margin-left: auto;
-}
-
-
-/* =====================================================
-   COLORES DE LA LEYENDA
-   ===================================================== */
-
-.colorLeyenda {
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.colorLeyenda.furia {
-    background: #e74c3c;
-}
-
-.colorLeyenda.felicidad {
-    background: #f1c40f;
-}
-
-.colorLeyenda.neutral {
-    background: #95a5a6;
-}
-
-.colorLeyenda.tristeza {
-    background: #3498db;
-}
-
-
-/* =====================================================
-   RESPONSIVE
-   ===================================================== */
-
-@media (max-width: 600px) {
-
-    body {
-        padding: 10px;
-    }
-
-    .container {
-        padding: 15px;
-    }
-
-    button {
-        width: 90%;
-        margin: 5px;
-    }
-
-    .emocion-principal {
-        font-size: 38px;
-    }
-
-    .emoji-grande {
-        font-size: 55px;
-    }
-
-    #graficaCircular {
-        width: 240px;
-        height: 240px;
-    }
-
-    .leyendaGrafica {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-</style>
-
-=======
-<html>
-
-<head>
-    <title>EmotiScan - Cámara</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotiScan - Camara</title>
     <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #6366f1;
+            --secondary: #ec4899;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --error: #ef4444;
+            --text: #f8fafc;
+        }
+
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background: #1a1a2e;
-            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
             margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: center;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #16213e;
-            padding: 20px;
-            border-radius: 15px;
+            max-width: 900px;
+            width: 100%;
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
         }
 
-        video,
-        #canvas {
+        h1 { margin: 0; font-size: 2rem; background: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { font-weight: 300; color: #94a3b8; margin-bottom: 20px; font-size: 1.1rem; }
+
+        /* --- Cámara --- */
+        .camera-box {
+            position: relative;
             width: 100%;
             max-width: 640px;
-            border-radius: 10px;
-            border: 2px solid #0f3460;
+            margin: 0 auto 20px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 3px solid #334155;
+            background: #000;
         }
 
+        video { width: 100%; display: block; }
+        
+        .flash {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white; opacity: 0; pointer-events: none;
+        }
+        .flash.active { animation: flash-anim 0.3s; }
+        @keyframes flash-anim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+
+        /* --- Controles --- */
+        .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        
         button {
-            background: #e94560;
-            color: white;
+            padding: 12px 24px;
             border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 10px;
+            border-radius: 12px;
+            font-weight: 600;
             cursor: pointer;
-            margin: 10px;
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
         }
 
-        button:hover {
-            transform: scale(1.05);
-            background: #c73652;
-        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+        
+        .btn-auto { background: var(--secondary); color: white; }
+        .btn-stop { background: #475569; color: white; }
+        .btn-stats { background: transparent; border: 2px solid #475569; color: white; }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
+        /* --- Info --- */
+        #status { font-size: 0.9rem; margin-bottom: 15px; padding: 8px; border-radius: 8px; }
+        .status-ready { color: var(--success); }
+        .status-error { color: var(--error); }
+
+        .stats-bar { display: flex; justify-content: space-around; background: #0f172a; padding: 10px; border-radius: 12px; margin-bottom: 20px; font-size: 0.9rem; }
+
+        /* --- Resultados --- */
         #result {
-            margin: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 16px;
             padding: 20px;
-            background: #0f3460;
-            border-radius: 10px;
-            min-height: 100px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        .emocion {
-            font-size: 48px;
-            font-weight: bold;
-        }
+        .emotion-card { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .mensaje {
-            font-size: 24px;
-            margin: 10px 0;
-            color: #ffd700;
-        }
+        .emoji-large { font-size: 4rem; margin-bottom: 10px; display: block; }
+        .emotion-name { font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
+        .confidence { font-size: 1rem; color: #94a3b8; margin-top: 5px; }
 
-        .consejo {
-            font-size: 18px;
-            color: #a8d8ea;
-        }
+        .advice-box { margin-top: 15px; padding: 15px; background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary); border-radius: 8px; text-align: left; max-width: 500px; }
 
-        #status {
-            padding: 10px;
-            background: #1a1a2e;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-
-        .loading {
+        /* --- Gráfica --- */
+        #chartContainer {
             display: none;
-            color: #ffd700;
-            font-size: 20px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 16px;
         }
 
-        #contador {
-            color: #aaa;
-            font-size: 14px;
-            margin-top: 10px;
+        .pie-chart {
+            width: 200px; height: 200px; border-radius: 50%; margin: 20px auto;
+            background: conic-gradient(#ef4444 0% 25%, #f59e0b 25% 50%, #94a3b8 50% 75%, #3b82f6 75% 100%);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
-        .error {
-            color: #ff6b6b;
-        }
+        .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .dot { width: 12px; height: 12px; border-radius: 3px; }
 
-        .success {
-            color: #51cf66;
+        @media (max-width: 600px) {
+            .controls button { width: 100%; }
+            .legend { grid-template-columns: 1fr; }
         }
     </style>
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 </head>
-
-
 <body>
-    <div class="container">
-        <h1>📸 EmotiScan - Análisis de Emociones</h1>
-
-<<<<<<< HEAD
 
 <div class="container">
+    <h1>📸 EmotiScan Pro</h1>
+    <h2>Inteligencia Artificial de Reconocimiento Facial</h2>
 
+    <div id="status">⏳ Iniciando sistema...</div>
 
-<h1>📸 EmotiScan</h1>
-
-<h2>Análisis de Emociones</h2>
-
-
-<!-- =====================================================
-     ESTADO
-     ===================================================== -->
-
-<div id="status">
-    ⏳ Iniciando cámara...
-</div>
-
-
-<!-- =====================================================
-     CÁMARA
-     ===================================================== -->
-
-<video id="video" autoplay playsinline></video>
-
-<canvas id="canvas" style="display:none;"></canvas>
-
-
-<!-- =====================================================
-     BOTONES
-     ===================================================== -->
-
-<div>
-
-    <button id="captureBtn" disabled>
-        📷 Capturar y Analizar
-    </button>
-
-    <button id="autoBtn" disabled>
-        🔄 Modo Automático
-    </button>
-
-    <button id="stopBtn" disabled>
-        ⏹️ Detener
-    </button>
-
-</div>
-
-
-<!-- =====================================================
-     BOTÓN GRÁFICA
-     ===================================================== -->
-
-<button id="graficaBtn" disabled>
-    📊 Ver gráfica
-</button>
-
-
-<!-- =====================================================
-     RESULTADO
-     ===================================================== -->
-
-<div id="result">
-
-    <div class="loading" id="loading">
-        ⏳ Procesando...
-    </div>
-
-    <div id="emocionDisplay">
-        🤖 Presiona "Capturar" para analizar
-    </div>
-=======
-        <div id="status">⏳ Iniciando cámara...</div>
-
+    <div class="camera-box">
         <video id="video" autoplay playsinline></video>
-        <canvas id="canvas" style="display:none;"></canvas>
-
-        <div>
-            <button id="captureBtn">📷 Capturar y Analizar</button>
-            <button id="autoBtn">🔄 Modo Automático</button>
-            <button id="stopBtn">⏹️ Detener</button>
-        </div>
-
-        <div id="contador">📊 Capturas: 0</div>
-
-        <div id="result">
-            <div class="loading" id="loading">⏳ Procesando...</div>
-            <div id="emocionDisplay">🤖 Presiona "Capturar" para analizar</div>
-        </div>
-
-        <a href="login.html" style="color: #a8d8ea; display: block; margin-top: 20px;">← Volver al inicio</a>
-    </div>
-    <script>
-        // ============================================
-        // ELEMENTOS DEL DOM
-        // ============================================
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('captureBtn');
-        const autoBtn = document.getElementById('autoBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const resultDiv = document.getElementById('result');
-        const emocionDisplay = document.getElementById('emocionDisplay');
-        const loadingDiv = document.getElementById('loading');
-        const statusDiv = document.getElementById('status');
-        const contadorDiv = document.getElementById('contador');
-        // ============================================
-        // VARIABLES DE CONTROL
-        // ============================================
-        let stream = null;
-        let isCameraRunning = false;
-        let isAutoMode = false;
-        let autoInterval = null;
-        let capturas = 0;
-        let isProcessing = false;
-        // ============================================
-        // FUNCIÓN: INICIAR CÁMARA
-        // ============================================
-        async function startCamera() {
-            try {
-                statusDiv.textContent = '📷 Solicitando acceso a la cámara...';
-                statusDiv.className = '';
-
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user'
-                    },
-                    audio: false
-                });
-
-                video.srcObject = stream;
-                await video.play();
-                isCameraRunning = true;
-
-                captureBtn.disabled = false;
-                autoBtn.disabled = false;
-                stopBtn.disabled = false;
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-
-                statusDiv.textContent = '🟢 Cámara activa - Listo para capturar';
-                statusDiv.className = 'success';
-
-<<<<<<< HEAD
-
-<!-- =====================================================
-     GRÁFICA CIRCULAR
-     ===================================================== -->
-
-<div id="graficaContainer">
-
-    <h3>📊 Distribución de emociones</h3>
-
-    <div id="graficaCircular"></div>
-
-
-    <div class="leyendaGrafica">
-
-
-        <!-- FURIA -->
-
-        <div class="itemLeyenda">
-
-            <span class="colorLeyenda furia"></span>
-
-            <span>Furia</span>
-
-            <strong id="porcentajeFuria">
-                0%
-            </strong>
-
-        </div>
-
-
-        <!-- FELICIDAD -->
-
-        <div class="itemLeyenda">
-
-            <span class="colorLeyenda felicidad"></span>
-
-            <span>Felicidad</span>
-
-            <strong id="porcentajeFelicidad">
-                0%
-            </strong>
-
-        </div>
-
-
-        <!-- NEUTRAL -->
-
-        <div class="itemLeyenda">
-
-            <span class="colorLeyenda neutral"></span>
-
-            <span>Neutral</span>
-
-            <strong id="porcentajeNeutral">
-                0%
-            </strong>
-
-        </div>
-
-
-        <!-- TRISTEZA -->
-
-        <div class="itemLeyenda">
-
-            <span class="colorLeyenda tristeza"></span>
-
-            <span>Tristeza</span>
-
-            <strong id="porcentajeTristeza">
-                0%
-            </strong>
-
-        </div>
-
-
+        <div id="flash" class="flash"></div>
     </div>
 
+    <div class="stats-bar">
+        <span>📊 Capturas: <strong id="count">0</strong></span>
+        <span>⏱️ Modo: <strong id="modeText">Manual</strong></span>
+    </div>
+
+    <div class="controls">
+        <button id="captureBtn" class="btn-primary" disabled>📷 Analizar Rostro</button>
+        <button id="autoBtn" class="btn-auto" disabled>🔄 Auto-Modo</button>
+        <button id="stopBtn" class="btn-stop" disabled>⏹️ Detener</button>
+        <button id="chartBtn" class="btn-stats" disabled>📊 Estadísticas</button>
+    </div>
+
+    <div id="result">
+        <div id="placeholder">Esperando captura...</div>
+    </div>
+
+    <!-- Contenedor de Gráfica -->
+    <div id="chartContainer">
+        <h3>Distribución de Emociones Detectadas</h3>
+        <div id="pieChart" class="pie-chart"></div>
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Furia: <span id="p-furia">0%</span></div>
+            <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> Felicidad: <span id="p-felicidad">0%</span></div>
+            <div class="legend-item"><span class="dot" style="background:#94a3b8"></span> Neutral: <span id="p-neutral">0%</span></div>
+            <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> Tristeza: <span id="p-tristeza">0%</span></div>
+        </div>
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+    <a href="/" style="color: #94a3b8; text-decoration: none; display: block; margin-top: 30px; font-size: 0.9rem;">← Salir del sistema</a>
 </div>
-
-
-<!-- =====================================================
-     VOLVER
-     ===================================================== -->
-
-<a href="/"
-   style="color:#a8d8ea; display:block; margin-top:20px;">
-
-    ← Volver al inicio
-
-</a>
-
-
-</div>
-
 
 <script>
-
-
-// =========================================================
-// ELEMENTOS DEL DOM
-// =========================================================
-
-const video =
-    document.getElementById("video");
-
-const canvas =
-    document.getElementById("canvas");
-
-const captureBtn =
-    document.getElementById("captureBtn");
-
-const autoBtn =
-    document.getElementById("autoBtn");
-
-const stopBtn =
-    document.getElementById("stopBtn");
-
-const graficaBtn =
-    document.getElementById("graficaBtn");
-
-const emocionDisplay =
-    document.getElementById("emocionDisplay");
-
-const loadingDiv =
-    document.getElementById("loading");
-
-const statusDiv =
-    document.getElementById("status");
-
-
-// =========================================================
-// VARIABLES
-// =========================================================
-
-let stream = null;
-
-let isCameraRunning = false;
-
-let isAutoMode = false;
-
-let autoInterval = null;
-
-let isProcessing = false;
-
-
-// =========================================================
-// DATOS PARA LA GRÁFICA
-// =========================================================
-
-let datosGrafica = {
-
-    enojo: 0,
-
-    felicidad: 0,
-
-    neutral: 0,
-
-    tristeza: 0
-
-};
-
-
-// =========================================================
-// CONSEJOS
-// =========================================================
-
-const consejos = {
-
-
-    "Felicidad": [
-
-        "✨ Disfruta este momento y comparte tu energía positiva con las personas que te rodean.",
-
-        "😊 Aprovecha este estado de ánimo para realizar alguna actividad que disfrutes.",
-
-        "🌟 La alegría puede ser un buen momento para crear, aprender o comenzar algo nuevo.",
-
-        "💛 Disfruta las pequeñas cosas que te hacen sentir bien y conserva esos momentos.",
-
-        "🎉 Comparte tu felicidad: una sonrisa o una palabra amable también puede alegrar a otra persona."
-
-    ],
-
-
-    "Tristeza": [
-
-        "💙 Date un momento para reconocer lo que estás sintiendo. No tienes que ocultar tus emociones.",
-
-        "🌧️ Hablar con alguien de confianza puede ayudarte a sentirte acompañado.",
-
-        "🫂 Permítete descansar y hacer algo tranquilo que te haga sentir cómodo.",
-
-        "🌱 Recuerda que las emociones cambian. Sé paciente contigo mismo.",
-
-        "💙 Si necesitas apoyo, acercarte a una persona de confianza puede ser un buen primer paso."
-
-    ],
-
-
-    "Enojo": [
-
-        "🧘 Respira lentamente y date unos segundos antes de reaccionar.",
-
-        "💨 Aléjate un momento de la situación que está provocando el enojo.",
-
-        "🧠 Intenta identificar qué situación está causando esta emoción.",
-
-        "🚶 Una caminata corta puede ayudarte a liberar tensión y recuperar la calma.",
-
-        "💬 Cuando estés más tranquilo, expresa lo que sientes de manera clara y respetuosa."
-
-    ],
-
-
-    "Neutral": [
-
-        "😌 Parece que estás en un estado emocional tranquilo. Aprovecha este momento para relajarte.",
-
-        "🧘 Puedes utilizar este momento para respirar profundamente y descansar unos minutos.",
-
-        "☀️ Mantén tus hábitos positivos y continúa con tus actividades.",
-
-        "🎯 Un estado tranquilo puede ser ideal para concentrarte en una tarea importante.",
-
-        "🌿 Tómate un momento para observar cómo te sientes y cuidar de ti mismo."
-
-    ]
-
-};
-
-
-// =========================================================
-// CONSEJO ALEATORIO
-// =========================================================
-
-function obtenerConsejo(emocion) {
-
-    const lista = consejos[emocion];
-
-    if (!lista || lista.length === 0) {
-
-        return "💡 Recuerda prestar atención a tus emociones y cuidar de tu bienestar.";
-
+    // --- Configuración y Estado ---
+    const CONFIG = {
+        intervaloAuto: 3000,
+        endpoint: '/analizar',
+        emociones: {
+            'Felicidad': { emoji: '😊', color: '#f59e0b', consejos: ['¡Sigue así! Tu energía es contagiosa.', 'Aprovecha este momento para crear algo nuevo.'] },
+            'Tristeza': { emoji: '😢', color: '#3b82f6', consejos: ['Está bien no estar bien. Tómate un respiro.', 'Escuchar música tranquila podría ayudarte.'] },
+            'Enojo': { emoji: '😡', color: '#ef4444', consejos: ['Inhala profundamente por 4 segundos.', 'Un pequeño paseo te ayudará a despejarte.'] },
+            'Neutral': { emoji: '😐', color: '#94a3b8', consejos: ['Un momento de calma ideal para concentrarse.', '¿Has tomado agua hoy?'] }
+        }
+    };
+
+    let state = {
+        stream: null,
+        isProcessing: false,
+        isAuto: false,
+        autoTimer: null,
+        capturas: 0,
+        stats: { 'Enojo': 0, 'Felicidad': 0, 'Neutral': 0, 'Tristeza': 0 }
+    };
+
+    // --- Elementos DOM ---
+    const elements = {
+        video: document.getElementById('video'),
+        canvas: document.getElementById('canvas'),
+        status: document.getElementById('status'),
+        result: document.getElementById('result'),
+        count: document.getElementById('count'),
+        flash: document.getElementById('flash'),
+        btns: {
+            capture: document.getElementById('captureBtn'),
+            auto: document.getElementById('autoBtn'),
+            stop: document.getElementById('stopBtn'),
+            chart: document.getElementById('chartBtn')
+        }
+    };
+
+    // --- Funciones de Cámara ---
+    async function initCamera() {
+        try {
+            state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+            elements.video.srcObject = state.stream;
+            elements.status.textContent = '🟢 Sistema Listo';
+            elements.status.className = 'status-ready';
+            Object.values(elements.btns).forEach(btn => btn.disabled = false);
+        } catch (err) {
+            elements.status.textContent = '❌ Error: No se detectó cámara';
+            elements.status.className = 'status-error';
+            alert('Por favor, permite el acceso a la cámara.');
+        }
     }
 
-    const indice =
-        Math.floor(Math.random() * lista.length);
-
-    return lista[indice];
-
-}
-
-
-// =========================================================
-// NORMALIZAR EMOCIÓN
-// =========================================================
-
-function normalizarEmocion(emocion) {
-
-    if (!emocion) {
-        return "Neutral";
-    }
-
-    const texto =
-        String(emocion)
-        .toLowerCase()
-        .trim();
-
-
-    if (
-        texto === "felicidad" ||
-        texto === "alegria" ||
-        texto === "alegría"
-    ) {
-
-        return "Felicidad";
-
-    }
-
-
-    if (
-        texto === "enojo" ||
-        texto === "furia"
-    ) {
-
-        return "Enojo";
-
-    }
-
-
-    if (texto === "tristeza") {
-
-        return "Tristeza";
-
-    }
-
-
-    if (texto === "neutral") {
-
-        return "Neutral";
-
-    }
-
-
-    return emocion;
-
-}
-
-
-// =========================================================
-// EMOJI
-// =========================================================
-
-function obtenerEmoji(emocion) {
-
-    switch (emocion) {
-
-        case "Felicidad":
-            return "😊";
-
-        case "Tristeza":
-            return "😢";
-
-        case "Enojo":
-            return "😡";
-
-        case "Neutral":
-            return "😐";
-
-        default:
-            return "🤖";
-
-    }
-
-}
-
-
-// =========================================================
-// MOSTRAR RESULTADO
-// =========================================================
-
-function mostrarResultado(emocion, confianza) {
-
-    const emocionNormalizada =
-        normalizarEmocion(emocion);
-
-    const emoji =
-        obtenerEmoji(emocionNormalizada);
-
-    const consejo =
-        obtenerConsejo(emocionNormalizada);
-
-    let nombreMostrar =
-        emocionNormalizada;
-
-
-    if (emocionNormalizada === "Enojo") {
-
-        nombreMostrar = "Furia";
-
-    }
-
-
-    emocionDisplay.innerHTML = `
-
-        <div class="emocion-detectada">
-
-            <span class="emoji-grande">
-
-                ${emoji}
-
-            </span>
-
-            <div class="emocion-principal">
-
-                ${nombreMostrar}
-
-            </div>
-
-            <div class="confianza">
-
-                Confianza:
-
-                <strong>
-
-                    ${confianza.toFixed(2)}%
-
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <div class="mensaje">
-
-            💬 Emoción predominante:
-
-            ${nombreMostrar}
-
-        </div>
-
-
-        <div class="consejo">
-
-            <div class="consejo-titulo">
-
-                💡 Consejo para ti
-
-            </div>
-
-            ${consejo}
-
-        </div>
-
-    `;
-
-}
-
-
-// =========================================================
-// ACTUALIZAR GRÁFICA CIRCULAR
-// =========================================================
-
-function actualizarGrafica() {
-
-    const enojo =
-        Number(datosGrafica.enojo) || 0;
-
-    const felicidad =
-        Number(datosGrafica.felicidad) || 0;
-
-    const neutral =
-        Number(datosGrafica.neutral) || 0;
-
-    const tristeza =
-        Number(datosGrafica.tristeza) || 0;
-
-
-    const total =
-        enojo +
-        felicidad +
-        neutral +
-        tristeza;
-
-
-    if (total <= 0) {
-
-        return;
-
-    }
-
-
-    // Convertir valores a grados
-
-    const gradosEnojo =
-        (enojo / total) * 360;
-
-    const gradosFelicidad =
-        (felicidad / total) * 360;
-
-    const gradosNeutral =
-        (neutral / total) * 360;
-
-    const gradosTristeza =
-        (tristeza / total) * 360;
-
-
-    // Posiciones
-
-    const inicioFelicidad =
-        gradosEnojo;
-
-    const inicioNeutral =
-        gradosEnojo +
-        gradosFelicidad;
-
-    const inicioTristeza =
-        gradosEnojo +
-        gradosFelicidad +
-        gradosNeutral;
-
-
-    // Gráfica circular
-
-    const grafica =
-        document.getElementById("graficaCircular");
-
-
-    grafica.style.background = `
-
-        conic-gradient(
-
-            #e74c3c
-            0deg
-            ${gradosEnojo}deg,
-
-            #f1c40f
-            ${inicioFelicidad}deg
-            ${inicioNeutral}deg,
-
-            #95a5a6
-            ${inicioNeutral}deg
-            ${inicioTristeza}deg,
-
-            #3498db
-            ${inicioTristeza}deg
-            360deg
-
-        )
-
-    `;
-
-
-    // Porcentajes de la gráfica
-
-    document.getElementById(
-        "porcentajeFuria"
-    ).textContent =
-        `${enojo.toFixed(2)}%`;
-
-
-    document.getElementById(
-        "porcentajeFelicidad"
-    ).textContent =
-        `${felicidad.toFixed(2)}%`;
-
-
-    document.getElementById(
-        "porcentajeNeutral"
-    ).textContent =
-        `${neutral.toFixed(2)}%`;
-
-
-    document.getElementById(
-        "porcentajeTristeza"
-    ).textContent =
-        `${tristeza.toFixed(2)}%`;
-
-}
-
-
-// =========================================================
-// MOSTRAR / OCULTAR GRÁFICA
-// =========================================================
-
-function mostrarGrafica() {
-
-    const container =
-        document.getElementById("graficaContainer");
-
-
-    if (container.style.display === "block") {
-
-        container.style.display = "none";
-
-        graficaBtn.textContent =
-            "📊 Ver gráfica";
-
-        return;
-
-    }
-
-
-    actualizarGrafica();
-
-    container.style.display =
-        "block";
-
-    graficaBtn.textContent =
-        "📊 Ocultar gráfica";
-
-}
-
-
-// =========================================================
-// INICIAR CÁMARA
-// =========================================================
-
-async function startCamera() {
-
-    try {
-
-        statusDiv.textContent =
-            "📷 Solicitando acceso a la cámara...";
-
-        statusDiv.className = "";
-
-
-        stream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-
-                    width: {
-                        ideal: 640
-                    },
-
-                    height: {
-                        ideal: 480
-                    },
-
-                    facingMode: "user"
-
-                },
-
-                audio: false
-
+    // --- Lógica Principal ---
+    async function captureAndAnalyze() {
+        if (state.isProcessing) return;
+        
+        state.isProcessing = true;
+        elements.status.textContent = '⏳ Analizando...';
+        
+        // Efecto Flash
+        elements.flash.classList.add('active');
+        setTimeout(() => elements.flash.classList.remove('active'), 300);
+
+        // Captura de imagen
+        const ctx = elements.canvas.getContext('2d');
+        elements.canvas.width = elements.video.videoWidth;
+        elements.canvas.height = elements.video.videoHeight;
+        ctx.drawImage(elements.video, 0, 0);
+        
+        const base64Image = elements.canvas.toDataURL('image/jpeg', 0.8);
+
+        try {
+            const response = await fetch(CONFIG.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Image })
             });
 
+            const data = await response.json();
 
-        video.srcObject =
-            stream;
-
-
-        await video.play();
-
-
-        isCameraRunning =
-            true;
-
-
-        captureBtn.disabled =
-            false;
-
-        autoBtn.disabled =
-            false;
-
-        stopBtn.disabled =
-            false;
-
-
-        statusDiv.textContent =
-            "🟢 Cámara activa - Listo para capturar";
-
-        statusDiv.className =
-            "success";
-
-
-        console.log(
-            "✅ Cámara iniciada correctamente"
-        );
-
-    }
-
-
-    catch (error) {
-
-        console.error(
-            "❌ Error cámara:",
-            error
-        );
-
-
-        statusDiv.textContent =
-            "❌ Error al iniciar cámara";
-
-        statusDiv.className =
-            "error";
-
-
-        alert(
-            "No se pudo acceder a la cámara. " +
-            "Verifica los permisos del navegador."
-        );
-
-    }
-
-}
-
-
-// =========================================================
-// CAPTURAR Y ANALIZAR
-// =========================================================
-
-async function captureAndAnalyze() {
-
-    if (isProcessing) {
-        return;
-    }
-
-
-    if (!isCameraRunning) {
-
-        alert(
-            "Primero inicia la cámara"
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        isProcessing =
-            true;
-
-
-        captureBtn.disabled =
-            true;
-
-        autoBtn.disabled =
-            true;
-
-
-        loadingDiv.style.display =
-            "block";
-
-
-        emocionDisplay.innerHTML =
-            "⏳ Analizando rostro...";
-
-
-        statusDiv.textContent =
-            "⏳ Procesando imagen...";
-
-
-        // CAPTURA
-
-        canvas.width =
-            video.videoWidth || 640;
-
-        canvas.height =
-            video.videoHeight || 480;
-
-
-        const ctx =
-            canvas.getContext("2d");
-
-
-        ctx.drawImage(
-            video,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
-
-
-        // IMAGEN BASE64
-
-        const imageData =
-            canvas.toDataURL(
-                "image/jpeg",
-                0.9
-            );
-
-
-        console.log(
-            "📸 Imagen capturada"
-        );
-
-
-        // ENVIAR A FLASK
-
-        const response =
-            await fetch(
-                "/analizar",
-                {
-
-                    method: "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body: JSON.stringify({
-
-                        image: imageData
-
-                    })
-
-                }
-            );
-
-
-        console.log(
-            "📥 HTTP:",
-            response.status
-        );
-
-
-        // COMPROBAR RESPUESTA
-
-        if (!response.ok) {
-
-            const errorText =
-                await response.text();
-
-
-            throw new Error(
-                `HTTP ${response.status}: ${errorText}`
-            );
-
-        }
-
-
-        // JSON
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            "📊 RESPUESTA DEL SERVIDOR:",
-            data
-        );
-
-
-        if (!data.success) {
-
-            throw new Error(
-                data.error ||
-                "No se pudo analizar el rostro"
-            );
-
-        }
-
-
-        // EMOCIÓN
-
-        const emocion =
-            data.emocion || "Neutral";
-
-
-        // CONFIANZA
-
-        const confianza =
-            Number(data.confianza) || 0;
-
-
-        // =================================================
-        // DATOS PARA LA GRÁFICA
-        // =================================================
-
-        const todas =
-            data.todas || {};
-
-
-        const enojo =
-            Number(todas["Enojo"]) || 0;
-
-        const felicidad =
-            Number(todas["Felicidad"]) || 0;
-
-        const neutral =
-            Number(todas["Neutral"]) || 0;
-
-        const tristeza =
-            Number(todas["Tristeza"]) || 0;
-
-
-        datosGrafica = {
-
-            enojo:
-                enojo,
-
-            felicidad:
-                felicidad,
-
-            neutral:
-                neutral,
-
-            tristeza:
-                tristeza
-
-        };
-
-
-        // Activar botón de gráfica
-
-        graficaBtn.disabled =
-            false;
-
-
-        // Actualizar si está abierta
-
-        const graficaContainer =
-            document.getElementById(
-                "graficaContainer"
-            );
-
-
-        if (
-            graficaContainer.style.display ===
-            "block"
-        ) {
-
-            actualizarGrafica();
-
-        }
-
-
-        // MOSTRAR RESULTADO
-
-        mostrarResultado(
-            emocion,
-            confianza
-        );
-
-
-        statusDiv.textContent =
-            "✅ Análisis completado";
-
-        statusDiv.className =
-            "success";
-
-    }
-
-
-    catch (error) {
-
-        console.error(
-            "❌ ERROR EN ANÁLISIS:",
-            error
-        );
-
-
-        emocionDisplay.innerHTML = `
-
-            <div class="error">
-
-                ❌ ${error.message}
-
-            </div>
-
-        `;
-
-
-        statusDiv.textContent =
-            "❌ Error en el análisis";
-
-        statusDiv.className =
-            "error";
-
-    }
-
-
-    finally {
-
-        loadingDiv.style.display =
-            "none";
-
-
-        isProcessing =
-            false;
-
-
-        captureBtn.disabled =
-            false;
-
-        autoBtn.disabled =
-            false;
-
-
-        setTimeout(() => {
-
-            if (
-                !isProcessing &&
-                isCameraRunning
-            ) {
-
-                statusDiv.textContent =
-                    "🟢 Cámara activa - Listo para capturar";
-
-                statusDiv.className =
-                    "success";
-
-            }
-
-        }, 2000);
-
-    }
-
-}
-
-
-// =========================================================
-// MODO AUTOMÁTICO
-// =========================================================
-
-function toggleAutoMode() {
-
-    if (isAutoMode) {
-
-        isAutoMode =
-            false;
-
-
-        if (autoInterval) {
-
-            clearInterval(
-                autoInterval
-            );
-
-            autoInterval =
-                null;
-
-        }
-
-
-        autoBtn.textContent =
-            "🔄 Modo Automático";
-
-
-        statusDiv.textContent =
-            "⏸️ Modo automático detenido";
-
-
-        return;
-
-    }
-
-
-    isAutoMode =
-        true;
-
-
-    autoBtn.textContent =
-        "⏹️ Detener Automático";
-
-
-    statusDiv.textContent =
-        "🔄 Modo automático activo";
-
-
-    captureAndAnalyze();
-
-
-    autoInterval =
-        setInterval(() => {
-
-            if (
-                isCameraRunning &&
-                !isProcessing
-            ) {
-
-                captureAndAnalyze();
-
-            }
-
-        }, 3000);
-
-}
-
-
-// =========================================================
-// DETENER CÁMARA
-// =========================================================
-
-function stopCamera() {
-
-    if (isAutoMode) {
-
-        toggleAutoMode();
-
-    }
-
-
-    if (stream) {
-
-        stream
-            .getTracks()
-            .forEach(track => {
-
-                track.stop();
-
-            });
-
-
-        stream =
-            null;
-
-    }
-
-
-    video.srcObject =
-        null;
-
-
-    isCameraRunning =
-        false;
-
-
-    captureBtn.disabled =
-        true;
-
-    autoBtn.disabled =
-        true;
-
-    stopBtn.disabled =
-        true;
-
-
-    statusDiv.textContent =
-        "⏹️ Cámara detenida";
-
-    statusDiv.className =
-        "";
-
-}
-
-
-// =========================================================
-// EVENTOS
-// =========================================================
-
-captureBtn.addEventListener(
-    "click",
-    captureAndAnalyze
-);
-
-
-autoBtn.addEventListener(
-    "click",
-    toggleAutoMode
-);
-
-
-stopBtn.addEventListener(
-    "click",
-    stopCamera
-);
-
-
-graficaBtn.addEventListener(
-    "click",
-    mostrarGrafica
-);
-
-
-// =========================================================
-// INICIO
-// =========================================================
-
-window.onload = function () {
-
-    console.log(
-        "🚀 Iniciando EmotiScan..."
-    );
-
-    startCamera();
-
-};
-
-
-// =========================================================
-// LIMPIAR CÁMARA
-// =========================================================
-
-window.addEventListener(
-    "beforeunload",
-    function () {
-
-        if (autoInterval) {
-
-            clearInterval(
-                autoInterval
-            );
-
-        }
-
-
-        if (stream) {
-
-            stream
-                .getTracks()
-                .forEach(track => {
-
-                    track.stop();
-
-                });
-
-        }
-
-    }
-);
-
-
-// =========================================================
-// TECLA ESPACIO
-// =========================================================
-
-document.addEventListener(
-    "keydown",
-    function (e) {
-
-        if (
-            e.code === "Space" &&
-            !e.repeat
-        ) {
-
-            e.preventDefault();
-
-
-            if (
-                !isProcessing &&
-                isCameraRunning
-            ) {
-
-                captureAndAnalyze();
-
-            }
-
-        }
-
-    }
-);
-
-
-console.log(
-    "✅ EmotiScan cargado correctamente"
-);
-=======
-                console.log('✅ Cámara iniciada correctamente');
-
-                // Mostrar dimensiones del video
-                console.log(`📐 Video: ${video.videoWidth}x${video.videoHeight}`);
-
-            } catch (error) {
-                console.error('❌ Error al iniciar cámara:', error);
-                statusDiv.textContent = '❌ Error: ' + error.message;
-                statusDiv.className = 'error';
-
-                // Mensaje amigable para el usuario
-                let mensaje = 'No se pudo acceder a la cámara. ';
-                if (error.name === 'NotAllowedError') {
-                    mensaje += 'Permite el acceso en la configuración del navegador.';
-                } else if (error.name === 'NotFoundError') {
-                    mensaje += 'No se encontró una cámara en tu dispositivo.';
-                } else {
-                    mensaje += 'Verifica que tu cámara esté conectada.';
-                }
-                alert(mensaje);
-            }
-        }
-
-        // ============================================
-        // FUNCIÓN: CAPTURAR Y ANALIZAR
-        // ============================================
-        async function captureAndAnalyze() {
-            // Evitar múltiples capturas simultáneas
-            if (isProcessing) {
-                console.log('⏳ Ya hay un proceso en curso...');
-                return;
-            }
-
-            if (!isCameraRunning) {
-                alert('Primero inicia la cámara');
-                return;
-            }
-
-            try {
-                isProcessing = true;
-                captureBtn.disabled = true;
-                autoBtn.disabled = true;
-
-                // Mostrar loading
-                loadingDiv.style.display = 'block';
-                emocionDisplay.textContent = '⏳ Analizando...';
-                statusDiv.textContent = '⏳ Procesando imagen...';
-
-                // ============================================
-                // 1. CAPTURAR IMAGEN DEL VIDEO
-                // ============================================
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                console.log(`📸 Captura realizada: ${canvas.width}x${canvas.height}`);
-
-                // ============================================
-                // 2. CONVERTIR A BASE64
-                // ============================================
-                const imageData = canvas.toDataURL('image/jpeg', 0.9);
-
-                // ============================================
-                // 3. ENVIAR AL SERVIDOR
-                // ============================================
-                console.log('📤 Enviando al servidor...');
-
-                const response = await fetch('/analizar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        image: imageData
-                    })
-                });
-
-                console.log(`📥 Respuesta: ${response.status}`);
-
-                // ============================================
-                // 4. PROCESAR RESPUESTA
-                // ============================================
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-
-                const data = await response.json();
-                console.log('📊 Datos recibidos:', data);
-
-                if (data.success) {
-                    // Incrementar contador
-                    capturas++;
-                    contadorDiv.textContent = `📊 Capturas: ${capturas}`;
-
-                    // Mostrar resultado
-                    emocionDisplay.innerHTML = `
-                        <div class="emocion">${data.emotion}</div>
-                        <div class="mensaje">💬 ${data.message || 'Mensaje no disponible'}</div>
-                        <div class="consejo">💡 ${data.advice || 'Cuida de ti mismo'}</div>
-                    `;
-                    statusDiv.textContent = '✅ Análisis completado';
-                    statusDiv.className = 'success';
-
-                    console.log(`🎯 Emoción detectada: ${data.emotion}`);
-                } else {
-                    throw new Error(data.error || 'Error desconocido');
-                }
-
-            } catch (error) {
-                console.error('❌ Error en captureAndAnalyze:', error);
-                emocionDisplay.innerHTML = `
-                    <div class="error">
-                        ❌ Error: ${error.message}
-                    </div>
-                `;
-                statusDiv.textContent = '❌ Error en el análisis';
-                statusDiv.className = 'error';
-            } finally {
-                // Restaurar UI
-                loadingDiv.style.display = 'none';
-                isProcessing = false;
-                captureBtn.disabled = false;
-                autoBtn.disabled = false;
-
-                // Restaurar estado después de 2 segundos
-                setTimeout(() => {
-                    if (!isProcessing && isCameraRunning) {
-                        statusDiv.textContent = '🟢 Cámara activa - Listo para capturar';
-                        statusDiv.className = 'success';
-                    }
-                }, 2000);
-            }
-        }
-
-        // ============================================
-        // FUNCIÓN: MODO AUTOMÁTICO
-        // ============================================
-        function toggleAutoMode() {
-            if (isAutoMode) {
-                // Detener modo automático
-                isAutoMode = false;
-                if (autoInterval) {
-                    clearInterval(autoInterval);
-                    autoInterval = null;
-                }
-                autoBtn.textContent = '🔄 Modo Automático';
-                statusDiv.textContent = '⏸️ Modo automático detenido';
-                console.log('⏸️ Modo automático detenido');
+            if (data.success) {
+                updateUI(data);
             } else {
-                // Iniciar modo automático
-                isAutoMode = true;
-                autoBtn.textContent = '⏹️ Detener Automático';
-                statusDiv.textContent = '🔄 Modo automático activo - Capturando cada 3 segundos';
-                console.log('🔄 Modo automático iniciado');
-
-                // Capturar inmediatamente
-                captureAndAnalyze();
-
-                // Configurar intervalo
-                autoInterval = setInterval(() => {
-                    if (isCameraRunning && !isProcessing) {
-                        captureAndAnalyze();
-                    }
-                }, 3000); // Cada 3 segundos
+                throw new Error(data.error || 'Fallo en el análisis');
             }
+        } catch (err) {
+            elements.result.innerHTML = `<div class="status-error">❌ Error: \${err.message}</div>`;
+        } finally {
+            state.isProcessing = false;
+            if (!state.isAuto) elements.status.textContent = '🟢 Listo';
         }
+    }
 
-        // ============================================
-        // FUNCIÓN: DETENER CÁMARA
-        // ============================================
-        function stopCamera() {
-            // Detener modo automático
-            if (isAutoMode) {
-                toggleAutoMode();
-            }
+    function updateUI(data) {
+        state.capturas++;
+        elements.count.textContent = state.capturas;
 
-            // Detener stream
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
+        const emo = data.emotion || 'Neutral';
+        const config = CONFIG.emociones[emo] || CONFIG.emociones['Neutral'];
+        const consejo = config.consejos[Math.floor(Math.random() * config.consejos.length)];
 
-            video.srcObject = null;
-            isCameraRunning = false;
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+        // Actualizar Estadísticas locales
+        state.stats[emo] = (state.stats[emo] || 0) + 1;
+        updateChart();
 
-            captureBtn.disabled = true;
-            autoBtn.disabled = true;
-            stopBtn.disabled = true;
+        elements.result.innerHTML = `
+            <div class="emotion-card">
+                <span class="emoji-large">${config.emoji}</span>
+                <div class="emotion-name">${emo}</div>
+                <div class="confidence">Confianza: \${(data.confidence || 0).toFixed(1)}%</div>
+                <div class="advice-box">
+                    <strong>💡 Consejo:</strong><br>${consejo}
+                </div>
+            </div>
+        `;
+    }
 
-            statusDiv.textContent = '⏹️ Cámara detenida';
-            statusDiv.className = '';
+    function updateChart() {
+        const total = Object.values(state.stats).reduce((a, b) => a + b, 0);
+        const getP = (val) => ((val / total) * 100).toFixed(1);
 
-            console.log('⏹️ Cámara detenida');
-        }
-
-        // ============================================
-        // EVENT LISTENERS
-        // ============================================
-        captureBtn.addEventListener('click', captureAndAnalyze);
-        autoBtn.addEventListener('click', toggleAutoMode);
-        stopBtn.addEventListener('click', stopCamera);
-
-        // ============================================
-        // INICIALIZAR
-        // ============================================
-        window.onload = function () {
-            console.log('🚀 Iniciando EmotiScan...');
-            console.log(`📱 Navegador: ${navigator.userAgent}`);
-            startCamera();
+        const p = {
+            f: (state.stats['Enojo'] / total) * 100,
+            h: (state.stats['Felicidad'] / total) * 100,
+            n: (state.stats['Neutral'] / total) * 100,
+            t: (state.stats['Tristeza'] / total) * 100
         };
 
-        // Limpiar al cerrar
-        window.addEventListener('beforeunload', function () {
-            if (autoInterval) {
-                clearInterval(autoInterval);
-            }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-            console.log('🧹 Recursos liberados');
-        });
+        document.getElementById('p-furia').textContent = getP(state.stats['Enojo']) + '%';
+        document.getElementById('p-felicidad').textContent = getP(state.stats['Felicidad']) + '%';
+        document.getElementById('p-neutral').textContent = getP(state.stats['Neutral']) + '%';
+        document.getElementById('p-tristeza').textContent = getP(state.stats['Tristeza']) + '%';
 
-        // Manejar errores de la cámara
-        video.addEventListener('error', function (e) {
-            console.error('❌ Error en video:', e);
-            statusDiv.textContent = '❌ Error en el stream de video';
-            statusDiv.className = 'error';
-        });
+        elements.btns.chart.disabled = false;
 
-        // Tecla Espacio para capturar
-        document.addEventListener('keydown', function (e) {
-            if (e.code === 'Space' && !e.repeat) {
-                e.preventDefault();
-                if (!isProcessing && isCameraRunning) {
-                    captureAndAnalyze();
-                }
-            }
-        });
+        // Actualizar gradiente de la gráfica
+        document.getElementById('pieChart').style.background = `
+            conic-gradient(
+                #ef4444 0% \${p.f}%, 
+                #f59e0b \${p.f}% \${p.f + p.h}%, 
+                #94a3b8 \${p.f + p.h}% \${p.f + p.h + p.n}%, 
+                #3b82f6 \${p.f + p.h + p.n}% 100%
+            )
+        `;
+    }
 
-        console.log('✅ EmotiScan cargado correctamente');
-        console.log('💡 Presiona ESPACIO para capturar rápidamente');
-    </script>
+    // --- Handlers ---
+    elements.btns.capture.onclick = captureAndAnalyze;
+
+    elements.btns.auto.onclick = () => {
+        state.isAuto = !state.isAuto;
+        if (state.isAuto) {
+            elements.btns.auto.textContent = '⏹️ Detener Auto';
+            elements.btns.auto.style.background = '#f87171';
+            document.getElementById('modeText').textContent = 'Automático';
+            captureAndAnalyze();
+            state.autoTimer = setInterval(captureAndAnalyze, CONFIG.intervaloAuto);
+        } else {
+            clearInterval(state.autoTimer);
+            elements.btns.auto.textContent = '🔄 Auto-Modo';
+            elements.btns.auto.style.background = 'var(--secondary)';
+            document.getElementById('modeText').textContent = 'Manual';
+        }
+    };
+
+    elements.btns.stop.onclick = () => {
+        if (state.stream) {
+            state.stream.getTracks().forEach(t => t.stop());
+            elements.video.srcObject = null;
+            elements.status.textContent = '⏹️ Cámara Apagada';
+            Object.values(elements.btns).forEach(btn => btn.disabled = true);
+        }
+    };
+
+    elements.btns.chart.onclick = () => {
+        const container = document.getElementById('chartContainer');
+        const isVisible = container.style.display === 'block';
+        container.style.display = isVisible ? 'none' : 'block';
+        elements.btns.chart.textContent = isVisible ? '📊 Ver Estadísticas' : '📊 Ocultar Gráfica';
+    };
+
+    // Tecla Espacio para capturar
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !state.isProcessing && state.stream) {
+            e.preventDefault();
+            captureAndAnalyze();
+        }
+    });
+
+    // Inicio
+    window.onload = initCamera;
+</script>
+
 </body>
-
 </html>
