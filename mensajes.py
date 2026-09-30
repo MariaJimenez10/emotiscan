@@ -71,6 +71,10 @@ MENSAJES_POR_EMOCION = {
 _mensajes_usados = defaultdict(list)
 
 def obtener_mensaje(emocion):
+<<<<<<< HEAD
+=======
+    """Obtiene mensaje aleatorio sin repetir"""
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     emocion_normalizada = None
     for key in MENSAJES_POR_EMOCION:
         if emocion.lower() == key.lower():

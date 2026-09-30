@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<<<<<<< HEAD
 <html lang="es">
 
 <head>
@@ -26,6 +27,58 @@
         /* =====================================================
            GENERAL
         ===================================================== */
+=======
+<html>
+
+<head>
+    <title>EmotiScan AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+        .blur {
+
+            position: absolute;
+
+            border-radius: 50%;
+
+            filter: blur(120px);
+
+            opacity: .5;
+
+            z-index: -1;
+
+        }
+
+        .uno {
+
+            width: 300px;
+
+            height: 300px;
+
+            background: #00d4ff;
+
+            top: -80px;
+
+            left: -80px;
+
+        }
+
+        .dos {
+
+            width: 350px;
+
+            height: 350px;
+
+            background: #7c3aed;
+
+            bottom: -120px;
+
+            right: -100px;
+
+        }
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
         * {
             margin: 0;
@@ -34,6 +87,7 @@
             font-family: 'Poppins', sans-serif;
         }
 
+<<<<<<< HEAD
 
         body {
 
@@ -72,6 +126,21 @@
 
         @keyframes fondo {
 
+=======
+        body {
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            background:
+                radial-gradient(circle at top left, #6d5dfc 0%, transparent 35%),
+                radial-gradient(circle at bottom right, #00d4ff 0%, transparent 35%),
+                linear-gradient(135deg, #2b1055, #3b82f6, #06b6d4);
+            background-size: cover;
+        }
+
+        @keyframes fondo {
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
             0% {
                 background-position: 0% 50%;
             }
@@ -83,6 +152,7 @@
             100% {
                 background-position: 0% 50%;
             }
+<<<<<<< HEAD
 
         }
 
@@ -256,10 +326,68 @@
            CONTENIDO PRINCIPAL
         ===================================================== */
 
+=======
+        }
+
+        /* Sidebar Glass */
+
+        .sidebar {
+            width: 250px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, .12);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-right: 1px solid rgba(255, 255, 255, .2);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
+        }
+
+        .sidebar h2 {
+            color: white;
+            text-align: center;
+            margin-bottom: 45px;
+            font-size: 30px;
+            letter-spacing: 1px;
+        }
+
+        .sidebar button {
+
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+
+            background: rgba(255, 255, 255, .15);
+
+            color: white;
+
+            font-size: 16px;
+
+            cursor: pointer;
+
+            transition: .35s;
+
+            backdrop-filter: blur(15px);
+
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .1);
+        }
+
+        .sidebar button:hover {
+
+            transform: translateX(8px);
+
+            background: rgba(255, 255, 255, .3);
+
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+
+        }
+
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
         .main {
 
             flex: 1;
 
+<<<<<<< HEAD
             padding: 40px;
 
             min-width: 0;
@@ -355,6 +483,33 @@
 
             background:
                 rgba(255,255,255,0.15);
+=======
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 50px;
+
+        }
+
+        /* Secciones */
+
+        .section {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .card {
+
+            background: rgba(255, 255, 255, .15);
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
             backdrop-filter: blur(30px);
 
@@ -362,6 +517,7 @@
 
             border-radius: 30px;
 
+<<<<<<< HEAD
             border:
                 1px solid
                 rgba(255,255,255,0.20);
@@ -751,11 +907,57 @@
 
             background:
                 rgba(255,255,255,0.95);
+=======
+            border: 1px solid rgba(255, 255, 255, .2);
+
+            padding: 40px;
+
+            color: white;
+
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+
+            transition: .4s;
+
+        }
+
+        .card:hover {
+
+            transform: translateY(-8px);
+
+            box-shadow: 0 25px 60px rgba(0, 0, 0, .35);
+
+        }
+
+        .card h2 {
+
+            font-size: 32px;
+
+            margin-bottom: 20px;
+
+            font-weight: 600;
+
+        }
+
+        .card p {
+
+            color: #f3f4f6;
+
+            font-size: 18px;
+
+        }
+
+        canvas {
+
+            margin-top: 25px;
+
+            background: rgba(255, 255, 255, .9);
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
             border-radius: 20px;
 
             padding: 20px;
 
+<<<<<<< HEAD
             margin-top: 20px;
 
             min-height: 350px;
@@ -875,10 +1077,59 @@
 
         }
 
+=======
+        }
+
+        /* Scroll bonito */
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: white;
+            border-radius: 20px;
+        }
+
+        /* Responsive */
+
+        @media(max-width:768px) {
+
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .sidebar h2 {
+                width: 100%;
+            }
+
+            .sidebar button {
+                width: 90%;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .card {
+                padding: 25px;
+            }
+
+        }
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     </style>
 
 </head>
 
+<<<<<<< HEAD
 
 <body>
 
@@ -971,11 +1222,73 @@
             <div class="user-badge">
 
                 👤 {{ usuario }}
+=======
+<body>
+
+    <!-- MENU -->
+
+    <div class="sidebar">
+
+        <h2>🤖 EmotiScan</h2>
+
+        <button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
+
+        <button onclick="mostrar('grafica')">📊 Gráficas</button>
+
+        <button onclick="mostrar('semana')">📅 Emoción por semana</button>
+
+    </div>
+
+
+    <!-- CONTENIDO -->
+
+    <div class="main">
+
+
+        <!-- ANALIZAR -->
+
+        <div id="analizar" class="section active">
+
+            <div class="card">
+
+                <h2>Analizar emoción</h2>
+
+                <p>Aquí aparecerá el análisis de emociones con la cámara.</p>
+
+                <p>Estado actual: 😊 Feliz</p>
+
+            </div>
+
+        </div>
+        <!-- GRAFICAS -->
+
+        <div id="grafica" class="section">
+
+            <div class="card">
+
+                <h2>Gráfica de emociones</h2>
+
+                <canvas id="graficaEmociones"></canvas>
+
+            </div>
+
+        </div>
+        <!-- SEMANA -->
+
+        <div id="semana" class="section">
+
+            <div class="card">
+
+                <h2>Emoción por semana</h2>
+
+                <canvas id="graficaSemana"></canvas>
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
             </div>
 
         </div>
 
+<<<<<<< HEAD
 
 
         <!-- =================================================
@@ -1386,11 +1699,26 @@
                 );
 
             }
+=======
+    </div>
+
+
+    <script>
+
+        function mostrar(seccion) {
+
+            document.querySelectorAll(".section").forEach(s => {
+                s.classList.remove("active")
+            })
+
+            document.getElementById(seccion).classList.add("active")
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
         }
 
 
 
+<<<<<<< HEAD
         /* =================================================
            ANALIZAR
         ================================================= */
@@ -2055,3 +2383,52 @@
 
 
 </body>
+=======
+        /* GRAFICA GENERAL */
+
+        const datos = {
+            labels: ["Feliz", "Triste", "Enojo", "Neutral"],
+
+            datasets: [{
+                label: "Emociones",
+                data: [8, 3, 2, 5],
+
+                backgroundColor: ["green", "blue", "red", "gray"]
+            }]
+
+        }
+
+        new Chart(document.getElementById("graficaEmociones"), {
+            type: "bar",
+            data: datos
+        })
+
+
+
+        /* GRAFICA SEMANAL */
+
+        const semana = {
+            labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+
+            datasets: [{
+                label: "Nivel de felicidad",
+                data: [6, 7, 5, 8, 9, 7, 6],
+
+                borderColor: "green",
+                fill: false
+            }]
+
+        }
+
+        new Chart(document.getElementById("graficaSemana"), {
+            type: "line",
+            data: semana
+        })
+
+    </script>
+
+</body>
+
+
+</html>
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8

@@ -11,6 +11,7 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 # CONFIGURACIÓN
 # ==========================================================
 
+<<<<<<< HEAD
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.join(
@@ -32,6 +33,17 @@ CLASSES = [
     "Felicidad",
     "Tristeza",
     "Neutral"
+=======
+MODEL_PATH = "modelo_resnet50_emociones.h5"
+
+DATASET_PATH = "dataset/train"
+
+EMOCIONES = [
+    "Enojo",
+    "Felicidad",
+    "Neutral",
+    "Tristeza"
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 ]
 
 
@@ -39,6 +51,7 @@ CLASSES = [
 # CARGAR MODELO
 # ==========================================================
 
+<<<<<<< HEAD
 print("=" * 70)
 print("CARGANDO MODELO")
 print("=" * 70)
@@ -133,11 +146,54 @@ for clase_real in CLASSES:
         print(
             f"No existen imágenes para {clase_real}"
         )
+=======
+print("======================================")
+print("CARGANDO MODELO")
+print("======================================")
+
+model = load_model(MODEL_PATH)
+
+print("Modelo cargado correctamente")
+
+
+# ==========================================================
+# PROBAR UNA IMAGEN DE CADA CLASE
+# ==========================================================
+
+for clase_idx, emocion in enumerate(EMOCIONES):
+
+    carpeta = os.path.join(
+        DATASET_PATH,
+        emocion
+    )
+
+    if not os.path.exists(carpeta):
+
+        print(f"\n❌ No existe: {carpeta}")
 
         continue
 
 
+    archivos = [
+        f for f in os.listdir(carpeta)
+        if f.lower().endswith(
+            (".jpg", ".jpeg", ".png")
+        )
+    ]
+
+
+    if len(archivos) == 0:
+
+        print(f"\n❌ No hay imágenes en {emocion}")
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+
+        continue
+
+
+<<<<<<< HEAD
     # Primera imagen
+=======
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     archivo = archivos[0]
 
     ruta = os.path.join(
@@ -146,6 +202,7 @@ for clase_real in CLASSES:
     )
 
 
+<<<<<<< HEAD
     imagen = preparar_imagen(
         ruta
     )
@@ -153,15 +210,104 @@ for clase_real in CLASSES:
 
     pred = model.predict(
         imagen,
+=======
+    print("\n======================================")
+    print(f"CLASE REAL: {emocion}")
+    print(f"IMAGEN: {archivo}")
+    print("======================================")
+
+
+    # ======================================================
+    # CARGAR
+    # ======================================================
+
+    img = cv2.imread(ruta)
+
+
+    if img is None:
+
+        print("❌ No se pudo cargar")
+
+        continue
+
+
+    print("Imagen original:", img.shape)
+    print("Tipo:", img.dtype)
+
+
+    # ======================================================
+    # RESIZE
+    # ======================================================
+
+    img = cv2.resize(
+        img,
+        (224, 224)
+    )
+
+
+    # ======================================================
+    # FLOAT32
+    # ======================================================
+
+    img = img.astype(
+        np.float32
+    )
+
+
+    # ======================================================
+    # PREPROCESS
+    # ======================================================
+
+    img = preprocess_input(img)
+
+
+    # ======================================================
+    # BATCH
+    # ======================================================
+
+    img = np.expand_dims(
+        img,
+        axis=0
+    )
+
+
+    print(
+        "Entrada modelo:",
+        img.shape
+    )
+
+
+    # ======================================================
+    # PREDICCIÓN
+    # ======================================================
+
+    pred = model.predict(
+        img,
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
         verbose=0
     )[0]
 
 
+<<<<<<< HEAD
+=======
+    print("\nPredicción:")
+
+    for i, valor in enumerate(pred):
+
+        print(
+            f"{EMOCIONES[i]}: "
+            f"{valor:.6f} "
+            f"({valor * 100:.2f}%)"
+        )
+
+
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     indice = int(
         np.argmax(pred)
     )
 
 
+<<<<<<< HEAD
     clase_predicha = CLASSES[
         indice
     ]
@@ -199,3 +345,23 @@ print()
 print("=" * 70)
 print("PRUEBA TERMINADA")
 print("=" * 70)
+=======
+    print("\n--------------------------------------")
+
+    print(
+        "REAL:",
+        emocion
+    )
+
+    print(
+        "PREDICCIÓN:",
+        EMOCIONES[indice]
+    )
+
+    print(
+        "CONFIANZA:",
+        f"{pred[indice] * 100:.2f}%"
+    )
+
+    print("--------------------------------------")
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
