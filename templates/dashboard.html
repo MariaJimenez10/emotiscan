@@ -1,5 +1,5 @@
+```html
 <!DOCTYPE html>
-<<<<<<< HEAD
 <html lang="es">
 
 <head>
@@ -10,7 +10,6 @@
 
     <title>EmotiScan AI | Dashboard</title>
 
-    <!-- FAVICON -->
     <link rel="icon"
           type="image/x-icon"
           href="{{ url_for('static', filename='favicon.ico') }}">
@@ -23,62 +22,9 @@
 
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-
         /* =====================================================
            GENERAL
         ===================================================== */
-=======
-<html>
-
-<head>
-    <title>EmotiScan AI</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-
-        .blur {
-
-            position: absolute;
-
-            border-radius: 50%;
-
-            filter: blur(120px);
-
-            opacity: .5;
-
-            z-index: -1;
-
-        }
-
-        .uno {
-
-            width: 300px;
-
-            height: 300px;
-
-            background: #00d4ff;
-
-            top: -80px;
-
-            left: -80px;
-
-        }
-
-        .dos {
-
-            width: 350px;
-
-            height: 350px;
-
-            background: #7c3aed;
-
-            bottom: -120px;
-
-            right: -100px;
-
-        }
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
         * {
             margin: 0;
@@ -86,8 +32,6 @@
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
         }
-
-<<<<<<< HEAD
 
         body {
 
@@ -120,27 +64,10 @@
             background-size: 200% 200%;
 
             animation: fondo 15s ease infinite;
-
-        }
-
-
-        @keyframes fondo {
-
-=======
-        body {
-            margin: 0;
-            display: flex;
-            min-height: 100vh;
-            font-family: 'Poppins', sans-serif;
-            background:
-                radial-gradient(circle at top left, #6d5dfc 0%, transparent 35%),
-                radial-gradient(circle at bottom right, #00d4ff 0%, transparent 35%),
-                linear-gradient(135deg, #2b1055, #3b82f6, #06b6d4);
-            background-size: cover;
         }
 
         @keyframes fondo {
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+
             0% {
                 background-position: 0% 50%;
             }
@@ -152,10 +79,8 @@
             100% {
                 background-position: 0% 50%;
             }
-<<<<<<< HEAD
 
         }
-
 
         /* =====================================================
            SIDEBAR
@@ -186,18 +111,14 @@
             position: relative;
 
             z-index: 10;
-
         }
-
 
         .logo {
 
             text-align: center;
 
             margin-bottom: 45px;
-
         }
-
 
         .logo-icon {
 
@@ -206,9 +127,7 @@
             display: block;
 
             margin-bottom: 5px;
-
         }
-
 
         .logo-text {
 
@@ -219,9 +138,7 @@
             font-weight: 700;
 
             letter-spacing: 1px;
-
         }
-
 
         .logo-subtitle {
 
@@ -229,9 +146,7 @@
                 rgba(255, 255, 255, 0.70);
 
             font-size: 11px;
-
         }
-
 
         /* =====================================================
            BOTONES SIDEBAR
@@ -267,14 +182,11 @@
                 rgba(0, 0, 0, 0.10);
 
             text-align: left;
-
         }
-
 
         .sidebar button:hover {
 
-            transform:
-                translateX(8px);
+            transform: translateX(8px);
 
             background:
                 rgba(255, 255, 255, 0.30);
@@ -282,9 +194,7 @@
             box-shadow:
                 0 10px 25px
                 rgba(0, 0, 0, 0.25);
-
         }
-
 
         .sidebar button.active-menu {
 
@@ -294,9 +204,7 @@
             box-shadow:
                 0 8px 25px
                 rgba(0, 0, 0, 0.25);
-
         }
-
 
         .logout {
 
@@ -310,92 +218,28 @@
 
             background:
                 rgba(220, 38, 38, 0.30) !important;
-
         }
-
 
         .logout:hover {
 
             background:
                 rgba(220, 38, 38, 0.60) !important;
-
         }
-
 
         /* =====================================================
-           CONTENIDO PRINCIPAL
+           CONTENIDO
         ===================================================== */
 
-=======
-        }
-
-        /* Sidebar Glass */
-
-        .sidebar {
-            width: 250px;
-            padding: 30px 20px;
-            background: rgba(255, 255, 255, .12);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border-right: 1px solid rgba(255, 255, 255, .2);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
-        }
-
-        .sidebar h2 {
-            color: white;
-            text-align: center;
-            margin-bottom: 45px;
-            font-size: 30px;
-            letter-spacing: 1px;
-        }
-
-        .sidebar button {
-
-            width: 100%;
-            margin-bottom: 15px;
-            padding: 15px;
-            border: none;
-            border-radius: 15px;
-
-            background: rgba(255, 255, 255, .15);
-
-            color: white;
-
-            font-size: 16px;
-
-            cursor: pointer;
-
-            transition: .35s;
-
-            backdrop-filter: blur(15px);
-
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .1);
-        }
-
-        .sidebar button:hover {
-
-            transform: translateX(8px);
-
-            background: rgba(255, 255, 255, .3);
-
-            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
-
-        }
-
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
         .main {
 
             flex: 1;
 
-<<<<<<< HEAD
             padding: 40px;
 
             min-width: 0;
 
             overflow-y: auto;
-
         }
-
 
         .top-header {
 
@@ -408,18 +252,14 @@
             margin-bottom: 30px;
 
             color: white;
-
         }
-
 
         .welcome h1 {
 
             font-size: 30px;
 
             font-weight: 600;
-
         }
-
 
         .welcome p {
 
@@ -429,9 +269,7 @@
                 rgba(255,255,255,0.75);
 
             font-size: 14px;
-
         }
-
 
         .user-badge {
 
@@ -447,9 +285,7 @@
                 rgba(255,255,255,0.20);
 
             backdrop-filter: blur(15px);
-
         }
-
 
         /* =====================================================
            SECCIONES
@@ -464,16 +300,12 @@
             max-width: 1200px;
 
             margin: auto;
-
         }
-
 
         .section.active {
 
             display: block;
-
         }
-
 
         /* =====================================================
            CARD
@@ -483,33 +315,6 @@
 
             background:
                 rgba(255,255,255,0.15);
-=======
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-
-            padding: 50px;
-
-        }
-
-        /* Secciones */
-
-        .section {
-            display: none;
-            width: 100%;
-            max-width: 900px;
-        }
-
-        .active {
-            display: block;
-        }
-
-        .card {
-
-            background: rgba(255, 255, 255, .15);
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
             backdrop-filter: blur(30px);
 
@@ -517,7 +322,6 @@
 
             border-radius: 30px;
 
-<<<<<<< HEAD
             border:
                 1px solid
                 rgba(255,255,255,0.20);
@@ -529,18 +333,14 @@
             box-shadow:
                 0 20px 50px
                 rgba(0,0,0,0.25);
-
         }
-
 
         .card-title {
 
             font-size: 25px;
 
             margin-bottom: 8px;
-
         }
-
 
         .card-description {
 
@@ -550,9 +350,7 @@
             font-size: 14px;
 
             margin-bottom: 25px;
-
         }
-
 
         /* =====================================================
            AREA DE ANALISIS
@@ -567,9 +365,7 @@
                 0.85fr;
 
             gap: 25px;
-
         }
-
 
         /* =====================================================
            CAMARA
@@ -583,9 +379,7 @@
             border-radius: 22px;
 
             padding: 20px;
-
         }
-
 
         .camera-container {
 
@@ -604,9 +398,7 @@
             border:
                 2px solid
                 rgba(255,255,255,0.20);
-
         }
-
 
         #video {
 
@@ -619,9 +411,7 @@
             display: block;
 
             transform: scaleX(-1);
-
         }
-
 
         .camera-status {
 
@@ -643,9 +433,7 @@
             font-size: 12px;
 
             backdrop-filter: blur(10px);
-
         }
-
 
         .camera-dot {
 
@@ -660,9 +448,7 @@
             background: #22c55e;
 
             margin-right: 6px;
-
         }
-
 
         /* =====================================================
            BOTONES
@@ -678,9 +464,7 @@
             gap: 10px;
 
             margin-top: 18px;
-
         }
-
 
         .btn {
 
@@ -699,9 +483,7 @@
             color: white;
 
             transition: 0.3s;
-
         }
-
 
         .btn:hover {
 
@@ -711,9 +493,16 @@
             box-shadow:
                 0 8px 20px
                 rgba(0,0,0,0.20);
-
         }
 
+        .btn:disabled {
+
+            opacity: 0.6;
+
+            cursor: not-allowed;
+
+            transform: none;
+        }
 
         .btn-analizar {
 
@@ -723,9 +512,7 @@
                     #7c3aed,
                     #6366f1
                 );
-
         }
-
 
         .btn-auto {
 
@@ -735,9 +522,7 @@
                     #059669,
                     #10b981
                 );
-
         }
-
 
         .btn-detener {
 
@@ -747,9 +532,7 @@
                     #dc2626,
                     #ef4444
                 );
-
         }
-
 
         /* =====================================================
            RESULTADO
@@ -766,9 +549,7 @@
             text-align: center;
 
             min-height: 100%;
-
         }
-
 
         .result-title {
 
@@ -778,9 +559,7 @@
                 rgba(255,255,255,0.75);
 
             margin-bottom: 15px;
-
         }
-
 
         .emotion-icon {
 
@@ -790,9 +569,7 @@
 
             animation:
                 aparecer 0.5s ease;
-
         }
-
 
         @keyframes aparecer {
 
@@ -802,7 +579,6 @@
                     scale(0.5);
 
                 opacity: 0;
-
             }
 
             to {
@@ -811,11 +587,8 @@
                     scale(1);
 
                 opacity: 1;
-
             }
-
         }
-
 
         #emocion {
 
@@ -824,9 +597,7 @@
             font-weight: 700;
 
             margin-bottom: 10px;
-
         }
-
 
         .confidence {
 
@@ -842,9 +613,7 @@
             font-size: 13px;
 
             margin-bottom: 25px;
-
         }
-
 
         .consejo-box {
 
@@ -860,9 +629,7 @@
             padding: 20px;
 
             text-align: left;
-
         }
-
 
         .consejo-title {
 
@@ -871,9 +638,7 @@
             font-weight: 600;
 
             margin-bottom: 8px;
-
         }
-
 
         #consejo {
 
@@ -883,9 +648,7 @@
 
             color:
                 rgba(255,255,255,0.85);
-
         }
-
 
         #estado {
 
@@ -895,9 +658,7 @@
                 rgba(255,255,255,0.65);
 
             margin-top: 20px;
-
         }
-
 
         /* =====================================================
            GRAFICAS
@@ -907,94 +668,39 @@
 
             background:
                 rgba(255,255,255,0.95);
-=======
-            border: 1px solid rgba(255, 255, 255, .2);
-
-            padding: 40px;
-
-            color: white;
-
-            box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
-
-            transition: .4s;
-
-        }
-
-        .card:hover {
-
-            transform: translateY(-8px);
-
-            box-shadow: 0 25px 60px rgba(0, 0, 0, .35);
-
-        }
-
-        .card h2 {
-
-            font-size: 32px;
-
-            margin-bottom: 20px;
-
-            font-weight: 600;
-
-        }
-
-        .card p {
-
-            color: #f3f4f6;
-
-            font-size: 18px;
-
-        }
-
-        canvas {
-
-            margin-top: 25px;
-
-            background: rgba(255, 255, 255, .9);
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
             border-radius: 20px;
 
             padding: 20px;
 
-<<<<<<< HEAD
             margin-top: 20px;
 
-            min-height: 350px;
-
+            height: 400px;
         }
-
 
         .chart-container canvas {
 
-            max-height: 400px;
-
+            max-height: 360px;
         }
-
 
         /* =====================================================
            RESPONSIVE
         ===================================================== */
 
-        @media(max-width: 1000px) {
+        @media(max-width:1000px) {
 
             .analysis-grid {
 
                 grid-template-columns: 1fr;
-
             }
-
         }
 
-
-        @media(max-width: 768px) {
+        @media(max-width:768px) {
 
             body {
 
                 flex-direction: column;
-
             }
-
 
             .sidebar {
 
@@ -1003,25 +709,19 @@
                 min-height: auto;
 
                 padding: 20px;
-
             }
-
 
             .logo {
 
                 margin-bottom: 20px;
-
             }
-
 
             .sidebar button {
 
                 text-align: center;
 
                 margin-bottom: 8px;
-
             }
-
 
             .logout {
 
@@ -1030,16 +730,12 @@
                 width: 100% !important;
 
                 margin-top: 10px;
-
             }
-
 
             .main {
 
                 padding: 20px;
-
             }
-
 
             .top-header {
 
@@ -1048,25 +744,18 @@
                 align-items: flex-start;
 
                 gap: 15px;
-
             }
-
 
             .buttons {
 
                 grid-template-columns: 1fr;
-
             }
-
         }
-
 
         ::-webkit-scrollbar {
 
             width: 8px;
-
         }
-
 
         ::-webkit-scrollbar-thumb {
 
@@ -1074,72 +763,20 @@
                 rgba(255,255,255,0.50);
 
             border-radius: 20px;
-
         }
 
-=======
-        }
-
-        /* Scroll bonito */
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: white;
-            border-radius: 20px;
-        }
-
-        /* Responsive */
-
-        @media(max-width:768px) {
-
-            body {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .sidebar h2 {
-                width: 100%;
-            }
-
-            .sidebar button {
-                width: 90%;
-            }
-
-            .main {
-                padding: 20px;
-            }
-
-            .card {
-                padding: 25px;
-            }
-
-        }
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
     </style>
 
 </head>
 
-<<<<<<< HEAD
 
 <body>
-
 
     <!-- =====================================================
          SIDEBAR
     ====================================================== -->
 
     <aside class="sidebar">
-
 
         <div class="logo">
 
@@ -1190,13 +827,11 @@
 
         </button>
 
-
     </aside>
 
 
-
     <!-- =====================================================
-         CONTENIDO
+         CONTENIDO PRINCIPAL
     ====================================================== -->
 
     <main class="main">
@@ -1222,73 +857,10 @@
             <div class="user-badge">
 
                 👤 {{ usuario }}
-=======
-<body>
-
-    <!-- MENU -->
-
-    <div class="sidebar">
-
-        <h2>🤖 EmotiScan</h2>
-
-        <button onclick="mostrar('analizar')">🧠 Analizar emoción</button>
-
-        <button onclick="mostrar('grafica')">📊 Gráficas</button>
-
-        <button onclick="mostrar('semana')">📅 Emoción por semana</button>
-
-    </div>
-
-
-    <!-- CONTENIDO -->
-
-    <div class="main">
-
-
-        <!-- ANALIZAR -->
-
-        <div id="analizar" class="section active">
-
-            <div class="card">
-
-                <h2>Analizar emoción</h2>
-
-                <p>Aquí aparecerá el análisis de emociones con la cámara.</p>
-
-                <p>Estado actual: 😊 Feliz</p>
 
             </div>
 
         </div>
-        <!-- GRAFICAS -->
-
-        <div id="grafica" class="section">
-
-            <div class="card">
-
-                <h2>Gráfica de emociones</h2>
-
-                <canvas id="graficaEmociones"></canvas>
-
-            </div>
-
-        </div>
-        <!-- SEMANA -->
-
-        <div id="semana" class="section">
-
-            <div class="card">
-
-                <h2>Emoción por semana</h2>
-
-                <canvas id="graficaSemana"></canvas>
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-
-            </div>
-
-        </div>
-
-<<<<<<< HEAD
 
 
         <!-- =================================================
@@ -1301,7 +873,6 @@
 
 
             <div class="card">
-
 
                 <h2 class="card-title">
 
@@ -1318,13 +889,10 @@
                 </p>
 
 
-
                 <div class="analysis-grid">
 
 
-                    <!-- ===============================
-                         CAMARA
-                    ================================ -->
+                    <!-- CAMARA -->
 
                     <div class="camera-card">
 
@@ -1353,12 +921,10 @@
                         </div>
 
 
-
                         <canvas
                             id="canvas"
                             style="display:none;">
                         </canvas>
-
 
 
                         <!-- BOTONES -->
@@ -1367,6 +933,7 @@
 
 
                             <button
+                                id="btnAnalizarEmocion"
                                 class="btn btn-analizar"
                                 onclick="analizar()">
 
@@ -1399,10 +966,7 @@
                     </div>
 
 
-
-                    <!-- ===============================
-                         RESULTADO
-                    ================================ -->
+                    <!-- RESULTADO -->
 
                     <div class="card result-card">
 
@@ -1473,16 +1037,13 @@
 
                 </div>
 
-
             </div>
-
 
         </section>
 
 
-
         <!-- =================================================
-             GRAFICAS
+             GRAFICA GENERAL
         ================================================== -->
 
         <section
@@ -1491,7 +1052,6 @@
 
 
             <div class="card">
-
 
                 <h2 class="card-title">
 
@@ -1515,16 +1075,13 @@
 
                 </div>
 
-
             </div>
-
 
         </section>
 
 
-
         <!-- =================================================
-             SEMANA
+             GRAFICA SEMANAL
         ================================================== -->
 
         <section
@@ -1533,7 +1090,6 @@
 
 
             <div class="card">
-
 
                 <h2 class="card-title">
 
@@ -1558,15 +1114,12 @@
 
                 </div>
 
-
             </div>
-
 
         </section>
 
 
     </main>
-
 
 
     <!-- =====================================================
@@ -1575,7 +1128,6 @@
 
     <script>
 
-
         /* =================================================
            VARIABLES
         ================================================= */
@@ -1583,32 +1135,40 @@
         const video =
             document.getElementById("video");
 
-
         const canvas =
             document.getElementById("canvas");
-
 
         const contexto =
             canvas.getContext("2d");
 
-
         let stream = null;
 
-
         let intervaloAutomatico = null;
-
 
         let analizando = false;
 
 
-
         /* =================================================
-           CAMARA
+           INICIAR CAMARA
         ================================================= */
 
         async function iniciarCamara() {
 
             try {
+
+                if (
+                    !navigator.mediaDevices ||
+                    !navigator.mediaDevices.getUserMedia
+                ) {
+
+                    document.getElementById(
+                        "estado"
+                    ).innerText =
+                        "❌ El navegador no permite acceder a la cámara.";
+
+                    return;
+                }
+
 
                 stream =
                     await navigator
@@ -1616,13 +1176,17 @@
                     .getUserMedia({
 
                         video: {
+
                             width: {
                                 ideal: 640
                             },
 
                             height: {
                                 ideal: 480
-                            }
+                            },
+
+                            facingMode: "user"
+
                         },
 
                         audio: false
@@ -1633,10 +1197,16 @@
                 video.srcObject = stream;
 
 
-                document.getElementById(
-                    "estado"
-                ).innerText =
-                    "Cámara lista. Presiona Analizar.";
+                video.onloadedmetadata = function() {
+
+                    video.play();
+
+                    document.getElementById(
+                        "estado"
+                    ).innerText =
+                        "✅ Cámara lista. Presiona Analizar.";
+
+                };
 
 
             }
@@ -1644,7 +1214,7 @@
             catch(error) {
 
                 console.error(
-                    "Error cámara:",
+                    "❌ Error cámara:",
                     error
                 );
 
@@ -1652,7 +1222,7 @@
                 document.getElementById(
                     "estado"
                 ).innerText =
-                    "No se pudo acceder a la cámara.";
+                    "❌ No se pudo acceder a la cámara. Verifica los permisos.";
 
             }
 
@@ -1662,9 +1232,8 @@
         iniciarCamara();
 
 
-
         /* =================================================
-           MOSTRAR SECCION
+           CAMBIAR SECCION
         ================================================= */
 
         function mostrar(
@@ -1672,23 +1241,32 @@
             boton
         ) {
 
-
             document
                 .querySelectorAll(".section")
                 .forEach(
-                    s => s.classList.remove("active")
+                    s =>
+                        s.classList.remove("active")
                 );
 
 
-            document
-                .getElementById(seccion)
-                .classList.add("active");
+            const elemento =
+                document.getElementById(seccion);
+
+
+            if(elemento) {
+
+                elemento.classList.add("active");
+
+            }
 
 
             document
                 .querySelectorAll(".sidebar button")
                 .forEach(
-                    b => b.classList.remove("active-menu")
+                    b =>
+                        b.classList.remove(
+                            "active-menu"
+                        )
                 );
 
 
@@ -1699,28 +1277,12 @@
                 );
 
             }
-=======
-    </div>
-
-
-    <script>
-
-        function mostrar(seccion) {
-
-            document.querySelectorAll(".section").forEach(s => {
-                s.classList.remove("active")
-            })
-
-            document.getElementById(seccion).classList.add("active")
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 
         }
 
 
-
-<<<<<<< HEAD
         /* =================================================
-           ANALIZAR
+           ANALIZAR EMOCION
         ================================================= */
 
         async function analizar() {
@@ -1728,12 +1290,17 @@
 
             if(analizando) {
 
+                console.log(
+                    "Ya hay un análisis en proceso."
+                );
+
                 return;
 
             }
 
 
             if(
+                !video ||
                 !video.videoWidth ||
                 !video.videoHeight
             ) {
@@ -1741,7 +1308,7 @@
                 document.getElementById(
                     "estado"
                 ).innerText =
-                    "La cámara todavía no está lista.";
+                    "⚠️ La cámara todavía no está lista.";
 
                 return;
 
@@ -1749,6 +1316,19 @@
 
 
             analizando = true;
+
+
+            const boton =
+                document.getElementById(
+                    "btnAnalizarEmocion"
+                );
+
+
+            if(boton) {
+
+                boton.disabled = true;
+
+            }
 
 
             document.getElementById(
@@ -1760,13 +1340,12 @@
             try {
 
 
-                /* ============================
-                   CAPTURAR IMAGEN
-                ============================ */
+                /* =========================================
+                   CAPTURAR IMAGEN DE LA CAMARA
+                ========================================= */
 
                 canvas.width =
                     video.videoWidth;
-
 
                 canvas.height =
                     video.videoHeight;
@@ -1794,9 +1373,23 @@
                     );
 
 
-                /* ============================
-                   ENVIAR A FLASK
-                ============================ */
+                console.log(
+                    "📷 Imagen capturada:",
+                    canvas.width,
+                    "x",
+                    canvas.height
+                );
+
+
+                /* =========================================
+                   ENVIAR IMAGEN A FLASK
+                ========================================= */
+
+                document.getElementById(
+                    "estado"
+                ).innerText =
+                    "🧠 Enviando imagen al modelo de IA...";
+
 
                 const respuesta =
                     await fetch(
@@ -1812,65 +1405,113 @@
 
                             },
 
-                            body: JSON.stringify({
+                            credentials: "same-origin",
 
-                                image: imagen
+                            body:
+                                JSON.stringify({
 
-                            })
+                                    image: imagen
+
+                                })
 
                         }
                     );
 
 
-                if(!respuesta.ok) {
+                console.log(
+                    "📡 Estado HTTP:",
+                    respuesta.status
+                );
+
+
+                /* =========================================
+                   LEER RESPUESTA
+                ========================================= */
+
+                let datos;
+
+
+                try {
+
+                    datos =
+                        await respuesta.json();
+
+                }
+
+                catch(error) {
 
                     throw new Error(
-                        "Error HTTP " +
-                        respuesta.status
+                        "El servidor no devolvió una respuesta JSON válida."
                     );
 
                 }
 
 
-                const datos =
-                    await respuesta.json();
-
-
                 console.log(
-                    "Respuesta:",
+                    "📥 Respuesta Flask:",
                     datos
                 );
 
 
-                /* ============================
-                   ERROR DEL SERVIDOR
-                ============================ */
+                /* =========================================
+                   ERROR DE AUTENTICACION
+                ========================================= */
 
-                if(datos.error) {
+                if(
+                    respuesta.status === 401
+                ) {
 
                     document.getElementById(
                         "estado"
                     ).innerText =
-                        "⚠️ " + datos.error;
+                        "⚠️ Tu sesión ha expirado. Inicia sesión nuevamente.";
 
                     return;
 
                 }
 
 
-                /* ============================
+                /* =========================================
+                   ERROR DEL SERVIDOR
+                ========================================= */
+
+                if(
+                    !respuesta.ok ||
+                    datos.success === false
+                ) {
+
+                    document.getElementById(
+                        "estado"
+                    ).innerText =
+                        "❌ " +
+                        (
+                            datos.error ||
+                            "Error al analizar la imagen."
+                        );
+
+                    console.error(
+                        "❌ Error del servidor:",
+                        datos
+                    );
+
+                    return;
+
+                }
+
+
+                /* =========================================
                    MOSTRAR RESULTADO
-                ============================ */
+                ========================================= */
 
                 mostrarResultado(datos);
 
-
             }
+
 
             catch(error) {
 
                 console.error(
-                    "Error análisis:",
+                    "❌ Error análisis:",
                     error
                 );
 
@@ -1878,18 +1519,26 @@
                 document.getElementById(
                     "estado"
                 ).innerText =
-                    "❌ Error realizando el análisis.";
+                    "❌ Error realizando el análisis: " +
+                    error.message;
 
             }
+
 
             finally {
 
                 analizando = false;
 
+
+                if(boton) {
+
+                    boton.disabled = false;
+
+                }
+
             }
 
         }
-
 
 
         /* =================================================
@@ -1915,33 +1564,41 @@
             let consejo =
                 datos.consejo ||
                 datos.advice ||
+                datos.mensaje ||
+                datos.message ||
                 "Recuerda cuidar de ti y de tus emociones.";
 
 
-            /* ============================
-               NORMALIZAR EMOCION
-            ============================ */
+            console.log(
+                "🎯 Emoción original:",
+                emocion
+            );
 
-            const emocionOriginal =
-                emocion;
 
+            console.log(
+                "📊 Confianza:",
+                confianza
+            );
+
+
+            /* =============================================
+               NORMALIZAR EMOCIONES
+            ============================================= */
 
             if(
-                emocion === "Felicidad"
+                emocion === "Alegria"
             ) {
 
-                emocion =
-                    "Felicidad";
+                emocion = "Felicidad";
 
             }
 
 
             else if(
-                emocion === "Alegria"
+                emocion === "Alegría"
             ) {
 
-                emocion =
-                    "Felicidad";
+                emocion = "Felicidad";
 
             }
 
@@ -1950,15 +1607,14 @@
                 emocion === "Furia"
             ) {
 
-                emocion =
-                    "Enojo";
+                emocion = "Enojo";
 
             }
 
 
-            /* ============================
+            /* =============================================
                ICONO
-            ============================ */
+            ============================================= */
 
             let icono = "😐";
 
@@ -1971,6 +1627,7 @@
 
             }
 
+
             else if(
                 emocion === "Tristeza"
             ) {
@@ -1979,19 +1636,30 @@
 
             }
 
+
             else if(
                 emocion === "Enojo"
             ) {
 
-                icono = "😠";
+                icono = "😡";
 
             }
+
 
             else if(
                 emocion === "Neutral"
             ) {
 
                 icono = "😐";
+
+            }
+
+
+            else if(
+                emocion === "Sorpresa"
+            ) {
+
+                icono = "😮";
 
             }
 
@@ -2008,12 +1676,14 @@
                 emocion;
 
 
-            /* ============================
+            /* =============================================
                CONFIANZA
-            ============================ */
+            ============================================= */
 
-            if(confianza !== null) {
-
+            if(
+                confianza !== null &&
+                confianza !== undefined
+            ) {
 
                 let numero =
                     parseFloat(confianza);
@@ -2045,6 +1715,15 @@
 
                 }
 
+                else {
+
+                    document.getElementById(
+                        "confianza"
+                    ).innerText =
+                        "Confianza: --";
+
+                }
+
             }
 
             else {
@@ -2052,14 +1731,14 @@
                 document.getElementById(
                     "confianza"
                 ).innerText =
-                    "Confianza: disponible";
+                    "Confianza: --";
 
             }
 
 
-            /* ============================
+            /* =============================================
                CONSEJO
-            ============================ */
+            ============================================= */
 
             document.getElementById(
                 "consejo"
@@ -2067,9 +1746,9 @@
                 consejo;
 
 
-            /* ============================
+            /* =============================================
                ESTADO
-            ============================ */
+            ============================================= */
 
             document.getElementById(
                 "estado"
@@ -2078,12 +1757,12 @@
 
 
             console.log(
-                "Emoción detectada:",
-                emocionOriginal
+                "✅ RESULTADO:",
+                emocion,
+                confianza
             );
 
         }
-
 
 
         /* =================================================
@@ -2096,6 +1775,11 @@
             if(
                 intervaloAutomatico !== null
             ) {
+
+                document.getElementById(
+                    "estado"
+                ).innerText =
+                    "▶️ El modo automático ya está activo.";
 
                 return;
 
@@ -2125,7 +1809,6 @@
                 );
 
         }
-
 
 
         /* =================================================
@@ -2168,12 +1851,13 @@
         }
 
 
-
         /* =================================================
            CERRAR SESION
         ================================================= */
 
         function cerrarSesion() {
+
+            detenerAutomatico();
 
             window.location.href =
                 "/logout";
@@ -2181,89 +1865,109 @@
         }
 
 
-
         /* =================================================
            GRAFICA GENERAL
         ================================================= */
 
-        const datosEmociones = {
-
-            labels: [
-
-                "Felicidad",
-                "Tristeza",
-                "Enojo",
-                "Neutral"
-
-            ],
-
-            datasets: [{
-
-                label:
-                    "Emociones detectadas",
-
-                data: [
-
-                    8,
-                    3,
-                    2,
-                    5
-
-                ],
-
-                backgroundColor: [
-
-                    "#22c55e",
-                    "#3b82f6",
-                    "#ef4444",
-                    "#94a3b8"
-
-                ],
-
-                borderRadius: 10
-
-            }]
-
-        };
+        let graficaEmociones = null;
 
 
-        new Chart(
+        function crearGraficaEmociones() {
 
-            document.getElementById(
-                "graficaEmociones"
-            ),
 
-            {
+            const elemento =
+                document.getElementById(
+                    "graficaEmociones"
+                );
 
-                type: "bar",
 
-                data: datosEmociones,
+            if(!elemento) {
 
-                options: {
+                return;
 
-                    responsive: true,
+            }
 
-                    maintainAspectRatio: false,
 
-                    plugins: {
+            const contextoGrafica =
+                elemento.getContext("2d");
 
-                        legend: {
 
-                            display: true
+            graficaEmociones =
+                new Chart(
 
-                        }
+                    contextoGrafica,
 
-                    },
+                    {
 
-                    scales: {
+                        type: "bar",
 
-                        y: {
+                        data: {
 
-                            beginAtZero: true,
+                            labels: [
 
-                            ticks: {
+                                "Felicidad",
+                                "Tristeza",
+                                "Enojo",
+                                "Neutral"
 
-                                stepSize: 1
+                            ],
+
+                            datasets: [{
+
+                                label:
+                                    "Emociones detectadas",
+
+                                data: [
+                                    0,
+                                    0,
+                                    0,
+                                    0
+                                ],
+
+                                backgroundColor: [
+
+                                    "#22c55e",
+                                    "#3b82f6",
+                                    "#ef4444",
+                                    "#94a3b8"
+
+                                ],
+
+                                borderRadius: 10
+
+                            }]
+
+                        },
+
+                        options: {
+
+                            responsive: true,
+
+                            maintainAspectRatio: false,
+
+                            plugins: {
+
+                                legend: {
+
+                                    display: true
+
+                                }
+
+                            },
+
+                            scales: {
+
+                                y: {
+
+                                    beginAtZero: true,
+
+                                    ticks: {
+
+                                        stepSize: 1
+
+                                    }
+
+                                }
 
                             }
 
@@ -2271,164 +1975,146 @@
 
                     }
 
-                }
+                );
 
-            }
-
-        );
-
+        }
 
 
         /* =================================================
            GRAFICA SEMANAL
         ================================================= */
 
-        const datosSemana = {
-
-            labels: [
-
-                "Lunes",
-                "Martes",
-                "Miércoles",
-                "Jueves",
-                "Viernes",
-                "Sábado",
-                "Domingo"
-
-            ],
-
-            datasets: [{
-
-                label:
-                    "Nivel emocional",
-
-                data: [
-
-                    6,
-                    7,
-                    5,
-                    8,
-                    9,
-                    7,
-                    6
-
-                ],
-
-                borderWidth: 3,
-
-                tension: 0.4,
-
-                fill: false,
-
-                borderColor:
-                    "#22c55e",
-
-                pointRadius: 5,
-
-                pointHoverRadius: 8
-
-            }]
-
-        };
+        let graficaSemana = null;
 
 
-        new Chart(
+        function crearGraficaSemana() {
 
-            document.getElementById(
-                "graficaSemana"
-            ),
 
-            {
+            const elemento =
+                document.getElementById(
+                    "graficaSemana"
+                );
 
-                type: "line",
 
-                data: datosSemana,
+            if(!elemento) {
 
-                options: {
+                return;
 
-                    responsive: true,
+            }
 
-                    maintainAspectRatio: false,
 
-                    plugins: {
+            const contextoGrafica =
+                elemento.getContext("2d");
 
-                        legend: {
 
-                            display: true
+            graficaSemana =
+                new Chart(
 
-                        }
+                    contextoGrafica,
 
-                    },
+                    {
 
-                    scales: {
+                        type: "line",
 
-                        y: {
+                        data: {
 
-                            beginAtZero: true,
+                            labels: [
 
-                            max: 10
+                                "Lunes",
+                                "Martes",
+                                "Miércoles",
+                                "Jueves",
+                                "Viernes",
+                                "Sábado",
+                                "Domingo"
+
+                            ],
+
+                            datasets: [{
+
+                                label:
+                                    "Nivel emocional",
+
+                                data: [
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0
+                                ],
+
+                                borderWidth: 3,
+
+                                tension: 0.4,
+
+                                fill: false,
+
+                                borderColor:
+                                    "#22c55e",
+
+                                pointRadius: 5,
+
+                                pointHoverRadius: 8
+
+                            }]
+
+                        },
+
+                        options: {
+
+                            responsive: true,
+
+                            maintainAspectRatio: false,
+
+                            plugins: {
+
+                                legend: {
+
+                                    display: true
+
+                                }
+
+                            },
+
+                            scales: {
+
+                                y: {
+
+                                    beginAtZero: true
+
+                                }
+
+                            }
 
                         }
 
                     }
 
-                }
+                );
+
+        }
+
+
+        /* =================================================
+           INICIAR GRAFICAS
+        ================================================= */
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function() {
+
+                crearGraficaEmociones();
+
+                crearGraficaSemana();
 
             }
-
         );
 
-
-    </script>
-
-
-</body>
-=======
-        /* GRAFICA GENERAL */
-
-        const datos = {
-            labels: ["Feliz", "Triste", "Enojo", "Neutral"],
-
-            datasets: [{
-                label: "Emociones",
-                data: [8, 3, 2, 5],
-
-                backgroundColor: ["green", "blue", "red", "gray"]
-            }]
-
-        }
-
-        new Chart(document.getElementById("graficaEmociones"), {
-            type: "bar",
-            data: datos
-        })
-
-
-
-        /* GRAFICA SEMANAL */
-
-        const semana = {
-            labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
-
-            datasets: [{
-                label: "Nivel de felicidad",
-                data: [6, 7, 5, 8, 9, 7, 6],
-
-                borderColor: "green",
-                fill: false
-            }]
-
-        }
-
-        new Chart(document.getElementById("graficaSemana"), {
-            type: "line",
-            data: semana
-        })
-
     </script>
 
 </body>
-
 
 </html>
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+```
