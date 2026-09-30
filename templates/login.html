@@ -13,17 +13,12 @@
 
     <title>EmotiScan AI - Iniciar sesión</title>
 
-    <!-- Font Awesome -->
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
     >
 
     <style>
-
-        /* =====================================================
-           GENERAL
-           ===================================================== */
 
         * {
             margin: 0;
@@ -58,11 +53,6 @@
 
             color: white;
         }
-
-
-        /* =====================================================
-           BURBUJAS DE FONDO
-           ===================================================== */
 
         body::before,
         body::after {
@@ -113,7 +103,6 @@
             animation-delay: -5s;
         }
 
-
         @keyframes flotar {
 
             0% {
@@ -130,11 +119,6 @@
                     scale(1.2);
             }
         }
-
-
-        /* =====================================================
-           TARJETA
-           ===================================================== */
 
         .container {
 
@@ -178,8 +162,6 @@
                     0.5
                 );
 
-            color: white;
-
             position: relative;
 
             z-index: 10;
@@ -189,7 +171,6 @@
                 0.8s
                 ease;
         }
-
 
         @keyframes fadeIn {
 
@@ -209,11 +190,6 @@
                     translateY(0);
             }
         }
-
-
-        /* =====================================================
-           LOGO
-           ===================================================== */
 
         .logo-icon {
 
@@ -251,11 +227,6 @@
                 );
         }
 
-
-        /* =====================================================
-           TÍTULO
-           ===================================================== */
-
         h1 {
 
             font-size: 30px;
@@ -274,10 +245,7 @@
             -webkit-text-fill-color: transparent;
 
             background-clip: text;
-
-            letter-spacing: -1px;
         }
-
 
         .subtitle {
 
@@ -288,18 +256,22 @@
             margin-top: 8px;
 
             margin-bottom: 30px;
-
-            letter-spacing: 0.5px;
         }
 
-
-        /* =====================================================
-           MENSAJE DE ERROR
-           ===================================================== */
-
-        #error-message {
+        .message {
 
             display: none;
+
+            padding: 12px;
+
+            margin-bottom: 20px;
+
+            border-radius: 12px;
+
+            font-size: 14px;
+        }
+
+        .error {
 
             background:
                 rgba(
@@ -318,61 +290,10 @@
                     0.5
                 );
 
-            border-radius: 12px;
-
-            padding: 12px 16px;
-
-            margin-bottom: 20px;
-
             color: #ff8080;
-
-            font-size: 14px;
-
-            text-align: center;
-
-            animation:
-                shakeError
-                0.5s
-                ease;
         }
 
-
-        #error-message.show {
-
-            display: block;
-        }
-
-
-        @keyframes shakeError {
-
-            0%,
-            100% {
-
-                transform:
-                    translateX(0);
-            }
-
-            25% {
-
-                transform:
-                    translateX(-8px);
-            }
-
-            75% {
-
-                transform:
-                    translateX(8px);
-            }
-        }
-
-
-        /* =====================================================
-           MENSAJE DE ÉXITO
-           ===================================================== */
-
-        #success-message {
-
-            display: none;
+        .success {
 
             background:
                 rgba(
@@ -391,21 +312,8 @@
                     0.4
                 );
 
-            border-radius: 12px;
-
-            padding: 12px 16px;
-
-            margin-bottom: 20px;
-
             color: #70e0a0;
-
-            font-size: 14px;
         }
-
-
-        /* =====================================================
-           FORMULARIO
-           ===================================================== */
 
         .form-group {
 
@@ -413,7 +321,6 @@
 
             text-align: left;
         }
-
 
         .form-group label {
 
@@ -426,20 +333,12 @@
             font-weight: 500;
 
             margin-bottom: 8px;
-
-            letter-spacing: 0.5px;
         }
-
-
-        /* =====================================================
-           INPUT
-           ===================================================== */
 
         .input-wrapper {
 
             position: relative;
         }
-
 
         .input-wrapper i {
 
@@ -457,13 +356,7 @@
             font-size: 17px;
 
             z-index: 2;
-
-            transition:
-                color
-                0.3s
-                ease;
         }
-
 
         .input-wrapper input {
 
@@ -499,13 +392,7 @@
             font-size: 16px;
 
             outline: none;
-
-            transition:
-                all
-                0.3s
-                ease;
         }
-
 
         .input-wrapper input:focus {
 
@@ -529,13 +416,6 @@
                 );
         }
 
-
-        .input-wrapper:focus-within i {
-
-            color: #e94560;
-        }
-
-
         .input-wrapper input::placeholder {
 
             color:
@@ -546,27 +426,6 @@
                     0.35
                 );
         }
-
-
-        /* =====================================================
-           AUTOCOMPLETADO
-           ===================================================== */
-
-        .input-wrapper input:-webkit-autofill {
-
-            -webkit-box-shadow:
-                0 0 0 30px
-                #1a1a2e
-                inset !important;
-
-            -webkit-text-fill-color:
-                #fff !important;
-        }
-
-
-        /* =====================================================
-           BOTÓN
-           ===================================================== */
 
         .btn-login {
 
@@ -593,13 +452,6 @@
 
             cursor: pointer;
 
-            transition:
-                all
-                0.3s
-                ease;
-
-            letter-spacing: 0.5px;
-
             margin-top: 10px;
 
             display: flex;
@@ -608,9 +460,13 @@
 
             justify-content: center;
 
-            gap: 12px;
-        }
+            gap: 10px;
 
+            transition:
+                all
+                0.3s
+                ease;
+        }
 
         .btn-login:hover {
 
@@ -627,14 +483,6 @@
                 );
         }
 
-
-        .btn-login:active {
-
-            transform:
-                scale(0.98);
-        }
-
-
         .btn-login:disabled {
 
             opacity: 0.6;
@@ -645,18 +493,13 @@
             transform: none;
         }
 
-
-        /* =====================================================
-           SPINNER
-           ===================================================== */
-
         .spinner {
 
             display: none;
 
-            width: 20px;
+            width: 18px;
 
-            height: 20px;
+            height: 18px;
 
             border:
                 3px solid
@@ -667,9 +510,9 @@
                     0.3
                 );
 
-            border-radius: 50%;
-
             border-top-color: white;
+
+            border-radius: 50%;
 
             animation:
                 spin
@@ -678,12 +521,10 @@
                 infinite;
         }
 
-
         .spinner.show {
 
             display: inline-block;
         }
-
 
         @keyframes spin {
 
@@ -694,11 +535,6 @@
             }
         }
 
-
-        /* =====================================================
-           REGISTRO
-           ===================================================== */
-
         .register-link {
 
             margin-top: 25px;
@@ -708,7 +544,6 @@
             font-size: 14px;
         }
 
-
         .register-link a {
 
             color: #e94560;
@@ -716,25 +551,14 @@
             text-decoration: none;
 
             font-weight: 600;
-
-            transition:
-                color
-                0.3s
-                ease;
         }
-
 
         .register-link a:hover {
 
-            color: #ff6b6b;
-
             text-decoration: underline;
+
+            color: #ff6b6b;
         }
-
-
-        /* =====================================================
-           FOOTER
-           ===================================================== */
 
         .footer {
 
@@ -749,14 +573,7 @@
                 );
 
             font-size: 12px;
-
-            letter-spacing: 1px;
         }
-
-
-        /* =====================================================
-           RESPONSIVE
-           ===================================================== */
 
         @media (max-width: 500px) {
 
@@ -789,600 +606,642 @@
 <body>
 
 
-    <!-- =====================================================
-         TARJETA PRINCIPAL
-         ===================================================== -->
-
-    <div class="container">
+<div class="container">
 
 
-        <!-- LOGO -->
+    <div class="logo-icon">
+        🧠
+    </div>
 
-        <div class="logo-icon">
 
-            🧠
+    <h1>
+        EmotiScan AI
+    </h1>
+
+
+    <p class="subtitle">
+        Reconocimiento Inteligente de Emociones
+    </p>
+
+
+    <div
+        id="error-message"
+        class="message error"
+    ></div>
+
+
+    <div
+        id="success-message"
+        class="message success"
+    ></div>
+
+
+    <form
+        id="login-form"
+    >
+
+
+        <!-- ==========================================
+             USUARIO O CORREO
+             ========================================== -->
+
+        <div class="form-group">
+
+            <label for="usuario">
+
+                <i class="fa-solid fa-user"></i>
+
+                Usuario o correo electrónico
+
+            </label>
+
+
+            <div class="input-wrapper">
+
+                <i class="fa-solid fa-user"></i>
+
+                <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    placeholder="Ingresa tu usuario o correo"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
 
         </div>
 
 
-        <!-- TÍTULO -->
+        <!-- ==========================================
+             CONTRASEÑA
+             ========================================== -->
 
-        <h1>
+        <div class="form-group">
 
-            EmotiScan AI
+            <label for="password">
 
-        </h1>
+                <i class="fa-solid fa-lock"></i>
 
+                Contraseña
 
-        <p class="subtitle">
-
-            Reconocimiento Inteligente de Emociones
-
-        </p>
+            </label>
 
 
-        <!-- =================================================
-             MENSAJES
-             ================================================= -->
+            <div class="input-wrapper">
 
-        <div id="error-message">
+                <i class="fa-solid fa-lock"></i>
 
-            ❌ Usuario o contraseña incorrectos
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Ingresa tu contraseña"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
 
         </div>
 
 
-        <div id="success-message">
+        <!-- ==========================================
+             BOTÓN
+             ========================================== -->
 
-            ✅ Inicio de sesión exitoso
-
-        </div>
-
-
-        <!-- =================================================
-             FORMULARIO
-             ================================================= -->
-
-        <form
-            id="login-form"
-            action="/login"
-            method="POST"
+        <button
+            type="submit"
+            class="btn-login"
+            id="login-btn"
         >
 
-
-            <!-- USUARIO / CORREO -->
-
-            <div class="form-group">
-
-                <label for="usuario">
-
-                    <i class="fa-solid fa-user"></i>
-
-                    Usuario o correo electrónico
-
-                </label>
+            <span
+                class="spinner"
+                id="spinner"
+            ></span>
 
 
-                <div class="input-wrapper">
+            <span id="btn-text">
 
-                    <i class="fa-solid fa-user"></i>
+                <i class="fa-solid fa-right-to-bracket"></i>
 
-                    <input
-                        type="text"
-                        id="usuario"
-                        name="usuario"
-                        placeholder="Ingresa tu usuario o correo"
-                        autocomplete="username"
-                        required
-                    >
+                Ingresar
 
-                </div>
+            </span>
 
-            </div>
+        </button>
 
 
-            <!-- CONTRASEÑA -->
-
-            <div class="form-group">
-
-                <label for="password">
-
-                    <i class="fa-solid fa-lock"></i>
-
-                    Contraseña
-
-                </label>
+    </form>
 
 
-                <div class="input-wrapper">
+    <div class="register-link">
 
-                    <i class="fa-solid fa-lock"></i>
+        ¿No tienes una cuenta?
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Ingresa tu contraseña"
-                        autocomplete="current-password"
-                        required
-                    >
+        <a href="/registro">
 
-                </div>
+            Crear una cuenta
 
-            </div>
-
-
-            <!-- BOTÓN -->
-
-            <button
-                type="submit"
-                class="btn-login"
-                id="login-btn"
-            >
-
-                <span
-                    class="spinner"
-                    id="spinner"
-                ></span>
-
-
-                <span id="btn-text">
-
-                    <i class="fa-solid fa-right-to-bracket"></i>
-
-                    Ingresar
-
-                </span>
-
-            </button>
-
-
-        </form>
-
-
-        <!-- =================================================
-             REGISTRO
-             ================================================= -->
-
-        <div class="register-link">
-
-            ¿No tienes una cuenta?
-
-            <a href="/registro">
-
-                Crear una cuenta
-
-            </a>
-
-        </div>
-
-
-        <!-- =================================================
-             FOOTER
-             ================================================= -->
-
-        <div class="footer">
-
-            © 2026 EmotiScan AI
-
-        </div>
-
+        </a>
 
     </div>
 
 
-    <!-- =====================================================
-         JAVASCRIPT
-         ===================================================== -->
+    <div class="footer">
 
-    <script>
+        © 2026 EmotiScan AI
 
-        const formulario =
-            document.getElementById(
-                "login-form"
-            );
+    </div>
 
 
-        const usuarioInput =
-            document.getElementById(
-                "usuario"
-            );
+</div>
 
 
-        const passwordInput =
-            document.getElementById(
-                "password"
-            );
+<script>
 
 
-        const errorMessage =
-            document.getElementById(
-                "error-message"
-            );
+    // =====================================================
+    // ELEMENTOS
+    // =====================================================
+
+    const formulario =
+        document.getElementById(
+            "login-form"
+        );
+
+    const usuarioInput =
+        document.getElementById(
+            "usuario"
+        );
+
+    const passwordInput =
+        document.getElementById(
+            "password"
+        );
+
+    const errorMessage =
+        document.getElementById(
+            "error-message"
+        );
+
+    const successMessage =
+        document.getElementById(
+            "success-message"
+        );
+
+    const loginBtn =
+        document.getElementById(
+            "login-btn"
+        );
+
+    const btnText =
+        document.getElementById(
+            "btn-text"
+        );
+
+    const spinner =
+        document.getElementById(
+            "spinner"
+        );
 
 
-        const successMessage =
-            document.getElementById(
-                "success-message"
-            );
+    // =====================================================
+    // MOSTRAR ERROR
+    // =====================================================
+
+    function mostrarError(mensaje) {
+
+        successMessage.style.display =
+            "none";
+
+        errorMessage.textContent =
+            "❌ " + mensaje;
+
+        errorMessage.style.display =
+            "block";
+    }
 
 
-        const loginBtn =
-            document.getElementById(
-                "login-btn"
-            );
+    // =====================================================
+    // MOSTRAR ÉXITO
+    // =====================================================
+
+    function mostrarExito(mensaje) {
+
+        errorMessage.style.display =
+            "none";
+
+        successMessage.textContent =
+            "✅ " + mensaje;
+
+        successMessage.style.display =
+            "block";
+    }
 
 
-        const btnText =
-            document.getElementById(
-                "btn-text"
-            );
+    // =====================================================
+    // OCULTAR MENSAJES
+    // =====================================================
+
+    function ocultarMensajes() {
+
+        errorMessage.style.display =
+            "none";
+
+        successMessage.style.display =
+            "none";
+    }
 
 
-        const spinner =
-            document.getElementById(
-                "spinner"
-            );
+    // =====================================================
+    // RESTAURAR BOTÓN
+    // =====================================================
+
+    function restaurarBoton() {
+
+        loginBtn.disabled =
+            false;
+
+        spinner.classList.remove(
+            "show"
+        );
+
+        btnText.innerHTML =
+            '<i class="fa-solid fa-right-to-bracket"></i> Ingresar';
+    }
 
 
-        /* =================================================
-           OCULTAR MENSAJES
-           ================================================= */
+    // =====================================================
+    // ENVIAR LOGIN
+    // =====================================================
 
-        function ocultarMensajes() {
+    formulario.addEventListener(
+        "submit",
+        async function(event) {
 
-            errorMessage.classList.remove(
-                "show"
-            );
-
-            errorMessage.style.display =
-                "none";
-
-            successMessage.style.display =
-                "none";
-        }
+            event.preventDefault();
 
 
-        /* =================================================
-           MOSTRAR ERROR
-           ================================================= */
+            const identificador =
+                usuarioInput.value.trim();
 
-        function mostrarError(
-            mensaje
-        ) {
-
-            successMessage.style.display =
-                "none";
-
-            errorMessage.textContent =
-                "❌ " + mensaje;
-
-            errorMessage.style.display =
-                "block";
-
-            errorMessage.classList.remove(
-                "show"
-            );
-
-            void errorMessage.offsetWidth;
-
-            errorMessage.classList.add(
-                "show"
-            );
-        }
+            const password =
+                passwordInput.value;
 
 
-        /* =================================================
-           MOSTRAR ÉXITO
-           ================================================= */
+            // =============================================
+            // VALIDAR
+            // =============================================
 
-        function mostrarExito(
-            mensaje
-        ) {
+            if (
+                !identificador ||
+                !password
+            ) {
 
-            errorMessage.style.display =
-                "none";
+                mostrarError(
+                    "Por favor completa todos los campos."
+                );
 
-            successMessage.textContent =
-                "✅ " + mensaje;
-
-            successMessage.style.display =
-                "block";
-        }
+                return;
+            }
 
 
-        /* =================================================
-           RESTABLECER BOTÓN
-           ================================================= */
+            // =============================================
+            // MOSTRAR CARGANDO
+            // =============================================
 
-        function restaurarBoton() {
+            ocultarMensajes();
 
             loginBtn.disabled =
-                false;
+                true;
 
-            btnText.innerHTML =
-                '<i class="fa-solid fa-right-to-bracket"></i> Ingresar';
-
-            spinner.classList.remove(
+            spinner.classList.add(
                 "show"
             );
-        }
+
+            btnText.innerHTML =
+                "Verificando...";
 
 
-        /* =================================================
-           LIMPIAR AL CARGAR
-           ================================================= */
+            // =============================================
+            // DETERMINAR SI ES EMAIL O USUARIO
+            // =============================================
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            function() {
+            const esEmail =
+                identificador.includes("@");
 
-                usuarioInput.value =
-                    "";
 
-                passwordInput.value =
-                    "";
+            let datos;
 
-                ocultarMensajes();
+
+            if (esEmail) {
+
+                datos = {
+
+                    email:
+                        identificador,
+
+                    password:
+                        password
+
+                };
+
+            } else {
+
+                datos = {
+
+                    usuario:
+                        identificador,
+
+                    password:
+                        password
+
+                };
+
+            }
+
+
+            console.log(
+                "📤 Enviando login:",
+                datos
+            );
+
+
+            // =============================================
+            // TIMEOUT
+            // =============================================
+
+            const controller =
+                new AbortController();
+
+
+            const timeout =
+                setTimeout(
+                    function() {
+
+                        controller.abort();
+
+                    },
+                    15000
+                );
+
+
+            try {
+
+
+                // =========================================
+                // PETICIÓN
+                // =========================================
+
+                const respuesta =
+                    await fetch(
+                        "/login",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json",
+
+                                "Accept":
+                                    "application/json"
+
+                            },
+
+                            credentials:
+                                "same-origin",
+
+                            body:
+                                JSON.stringify(
+                                    datos
+                                ),
+
+                            signal:
+                                controller.signal
+
+                        }
+                    );
+
+
+                clearTimeout(
+                    timeout
+                );
+
 
                 console.log(
-                    "🧹 Login cargado correctamente"
+                    "📥 Estado:",
+                    respuesta.status
                 );
-            }
-        );
 
 
-        /* =================================================
-           LIMPIAR ERROR AL ESCRIBIR
-           ================================================= */
+                // =========================================
+                // LEER RESPUESTA
+                // =========================================
 
-        usuarioInput.addEventListener(
-            "input",
-            function() {
-
-                ocultarMensajes();
-
-            }
-        );
+                const texto =
+                    await respuesta.text();
 
 
-        passwordInput.addEventListener(
-            "input",
-            function() {
-
-                ocultarMensajes();
-
-            }
-        );
+                console.log(
+                    "📥 Respuesta:",
+                    texto
+                );
 
 
-        /* =================================================
-           LOGIN
-           ================================================= */
-
-        formulario.addEventListener(
-            "submit",
-            async function(event) {
-
-                event.preventDefault();
+                let resultado;
 
 
-                const usuario =
-                    usuarioInput
-                    .value
-                    .trim();
+                try {
 
+                    resultado =
+                        JSON.parse(
+                            texto
+                        );
 
-                const password =
-                    passwordInput
-                    .value;
+                } catch (error) {
 
-
-                /* =========================================
-                   VALIDAR
-                   ========================================= */
-
-                if (
-                    !usuario ||
-                    !password
-                ) {
+                    console.error(
+                        "❌ El servidor no devolvió JSON"
+                    );
 
                     mostrarError(
-                        "Por favor completa todos los campos."
+                        "El servidor devolvió una respuesta inesperada."
                     );
+
+                    restaurarBoton();
 
                     return;
                 }
 
 
-                /* =========================================
-                   ACTIVAR CARGANDO
-                   ========================================= */
+                // =========================================
+                // LOGIN CORRECTO
+                // =========================================
 
-                loginBtn.disabled =
-                    true;
+                if (
+                    respuesta.ok &&
+                    resultado.success === true
+                ) {
 
-                btnText.innerHTML =
-                    '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
-
-                spinner.classList.add(
-                    "show"
-                );
-
-                ocultarMensajes();
-
-
-                try {
-
-                    /* =====================================
-                       ENVIAR AL SERVIDOR
-                       ===================================== */
-
-                    const respuesta =
-                        await fetch(
-                            "/login",
-                            {
-
-                                method:
-                                    "POST",
-
-                                headers: {
-
-                                    "Content-Type":
-                                        "application/json"
-
-                                },
-
-                                body:
-                                    JSON.stringify({
-
-                                        usuario:
-                                            usuario,
-
-                                        password:
-                                            password
-
-                                    })
-
-                            }
-                        );
-
-
-                    /* =====================================
-                       LEER RESPUESTA
-                       ===================================== */
-
-                    const resultado =
-                        await respuesta.json();
+                    mostrarExito(
+                        "Inicio de sesión exitoso. Bienvenido/a " +
+                        (
+                            resultado.nombre ||
+                            identificador
+                        )
+                    );
 
 
                     console.log(
-                        "Respuesta login:",
-                        resultado
+                        "✅ Login correcto"
                     );
 
 
-                    /* =====================================
-                       LOGIN CORRECTO
-                       ===================================== */
+                    setTimeout(
+                        function() {
 
-                    if (
-                        respuesta.ok &&
-                        resultado.success
-                    ) {
+                            window.location.href =
+                                resultado.redirect ||
+                                "/inicio";
 
-                        mostrarExito(
-                            "Inicio de sesión exitoso. Bienvenido/a " +
-                            (
-                                resultado.nombre ||
-                                usuario
-                            )
-                        );
-
-
-                        setTimeout(
-                            function() {
-
-                                window.location.href =
-                                    resultado.redirect ||
-                                    "/inicio";
-
-                            },
-                            800
-                        );
-
-
-                        return;
-                    }
-
-
-                    /* =====================================
-                       LOGIN INCORRECTO
-                       ===================================== */
-
-                    mostrarError(
-
-                        resultado.error ||
-                        "Usuario o contraseña incorrectos."
-
+                        },
+                        800
                     );
 
 
-                    restaurarBoton();
-
-
+                    return;
                 }
 
-                catch (error) {
 
-                    console.error(
-                        "Error:",
-                        error
+                // =========================================
+                // LOGIN INCORRECTO
+                // =========================================
+
+                console.error(
+                    "❌ Login rechazado:",
+                    resultado
+                );
+
+
+                mostrarError(
+
+                    resultado.error ||
+                    "Usuario o contraseña incorrectos."
+
+                );
+
+
+                restaurarBoton();
+
+            }
+
+
+            catch (error) {
+
+
+                clearTimeout(
+                    timeout
+                );
+
+
+                console.error(
+                    "❌ Error realizando login:",
+                    error
+                );
+
+
+                if (
+                    error.name ===
+                    "AbortError"
+                ) {
+
+                    mostrarError(
+                        "El servidor tardó demasiado en responder."
                     );
 
+                } else {
 
                     mostrarError(
                         "No se pudo conectar con el servidor."
                     );
-
-
-                    restaurarBoton();
-
                 }
 
-            }
-        );
 
-
-        /* =================================================
-           MENSAJE DE ERROR DEL SERVIDOR
-           ================================================= */
-
-        window.addEventListener(
-            "load",
-            function() {
-
-                const params =
-                    new URLSearchParams(
-                        window.location.search
-                    );
-
-
-                const error =
-                    params.get(
-                        "error"
-                    );
-
-
-                if (
-                    error === "invalid"
-                ) {
-
-                    mostrarError(
-                        "Usuario o contraseña incorrectos."
-                    );
-
-                    usuarioInput.value =
-                        "";
-
-                    passwordInput.value =
-                        "";
-
-                    restaurarBoton();
-
-                }
+                restaurarBoton();
 
             }
-        );
+
+        }
+    );
 
 
-        console.log(
-            "🚀 EmotiScan AI Login cargado correctamente"
-        );
+    // =====================================================
+    // OCULTAR ERROR AL ESCRIBIR
+    // =====================================================
 
-    </script>
+    usuarioInput.addEventListener(
+        "input",
+        ocultarMensajes
+    );
+
+
+    passwordInput.addEventListener(
+        "input",
+        ocultarMensajes
+    );
+
+
+    // =====================================================
+    // ERROR ?error=invalid
+    // =====================================================
+
+    window.addEventListener(
+        "load",
+        function() {
+
+            const parametros =
+                new URLSearchParams(
+                    window.location.search
+                );
+
+            const error =
+                parametros.get(
+                    "error"
+                );
+
+
+            if (
+                error === "invalid"
+            ) {
+
+                mostrarError(
+                    "Usuario o contraseña incorrectos."
+                );
+
+            }
+
+        }
+    );
+
+
+    // =====================================================
+    // MENSAJE DE CARGA
+    // =====================================================
+
+    console.log(
+        "🚀 EmotiScan AI Login cargado"
+    );
+
+</script>
 
 
 </body>
 
 </html>
+```
