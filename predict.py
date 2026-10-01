@@ -5,13 +5,7 @@ import random
 import cv2
 import numpy as np
 
-from tensorflow.keras.applications.resnet50 import preprocess_input
-
-try:
-    from tflite_runtime.interpreter import Interpreter
-except ImportError:
-    import tensorflow as tf
-    Interpreter = tf.lite.Interpreter
+from tflite_runtime.interpreter import Interpreter
 
 
 # ==========================================================
@@ -43,7 +37,6 @@ MODEL_PATH = os.path.join(
     BASE_DIR,
     "modelo_resnet50_emociones.tflite"
 )
-
 
 IMG_SIZE = 224
 
@@ -112,6 +105,40 @@ output_details = None
 
 
 # ==========================================================
+# PREPROCESAMIENTO RESNET50
+# ==========================================================
+
+def preprocess_resnet50(imagen):
+    """
+    Equivalente al preprocess_input de
+    tensorflow.keras.applications.resnet50
+
+    ResNet50 espera:
+        RGB
+        float32
+        valores transformados de 0-255
+
+    El procesamiento original de Keras ResNet50
+    convierte RGB -> BGR y resta:
+        [103.939, 116.779, 123.68]
+    """
+
+    imagen = imagen.astype(
+        np.float32
+    )
+
+    # RGB -> BGR
+    imagen = imagen[:, :, ::-1]
+
+    # Restar valores de media de ResNet50
+    imagen[:, :, 0] -= 103.939
+    imagen[:, :, 1] -= 116.779
+    imagen[:, :, 2] -= 123.680
+
+    return imagen
+
+
+# ==========================================================
 # CARGAR MODELO
 # ==========================================================
 
@@ -138,6 +165,10 @@ def cargar_modelo():
         raise FileNotFoundError(
             f"No existe el modelo:\n{MODEL_PATH}"
         )
+
+    # ======================================================
+    # TFLITE
+    # ======================================================
 
     interpreter = Interpreter(
         model_path=MODEL_PATH
@@ -243,6 +274,8 @@ def preparar_rostro(rostro):
         and rostro.shape[2] == 3
     ):
 
+        # OpenCV trabaja en BGR
+        # El modelo fue entrenado con RGB
         rostro = cv2.cvtColor(
             rostro,
             cv2.COLOR_BGR2RGB
@@ -265,20 +298,16 @@ def preparar_rostro(rostro):
     )
 
     logger.info(
-        "📦 Antes preprocess_input: min=%.2f, max=%.2f",
+        "📦 Antes preprocess ResNet50: min=%.2f, max=%.2f",
         rostro.min(),
         rostro.max()
     )
 
     # ------------------------------------------------------
-    # PREPROCESAMIENTO CORRECTO DE RESNET50
+    # PREPROCESAMIENTO RESNET50
     # ------------------------------------------------------
 
-    rostro = rostro.astype(
-        np.float32
-    )
-
-    rostro = preprocess_input(
+    rostro = preprocess_resnet50(
         rostro
     )
 
@@ -297,7 +326,7 @@ def preparar_rostro(rostro):
     )
 
     logger.info(
-        "📊 Después preprocess_input: min=%.2f, max=%.2f",
+        "📊 Después preprocess ResNet50: min=%.2f, max=%.2f",
         rostro.min(),
         rostro.max()
     )
