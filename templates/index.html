@@ -3,382 +3,371 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmotiScan - Camara</title>
+    <title>EmotiScan - Cámara</title>
     <style>
-        :root {
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --primary: #6366f1;
-            --secondary: #ec4899;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --error: #ef4444;
-            --text: #f8fafc;
-        }
-
-        * { box-sizing: border-box; transition: all 0.3s ease; }
-
+        /* =====================================================
+           GENERAL
+           ===================================================== */
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: #1a1a2e;
+            color: white;
             margin: 0;
             padding: 20px;
-            display: flex;
-            justify-content: center;
         }
-
         .container {
-            max-width: 900px;
-            width: 100%;
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #16213e;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
+        h1 { margin-bottom: 5px; color: #fff; }
+        h2 { margin-top: 5px; color: #a8d8ea; font-weight: 300; }
 
-        h1 { margin: 0; font-size: 2rem; background: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        h2 { font-weight: 300; color: #94a3b8; margin-bottom: 20px; font-size: 1.1rem; }
-
-        /* --- Cámara --- */
-        .camera-box {
+        /* =====================================================
+           VIDEO Y CANVAS
+           ===================================================== */
+        .video-container {
             position: relative;
+            margin-bottom: 20px;
+        }
+        video {
             width: 100%;
             max-width: 640px;
-            margin: 0 auto 20px;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 3px solid #334155;
-            background: #000;
+            border-radius: 10px;
+            border: 2px solid #0f3460;
+            background: black;
+            transform: scaleX(-1); /* Efecto espejo */
         }
 
-        video { width: 100%; display: block; }
-        
-        .flash {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white; opacity: 0; pointer-events: none;
-        }
-        .flash.active { animation: flash-anim 0.3s; }
-        @keyframes flash-anim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
-
-        /* --- Controles --- */
-        .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        
+        /* =====================================================
+           BOTONES
+           ===================================================== */
+        .controls { margin: 20px 0; }
         button {
-            padding: 12px 24px;
+            background: #e94560;
+            color: white;
             border: none;
-            border-radius: 12px;
-            font-weight: 600;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.95rem;
+            margin: 5px;
+            transition: all 0.3s;
         }
+        button:hover { transform: scale(1.05); background: #c73652; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        #graficaBtn { background: #0f3460; border: 1px solid #a8d8ea; }
 
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
-        
-        .btn-auto { background: var(--secondary); color: white; }
-        .btn-stop { background: #475569; color: white; }
-        .btn-stats { background: transparent; border: 2px solid #475569; color: white; }
+        /* =====================================================
+           ESTADO Y RESULTADOS
+           ===================================================== */
+        #status {
+            padding: 10px;
+            background: #1a1a2e;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .success { color: #51cf66; }
+        .error { color: #ff6b6b; }
+        #contador { color: #aaa; font-size: 14px; margin-bottom: 10px; }
 
-        button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-
-        /* --- Info --- */
-        #status { font-size: 0.9rem; margin-bottom: 15px; padding: 8px; border-radius: 8px; }
-        .status-ready { color: var(--success); }
-        .status-error { color: var(--error); }
-
-        .stats-bar { display: flex; justify-content: space-around; background: #0f172a; padding: 10px; border-radius: 12px; margin-bottom: 20px; font-size: 0.9rem; }
-
-        /* --- Resultados --- */
         #result {
-            background: #1e293b;
-            border: 2px solid #334155;
-            border-radius: 16px;
+            margin-top: 20px;
             padding: 20px;
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            background: #0f3460;
+            border-radius: 10px;
+            min-height: 100px;
+        }
+        .loading { display: none; color: #ffd700; font-size: 18px; margin-bottom: 10px; }
+
+        /* Estilos de Emoción Detectada */
+        .emocion-detectada {
+            border: 2px solid #ffd700;
+            border-radius: 12px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.05);
+            animation: aparecer 0.5s ease;
+        }
+        .emoji-grande { font-size: 60px; display: block; }
+        .emocion-principal { font-size: 40px; font-weight: bold; text-transform: uppercase; margin: 10px 0; }
+        .confianza { font-size: 18px; }
+        .confianza strong { color: #ffd700; font-size: 24px; }
+        .consejo {
+            margin-top: 15px;
+            padding: 15px;
+            background: #16213e;
+            border-left: 4px solid #ffd700;
+            text-align: left;
+            font-style: italic;
+            color: #a8d8ea;
         }
 
-        .emotion-card { animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .emoji-large { font-size: 4rem; margin-bottom: 10px; display: block; }
-        .emotion-name { font-size: 1.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
-        .confidence { font-size: 1rem; color: #94a3b8; margin-top: 5px; }
-
-        .advice-box { margin-top: 15px; padding: 15px; background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary); border-radius: 8px; text-align: left; max-width: 500px; }
-
-        /* --- Gráfica --- */
-        #chartContainer {
+        /* =====================================================
+           GRÁFICA
+           ===================================================== */
+        #graficaContainer {
             display: none;
             margin-top: 20px;
             padding: 20px;
-            background: #0f172a;
-            border-radius: 16px;
+            background: #0f3460;
+            border-radius: 15px;
         }
-
-        .pie-chart {
-            width: 200px; height: 200px; border-radius: 50%; margin: 20px auto;
-            background: conic-gradient(#ef4444 0% 25%, #f59e0b 25% 50%, #94a3b8 50% 75%, #3b82f6 75% 100%);
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        #graficaCircular {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            background: conic-gradient(#95a5a6 0deg 360deg);
+            transition: background 0.5s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
+        .leyenda {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .item-leyenda { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px; }
+        .color-box { width: 12px; height: 12px; border-radius: 50%; }
 
-        .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-        .dot { width: 12px; height: 12px; border-radius: 3px; }
-
-        @media (max-width: 600px) {
-            .controls button { width: 100%; }
-            .legend { grid-template-columns: 1fr; }
+        @keyframes aparecer {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📸 EmotiScan Pro</h1>
-    <h2>Inteligencia Artificial de Reconocimiento Facial</h2>
+    <h1>EmotiScan</h1>
+    <h2>Análisis de Emociones en Tiempo Real</h2>
 
-    <div id="status">⏳ Iniciando sistema...</div>
+    <div id="status">Iniciando sistema...</div>
+    <div id="contador">Capturas realizadas: 0</div>
 
-    <div class="camera-box">
+    <div class="video-container">
         <video id="video" autoplay playsinline></video>
-        <div id="flash" class="flash"></div>
-    </div>
-
-    <div class="stats-bar">
-        <span>📊 Capturas: <strong id="count">0</strong></span>
-        <span>⏱️ Modo: <strong id="modeText">Manual</strong></span>
+        <canvas id="canvas" style="display: none;"></canvas>
     </div>
 
     <div class="controls">
-        <button id="captureBtn" class="btn-primary" disabled>📷 Analizar Rostro</button>
-        <button id="autoBtn" class="btn-auto" disabled>🔄 Auto-Modo</button>
-        <button id="stopBtn" class="btn-stop" disabled>⏹️ Detener</button>
-        <button id="chartBtn" class="btn-stats" disabled>📊 Estadísticas</button>
+        <button id="captureBtn" disabled>📷 Capturar</button>
+        <button id="autoBtn" disabled>🔄 Modo Automático</button>
+        <button id="stopBtn" disabled>⏹️ Detener</button>
+        <button id="graficaBtn" disabled>📊 Ver Gráfica</button>
     </div>
 
     <div id="result">
-        <div id="placeholder">Esperando captura...</div>
+        <div class="loading" id="loading">⏳ Procesando imagen...</div>
+        <div id="emocionDisplay">🤖 Presiona "Capturar" para comenzar</div>
     </div>
 
-    <!-- Contenedor de Gráfica -->
-    <div id="chartContainer">
-        <h3>Distribución de Emociones Detectadas</h3>
-        <div id="pieChart" class="pie-chart"></div>
-        <div class="legend">
-            <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Furia: <span id="p-furia">0%</span></div>
-            <div class="legend-item"><span class="dot" style="background:#f59e0b"></span> Felicidad: <span id="p-felicidad">0%</span></div>
-            <div class="legend-item"><span class="dot" style="background:#94a3b8"></span> Neutral: <span id="p-neutral">0%</span></div>
-            <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> Tristeza: <span id="p-tristeza">0%</span></div>
+    <div id="graficaContainer">
+        <h3>Distribución de Emociones</h3>
+        <div id="graficaCircular"></div>
+        <div class="leyenda">
+            <div class="item-leyenda"><span class="color-box" style="background:#e74c3c"></span> Furia: <strong id="p-enojo">0%</strong></div>
+            <div class="item-leyenda"><span class="color-box" style="background:#f1c40f"></span> Felicidad: <strong id="p-felicidad">0%</strong></div>
+            <div class="item-leyenda"><span class="color-box" style="background:#95a5a6"></span> Neutral: <strong id="p-neutral">0%</strong></div>
+            <div class="item-leyenda"><span class="color-box" style="background:#3498db"></span> Tristeza: <strong id="p-tristeza">0%</strong></div>
         </div>
     </div>
 
-    <canvas id="canvas" style="display:none;"></canvas>
-    <a href="/" style="color: #94a3b8; text-decoration: none; display: block; margin-top: 30px; font-size: 0.9rem;">← Salir del sistema</a>
+    <a href="/" style="color: #a8d8ea; display: block; margin-top: 20px; text-decoration: none;">← Volver al inicio</a>
 </div>
 
 <script>
-    // --- Configuración y Estado ---
-    const CONFIG = {
-        intervaloAuto: 3000,
-        endpoint: '/analizar',
-        emociones: {
-            'Felicidad': { emoji: '😊', color: '#f59e0b', consejos: ['¡Sigue así! Tu energía es contagiosa.', 'Aprovecha este momento para crear algo nuevo.'] },
-            'Tristeza': { emoji: '😢', color: '#3b82f6', consejos: ['Está bien no estar bien. Tómate un respiro.', 'Escuchar música tranquila podría ayudarte.'] },
-            'Enojo': { emoji: '😡', color: '#ef4444', consejos: ['Inhala profundamente por 4 segundos.', 'Un pequeño paseo te ayudará a despejarte.'] },
-            'Neutral': { emoji: '😐', color: '#94a3b8', consejos: ['Un momento de calma ideal para concentrarse.', '¿Has tomado agua hoy?'] }
-        }
+    // ELEMENTOS
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const autoBtn = document.getElementById('autoBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const graficaBtn = document.getElementById('graficaBtn');
+    const statusDiv = document.getElementById('status');
+    const emocionDisplay = document.getElementById('emocionDisplay');
+    const loadingDiv = document.getElementById('loading');
+    const contadorDiv = document.getElementById('contador');
+
+    // VARIABLES
+    let stream = null;
+    let isCameraRunning = false;
+    let isAutoMode = false;
+    let autoInterval = null;
+    let isProcessing = false;
+    let capturas = 0;
+    let datosGrafica = { enojo: 0, felicidad: 0, neutral: 0, tristeza: 0 };
+
+    const consejos = {
+        "Felicidad": ["✨ Disfruta este momento y comparte tu energía.", "😊 Sonreír mejora tu salud y la de los demás."],
+        "Tristeza": ["💙 Está bien no estar bien. Tómate un respiro.", "🌱 Mañana será un nuevo día. Sé amable contigo."],
+        "Enojo": ["🧘 Respira profundo. Cuenta hasta diez antes de actuar.", "🚶 Una caminata corta te ayudará a despejar la mente."],
+        "Neutral": ["😌 Un estado de calma es ideal para concentrarse.", "🎯 Aprovecha este equilibrio para avanzar en tus metas."]
     };
 
-    let state = {
-        stream: null,
-        isProcessing: false,
-        isAuto: false,
-        autoTimer: null,
-        capturas: 0,
-        stats: { 'Enojo': 0, 'Felicidad': 0, 'Neutral': 0, 'Tristeza': 0 }
-    };
-
-    // --- Elementos DOM ---
-    const elements = {
-        video: document.getElementById('video'),
-        canvas: document.getElementById('canvas'),
-        status: document.getElementById('status'),
-        result: document.getElementById('result'),
-        count: document.getElementById('count'),
-        flash: document.getElementById('flash'),
-        btns: {
-            capture: document.getElementById('captureBtn'),
-            auto: document.getElementById('autoBtn'),
-            stop: document.getElementById('stopBtn'),
-            chart: document.getElementById('chartBtn')
-        }
-    };
-
-    // --- Funciones de Cámara ---
-    async function initCamera() {
+    // INICIAR CÁMARA
+    async function startCamera() {
         try {
-            state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-            elements.video.srcObject = state.stream;
-            elements.status.textContent = '🟢 Sistema Listo';
-            elements.status.className = 'status-ready';
-            Object.values(elements.btns).forEach(btn => btn.disabled = false);
+            statusDiv.textContent = '📷 Solicitando acceso...';
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 640, height: 480 }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+            isCameraRunning = true;
+            
+            captureBtn.disabled = false;
+            autoBtn.disabled = false;
+            stopBtn.disabled = false;
+            
+            statusDiv.textContent = '🟢 Cámara activa';
+            statusDiv.className = 'success';
         } catch (err) {
-            elements.status.textContent = '❌ Error: No se detectó cámara';
-            elements.status.className = 'status-error';
-            alert('Por favor, permite el acceso a la cámara.');
+            statusDiv.textContent = '❌ Error: ' + err.message;
+            statusDiv.className = 'error';
         }
     }
 
-    // --- Lógica Principal ---
+    // ANALIZAR
     async function captureAndAnalyze() {
-        if (state.isProcessing) return;
-        
-        state.isProcessing = true;
-        elements.status.textContent = '⏳ Analizando...';
-        
-        // Efecto Flash
-        elements.flash.classList.add('active');
-        setTimeout(() => elements.flash.classList.remove('active'), 300);
-
-        // Captura de imagen
-        const ctx = elements.canvas.getContext('2d');
-        elements.canvas.width = elements.video.videoWidth;
-        elements.canvas.height = elements.video.videoHeight;
-        ctx.drawImage(elements.video, 0, 0);
-        
-        const base64Image = elements.canvas.toDataURL('image/jpeg', 0.8);
+        if (isProcessing || !isCameraRunning) return;
 
         try {
-            const response = await fetch(CONFIG.endpoint, {
+            isProcessing = true;
+            loadingDiv.style.display = 'block';
+            statusDiv.textContent = '⏳ Analizando...';
+
+            // Captura
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            const response = await fetch('/analizar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: base64Image })
+                body: JSON.stringify({ image: imageData })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                updateUI(data);
+                capturas++;
+                contadorDiv.textContent = `Capturas realizadas: \${capturas}`;
+                actualizarUI(data);
+                graficaBtn.disabled = false;
             } else {
-                throw new Error(data.error || 'Fallo en el análisis');
+                throw new Error(data.error || 'Error en análisis');
             }
         } catch (err) {
-            elements.result.innerHTML = `<div class="status-error">❌ Error: \${err.message}</div>`;
+            emocionDisplay.innerHTML = `<div class="error">❌ \${err.message}</div>`;
         } finally {
-            state.isProcessing = false;
-            if (!state.isAuto) elements.status.textContent = '🟢 Listo';
+            isProcessing = false;
+            loadingDiv.style.display = 'none';
+            statusDiv.textContent = '🟢 Listo';
         }
     }
 
-    function updateUI(data) {
-        state.capturas++;
-        elements.count.textContent = state.capturas;
+    function actualizarUI(data) {
+        const emocion = data.emotion || "Neutral";
+        const confianza = data.confidence || 0;
+        const emoji = { "Felicidad": "😊", "Tristeza": "😢", "Enojo": "😡", "Neutral": "😐" }[emocion] || "🤖";
+        const listaConsejos = consejos[emocion] || ["Mantente atento a tus emociones."];
+        const consejo = listaConsejos[Math.floor(Math.random() * listaConsejos.length)];
 
-        const emo = data.emotion || 'Neutral';
-        const config = CONFIG.emociones[emo] || CONFIG.emociones['Neutral'];
-        const consejo = config.consejos[Math.floor(Math.random() * config.consejos.length)];
-
-        // Actualizar Estadísticas locales
-        state.stats[emo] = (state.stats[emo] || 0) + 1;
-        updateChart();
-
-        elements.result.innerHTML = `
-            <div class="emotion-card">
-                <span class="emoji-large">${config.emoji}</span>
-                <div class="emotion-name">${emo}</div>
-                <div class="confidence">Confianza: \${(data.confidence || 0).toFixed(1)}%</div>
-                <div class="advice-box">
-                    <strong>💡 Consejo:</strong><br>${consejo}
-                </div>
+        emocionDisplay.innerHTML = `
+            <div class="emocion-detectada">
+                <span class="emoji-grande">${emoji}</span>
+                <div class="emocion-principal">${emocion === 'Enojo' ? 'Furia' : emocion}</div>
+                <div class="confianza">Confianza: <strong>${confianza.toFixed(1)}%</strong></div>
             </div>
+            <div class="consejo"><strong>💡 Consejo:</strong> \${consejo}</div>
         `;
+
+        // Actualizar datos para gráfica (si el backend envía el desglose)
+        if (data.all_emotions) {
+            datosGrafica = {
+                enojo: data.all_emotions.Enojo || 0,
+                felicidad: data.all_emotions.Felicidad || 0,
+                neutral: data.all_emotions.Neutral || 0,
+                tristeza: data.all_emotions.Tristeza || 0
+            };
+            if (document.getElementById('graficaContainer').style.display === 'block') {
+                actualizarGrafica();
+            }
+        }
     }
 
-    function updateChart() {
-        const total = Object.values(state.stats).reduce((a, b) => a + b, 0);
-        const getP = (val) => ((val / total) * 100).toFixed(1);
+    function actualizarGrafica() {
+        const { enojo, felicidad, neutral, tristeza } = datosGrafica;
+        const total = enojo + felicidad + neutral + tristeza || 1;
+        
+        const gEnojo = (enojo / total) * 360;
+        const gFeli = (felicidad / total) * 360;
+        const gNeu = (neutral / total) * 360;
 
-        const p = {
-            f: (state.stats['Enojo'] / total) * 100,
-            h: (state.stats['Felicidad'] / total) * 100,
-            n: (state.stats['Neutral'] / total) * 100,
-            t: (state.stats['Tristeza'] / total) * 100
-        };
-
-        document.getElementById('p-furia').textContent = getP(state.stats['Enojo']) + '%';
-        document.getElementById('p-felicidad').textContent = getP(state.stats['Felicidad']) + '%';
-        document.getElementById('p-neutral').textContent = getP(state.stats['Neutral']) + '%';
-        document.getElementById('p-tristeza').textContent = getP(state.stats['Tristeza']) + '%';
-
-        elements.btns.chart.disabled = false;
-
-        // Actualizar gradiente de la gráfica
-        document.getElementById('pieChart').style.background = `
+        document.getElementById('graficaCircular').style.background = `
             conic-gradient(
-                #ef4444 0% \${p.f}%, 
-                #f59e0b \${p.f}% \${p.f + p.h}%, 
-                #94a3b8 \${p.f + p.h}% \${p.f + p.h + p.n}%, 
-                #3b82f6 \${p.f + p.h + p.n}% 100%
+                #e74c3c 0deg \${gEnojo}deg,
+                #f1c40f \${gEnojo}deg \${gEnojo + gFeli}deg,
+                #95a5a6 \${gEnojo + gFeli}deg \${gEnojo + gFeli + gNeu}deg,
+                #3498db \${gEnojo + gFeli + gNeu}deg 360deg
             )
         `;
+
+        document.getElementById('p-enojo').textContent = enojo.toFixed(1) + '%';
+        document.getElementById('p-felicidad').textContent = felicidad.toFixed(1) + '%';
+        document.getElementById('p-neutral').textContent = neutral.toFixed(1) + '%';
+        document.getElementById('p-tristeza').textContent = tristeza.toFixed(1) + '%';
     }
 
-    // --- Handlers ---
-    elements.btns.capture.onclick = captureAndAnalyze;
-
-    elements.btns.auto.onclick = () => {
-        state.isAuto = !state.isAuto;
-        if (state.isAuto) {
-            elements.btns.auto.textContent = '⏹️ Detener Auto';
-            elements.btns.auto.style.background = '#f87171';
-            document.getElementById('modeText').textContent = 'Automático';
+    // EVENTOS
+    captureBtn.addEventListener('click', captureAndAnalyze);
+    
+    autoBtn.addEventListener('click', () => {
+        isAutoMode = !isAutoMode;
+        if (isAutoMode) {
+            autoBtn.textContent = '⏹️ Detener Auto';
+            autoBtn.style.background = '#ff922b';
+            autoInterval = setInterval(captureAndAnalyze, 3000);
             captureAndAnalyze();
-            state.autoTimer = setInterval(captureAndAnalyze, CONFIG.intervaloAuto);
         } else {
-            clearInterval(state.autoTimer);
-            elements.btns.auto.textContent = '🔄 Auto-Modo';
-            elements.btns.auto.style.background = 'var(--secondary)';
-            document.getElementById('modeText').textContent = 'Manual';
+            clearInterval(autoInterval);
+            autoBtn.textContent = '🔄 Modo Automático';
+            autoBtn.style.background = '#e94560';
         }
-    };
+    });
 
-    elements.btns.stop.onclick = () => {
-        if (state.stream) {
-            state.stream.getTracks().forEach(t => t.stop());
-            elements.video.srcObject = null;
-            elements.status.textContent = '⏹️ Cámara Apagada';
-            Object.values(elements.btns).forEach(btn => btn.disabled = true);
-        }
-    };
+    stopBtn.addEventListener('click', () => {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        isCameraRunning = false;
+        clearInterval(autoInterval);
+        captureBtn.disabled = autoBtn.disabled = stopBtn.disabled = true;
+        statusDiv.textContent = '⏹️ Cámara apagada';
+    });
 
-    elements.btns.chart.onclick = () => {
-        const container = document.getElementById('chartContainer');
+    graficaBtn.addEventListener('click', () => {
+        const container = document.getElementById('graficaContainer');
         const isVisible = container.style.display === 'block';
         container.style.display = isVisible ? 'none' : 'block';
-        elements.btns.chart.textContent = isVisible ? '📊 Ver Estadísticas' : '📊 Ocultar Gráfica';
-    };
+        graficaBtn.textContent = isVisible ? '📊 Ver Gráfica' : '📊 Ocultar Gráfica';
+        if (!isVisible) actualizarGrafica();
+    });
 
-    // Tecla Espacio para capturar
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Space' && !state.isProcessing && state.stream) {
+        if (e.code === 'Space') {
             e.preventDefault();
             captureAndAnalyze();
         }
     });
 
-    // Inicio
-    window.onload = initCamera;
+    window.onload = startCamera;
 </script>
-
 </body>
 </html>
