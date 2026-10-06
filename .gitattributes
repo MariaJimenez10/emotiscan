@@ -1,1 +1,2 @@
 modelo_emociones.xml filter=lfs diff=lfs merge=lfs -text
+mejor_modelo.keras filter=lfs diff=lfs merge=lfs -text
