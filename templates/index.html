@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -246,9 +247,7 @@ button:disabled {
 #graficaCircular {
     width: 300px;
     height: 300px;
-
     border-radius: 50%;
-
     margin: 0 auto 25px auto;
 
     background: conic-gradient(
@@ -280,13 +279,9 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 8px;
-
     padding: 12px;
-
     background: rgba(255, 255, 255, 0.08);
-
     border-radius: 10px;
-
     color: white;
 }
 
@@ -296,7 +291,7 @@ button:disabled {
 
 
 /* =====================================================
-   COLORES DE LA LEYENDA
+   COLORES
    ===================================================== */
 
 .colorLeyenda {
@@ -366,13 +361,11 @@ button:disabled {
 
 </head>
 
-
 <body>
-
 
 <div class="container">
 
-
+```
 <h1>📸 EmotiScan</h1>
 
 <h2>Análisis de Emociones</h2>
@@ -444,7 +437,7 @@ button:disabled {
 
 
 <!-- =====================================================
-     GRÁFICA CIRCULAR
+     GRÁFICA
      ===================================================== -->
 
 <div id="graficaContainer">
@@ -455,9 +448,6 @@ button:disabled {
 
 
     <div class="leyendaGrafica">
-
-
-        <!-- FURIA -->
 
         <div class="itemLeyenda">
 
@@ -472,8 +462,6 @@ button:disabled {
         </div>
 
 
-        <!-- FELICIDAD -->
-
         <div class="itemLeyenda">
 
             <span class="colorLeyenda felicidad"></span>
@@ -486,8 +474,6 @@ button:disabled {
 
         </div>
 
-
-        <!-- NEUTRAL -->
 
         <div class="itemLeyenda">
 
@@ -502,8 +488,6 @@ button:disabled {
         </div>
 
 
-        <!-- TRISTEZA -->
-
         <div class="itemLeyenda">
 
             <span class="colorLeyenda tristeza"></span>
@@ -515,7 +499,6 @@ button:disabled {
             </strong>
 
         </div>
-
 
     </div>
 
@@ -532,17 +515,15 @@ button:disabled {
     ← Volver al inicio
 
 </a>
-
+```
 
 </div>
 
-
 <script>
 
-
-// =========================================================
-// ELEMENTOS DEL DOM
-// =========================================================
+/* =========================================================
+   ELEMENTOS DEL DOM
+   ========================================================= */
 
 const video =
     document.getElementById("video");
@@ -572,9 +553,9 @@ const statusDiv =
     document.getElementById("status");
 
 
-// =========================================================
-// VARIABLES
-// =========================================================
+/* =========================================================
+   VARIABLES
+   ========================================================= */
 
 let stream = null;
 
@@ -587,9 +568,9 @@ let autoInterval = null;
 let isProcessing = false;
 
 
-// =========================================================
-// DATOS PARA LA GRÁFICA
-// =========================================================
+/* =========================================================
+   DATOS PARA LA GRÁFICA
+   ========================================================= */
 
 let datosGrafica = {
 
@@ -604,12 +585,11 @@ let datosGrafica = {
 };
 
 
-// =========================================================
-// CONSEJOS
-// =========================================================
+/* =========================================================
+   CONSEJOS
+   ========================================================= */
 
 const consejos = {
-
 
     "Felicidad": [
 
@@ -625,7 +605,6 @@ const consejos = {
 
     ],
 
-
     "Tristeza": [
 
         "💙 Date un momento para reconocer lo que estás sintiendo. No tienes que ocultar tus emociones.",
@@ -640,8 +619,7 @@ const consejos = {
 
     ],
 
-
-    "Enojo": [
+    "Furia": [
 
         "🧘 Respira lentamente y date unos segundos antes de reaccionar.",
 
@@ -654,7 +632,6 @@ const consejos = {
         "💬 Cuando estés más tranquilo, expresa lo que sientes de manera clara y respetuosa."
 
     ],
-
 
     "Neutral": [
 
@@ -673,31 +650,9 @@ const consejos = {
 };
 
 
-// =========================================================
-// CONSEJO ALEATORIO
-// =========================================================
-
-function obtenerConsejo(emocion) {
-
-    const lista = consejos[emocion];
-
-    if (!lista || lista.length === 0) {
-
-        return "💡 Recuerda prestar atención a tus emociones y cuidar de tu bienestar.";
-
-    }
-
-    const indice =
-        Math.floor(Math.random() * lista.length);
-
-    return lista[indice];
-
-}
-
-
-// =========================================================
-// NORMALIZAR EMOCIÓN
-// =========================================================
+/* =========================================================
+   NORMALIZAR EMOCIÓN
+   ========================================================= */
 
 function normalizarEmocion(emocion) {
 
@@ -705,16 +660,15 @@ function normalizarEmocion(emocion) {
         return "Neutral";
     }
 
-    const texto =
-        String(emocion)
+    const texto = String(emocion)
         .toLowerCase()
         .trim();
-
 
     if (
         texto === "felicidad" ||
         texto === "alegria" ||
-        texto === "alegría"
+        texto === "alegría" ||
+        texto === "happy"
     ) {
 
         return "Felicidad";
@@ -724,36 +678,49 @@ function normalizarEmocion(emocion) {
 
     if (
         texto === "enojo" ||
-        texto === "furia"
+        texto === "furia" ||
+        texto === "anger" ||
+        texto === "angry"
     ) {
 
-        return "Enojo";
+        return "Furia";
 
     }
 
 
-    if (texto === "tristeza") {
+    if (
+        texto === "tristeza" ||
+        texto === "sad"
+    ) {
 
         return "Tristeza";
 
     }
 
 
-    if (texto === "neutral") {
+    if (
+        texto === "neutral" ||
+        texto === "neutro"
+    ) {
 
         return "Neutral";
 
     }
 
 
-    return emocion;
+    console.warn(
+        "⚠️ Emoción no reconocida:",
+        emocion
+    );
+
+    return "Neutral";
 
 }
 
 
-// =========================================================
-// EMOJI
-// =========================================================
+/* =========================================================
+   EMOJI
+   ========================================================= */
 
 function obtenerEmoji(emocion) {
 
@@ -765,7 +732,7 @@ function obtenerEmoji(emocion) {
         case "Tristeza":
             return "😢";
 
-        case "Enojo":
+        case "Furia":
             return "😡";
 
         case "Neutral":
@@ -779,30 +746,79 @@ function obtenerEmoji(emocion) {
 }
 
 
-// =========================================================
-// MOSTRAR RESULTADO
-// =========================================================
+/* =========================================================
+   CONSEJO ALEATORIO
+   ========================================================= */
 
-function mostrarResultado(emocion, confianza) {
+function obtenerConsejo(emocion) {
+
+    const lista = consejos[emocion];
+
+    if (
+        !lista ||
+        lista.length === 0
+    ) {
+
+        console.warn(
+            "⚠️ No existe consejo para:",
+            emocion
+        );
+
+        return "💡 Recuerda prestar atención a tus emociones y cuidar de tu bienestar.";
+
+    }
+
+    const indice =
+        Math.floor(
+            Math.random() * lista.length
+        );
+
+    return lista[indice];
+
+}
+
+
+/* =========================================================
+   MOSTRAR RESULTADO
+   ========================================================= */
+
+function mostrarResultado(
+    emocion,
+    confianza
+) {
 
     const emocionNormalizada =
         normalizarEmocion(emocion);
 
     const emoji =
-        obtenerEmoji(emocionNormalizada);
+        obtenerEmoji(
+            emocionNormalizada
+        );
 
     const consejo =
-        obtenerConsejo(emocionNormalizada);
+        obtenerConsejo(
+            emocionNormalizada
+        );
 
-    let nombreMostrar =
-        emocionNormalizada;
+
+    console.log(
+        "🎯 Emoción original:",
+        emocion
+    );
+
+    console.log(
+        "🎯 Emoción normalizada:",
+        emocionNormalizada
+    );
+
+    console.log(
+        "💡 Consejo:",
+        consejo
+    );
 
 
-    if (emocionNormalizada === "Enojo") {
-
-        nombreMostrar = "Furia";
-
-    }
+    const confianzaNumero =
+        Number(confianza) || 0;
 
 
     emocionDisplay.innerHTML = `
@@ -817,7 +833,7 @@ function mostrarResultado(emocion, confianza) {
 
             <div class="emocion-principal">
 
-                ${nombreMostrar}
+                ${emocionNormalizada}
 
             </div>
 
@@ -827,7 +843,7 @@ function mostrarResultado(emocion, confianza) {
 
                 <strong>
 
-                    ${confianza.toFixed(2)}%
+                    ${confianzaNumero.toFixed(2)}%
 
                 </strong>
 
@@ -840,7 +856,7 @@ function mostrarResultado(emocion, confianza) {
 
             💬 Emoción predominante:
 
-            ${nombreMostrar}
+            ${emocionNormalizada}
 
         </div>
 
@@ -862,9 +878,9 @@ function mostrarResultado(emocion, confianza) {
 }
 
 
-// =========================================================
-// ACTUALIZAR GRÁFICA CIRCULAR
-// =========================================================
+/* =========================================================
+   ACTUALIZAR GRÁFICA
+   ========================================================= */
 
 function actualizarGrafica() {
 
@@ -890,12 +906,14 @@ function actualizarGrafica() {
 
     if (total <= 0) {
 
+        console.warn(
+            "⚠️ No hay datos para la gráfica"
+        );
+
         return;
 
     }
 
-
-    // Convertir valores a grados
 
     const gradosEnojo =
         (enojo / total) * 360;
@@ -910,8 +928,6 @@ function actualizarGrafica() {
         (tristeza / total) * 360;
 
 
-    // Posiciones
-
     const inicioFelicidad =
         gradosEnojo;
 
@@ -925,10 +941,10 @@ function actualizarGrafica() {
         gradosNeutral;
 
 
-    // Gráfica circular
-
     const grafica =
-        document.getElementById("graficaCircular");
+        document.getElementById(
+            "graficaCircular"
+        );
 
 
     grafica.style.background = `
@@ -956,8 +972,6 @@ function actualizarGrafica() {
     `;
 
 
-    // Porcentajes de la gráfica
-
     document.getElementById(
         "porcentajeFuria"
     ).textContent =
@@ -984,19 +998,25 @@ function actualizarGrafica() {
 }
 
 
-// =========================================================
-// MOSTRAR / OCULTAR GRÁFICA
-// =========================================================
+/* =========================================================
+   MOSTRAR / OCULTAR GRÁFICA
+   ========================================================= */
 
 function mostrarGrafica() {
 
     const container =
-        document.getElementById("graficaContainer");
+        document.getElementById(
+            "graficaContainer"
+        );
 
 
-    if (container.style.display === "block") {
+    if (
+        container.style.display ===
+        "block"
+    ) {
 
-        container.style.display = "none";
+        container.style.display =
+            "none";
 
         graficaBtn.textContent =
             "📊 Ver gráfica";
@@ -1017,9 +1037,9 @@ function mostrarGrafica() {
 }
 
 
-// =========================================================
-// INICIAR CÁMARA
-// =========================================================
+/* =========================================================
+   INICIAR CÁMARA
+   ========================================================= */
 
 async function startCamera() {
 
@@ -1029,6 +1049,18 @@ async function startCamera() {
             "📷 Solicitando acceso a la cámara...";
 
         statusDiv.className = "";
+
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
+            throw new Error(
+                "El navegador no permite acceder a la cámara."
+            );
+
+        }
 
 
         stream =
@@ -1085,6 +1117,10 @@ async function startCamera() {
             "✅ Cámara iniciada correctamente"
         );
 
+        console.log(
+            `📐 Video: ${video.videoWidth}x${video.videoHeight}`
+        );
+
     }
 
 
@@ -1103,24 +1139,59 @@ async function startCamera() {
             "error";
 
 
-        alert(
-            "No se pudo acceder a la cámara. " +
-            "Verifica los permisos del navegador."
-        );
+        let mensaje =
+            "No se pudo acceder a la cámara. ";
+
+
+        if (
+            error.name ===
+            "NotAllowedError"
+        ) {
+
+            mensaje +=
+                "Permite el acceso a la cámara en el navegador.";
+
+        }
+
+        else if (
+            error.name ===
+            "NotFoundError"
+        ) {
+
+            mensaje +=
+                "No se encontró una cámara.";
+
+        }
+
+        else {
+
+            mensaje +=
+                error.message;
+
+        }
+
+
+        alert(mensaje);
 
     }
 
 }
 
 
-// =========================================================
-// CAPTURAR Y ANALIZAR
-// =========================================================
+/* =========================================================
+   CAPTURAR Y ANALIZAR
+   ========================================================= */
 
 async function captureAndAnalyze() {
 
     if (isProcessing) {
+
+        console.log(
+            "⏳ Ya hay un análisis en proceso..."
+        );
+
         return;
+
     }
 
 
@@ -1160,7 +1231,9 @@ async function captureAndAnalyze() {
             "⏳ Procesando imagen...";
 
 
-        // CAPTURA
+        /* =================================================
+           CAPTURA
+           ================================================= */
 
         canvas.width =
             video.videoWidth || 640;
@@ -1182,7 +1255,14 @@ async function captureAndAnalyze() {
         );
 
 
-        // IMAGEN BASE64
+        console.log(
+            `📸 Imagen capturada: ${canvas.width}x${canvas.height}`
+        );
+
+
+        /* =================================================
+           BASE64
+           ================================================= */
 
         const imageData =
             canvas.toDataURL(
@@ -1192,11 +1272,13 @@ async function captureAndAnalyze() {
 
 
         console.log(
-            "📸 Imagen capturada"
+            "📤 Enviando imagen al servidor..."
         );
 
 
-        // ENVIAR A FLASK
+        /* =================================================
+           FLASK
+           ================================================= */
 
         const response =
             await fetch(
@@ -1214,7 +1296,8 @@ async function captureAndAnalyze() {
 
                     body: JSON.stringify({
 
-                        image: imageData
+                        image:
+                            imageData
 
                     })
 
@@ -1228,13 +1311,14 @@ async function captureAndAnalyze() {
         );
 
 
-        // COMPROBAR RESPUESTA
+        /* =================================================
+           ERROR HTTP
+           ================================================= */
 
         if (!response.ok) {
 
             const errorText =
                 await response.text();
-
 
             throw new Error(
                 `HTTP ${response.status}: ${errorText}`
@@ -1243,17 +1327,23 @@ async function captureAndAnalyze() {
         }
 
 
-        // JSON
+        /* =================================================
+           JSON
+           ================================================= */
 
         const data =
             await response.json();
 
 
         console.log(
-            "📊 RESPUESTA DEL SERVIDOR:",
+            "📊 RESPUESTA COMPLETA DEL SERVIDOR:",
             data
         );
 
+
+        /* =================================================
+           COMPROBAR SUCCESS
+           ================================================= */
 
         if (!data.success) {
 
@@ -1265,37 +1355,87 @@ async function captureAndAnalyze() {
         }
 
 
-        // EMOCIÓN
+        /* =================================================
+           EMOCIÓN
+           ================================================= */
 
         const emocion =
-            data.emocion || "Neutral";
+            data.emocion ||
+            data.emotion ||
+            "Neutral";
 
 
-        // CONFIANZA
+        /* =================================================
+           CONFIANZA
+           ================================================= */
 
         const confianza =
-            Number(data.confianza) || 0;
+            Number(
+                data.confianza ??
+                data.confidence ??
+                0
+            );
 
 
-        // =================================================
-        // DATOS PARA LA GRÁFICA
-        // =================================================
+        /* =================================================
+           TODAS LAS EMOCIONES
+           ================================================= */
 
         const todas =
-            data.todas || {};
+            data.todas ||
+            data.emotions ||
+            data.probabilidades ||
+            {};
 
+
+        console.log(
+            "📈 Probabilidades recibidas:",
+            todas
+        );
+
+
+        /*
+         * Aceptamos varias formas de nombrar
+         * las emociones para evitar errores.
+         */
 
         const enojo =
-            Number(todas["Enojo"]) || 0;
+            Number(
+                todas["Enojo"] ??
+                todas["Furia"] ??
+                todas["enojo"] ??
+                todas["furia"] ??
+                todas["Anger"] ??
+                0
+            );
+
 
         const felicidad =
-            Number(todas["Felicidad"]) || 0;
+            Number(
+                todas["Felicidad"] ??
+                todas["Alegria"] ??
+                todas["Alegría"] ??
+                todas["felicidad"] ??
+                todas["happy"] ??
+                0
+            );
+
 
         const neutral =
-            Number(todas["Neutral"]) || 0;
+            Number(
+                todas["Neutral"] ??
+                todas["neutral"] ??
+                0
+            );
+
 
         const tristeza =
-            Number(todas["Tristeza"]) || 0;
+            Number(
+                todas["Tristeza"] ??
+                todas["tristeza"] ??
+                todas["Sad"] ??
+                0
+            );
 
 
         datosGrafica = {
@@ -1315,13 +1455,13 @@ async function captureAndAnalyze() {
         };
 
 
-        // Activar botón de gráfica
+        /* =================================================
+           ACTIVAR GRÁFICA
+           ================================================= */
 
         graficaBtn.disabled =
             false;
 
-
-        // Actualizar si está abierta
 
         const graficaContainer =
             document.getElementById(
@@ -1339,7 +1479,9 @@ async function captureAndAnalyze() {
         }
 
 
-        // MOSTRAR RESULTADO
+        /* =================================================
+           MOSTRAR RESULTADO
+           ================================================= */
 
         mostrarResultado(
             emocion,
@@ -1352,6 +1494,13 @@ async function captureAndAnalyze() {
 
         statusDiv.className =
             "success";
+
+
+        console.log(
+            "🎯 RESULTADO FINAL:",
+            normalizarEmocion(emocion)
+        );
+
 
     }
 
@@ -1423,9 +1572,9 @@ async function captureAndAnalyze() {
 }
 
 
-// =========================================================
-// MODO AUTOMÁTICO
-// =========================================================
+/* =========================================================
+   MODO AUTOMÁTICO
+   ========================================================= */
 
 function toggleAutoMode() {
 
@@ -1492,9 +1641,9 @@ function toggleAutoMode() {
 }
 
 
-// =========================================================
-// DETENER CÁMARA
-// =========================================================
+/* =========================================================
+   DETENER CÁMARA
+   ========================================================= */
 
 function stopCamera() {
 
@@ -1549,9 +1698,9 @@ function stopCamera() {
 }
 
 
-// =========================================================
-// EVENTOS
-// =========================================================
+/* =========================================================
+   EVENTOS
+   ========================================================= */
 
 captureBtn.addEventListener(
     "click",
@@ -1577,24 +1726,25 @@ graficaBtn.addEventListener(
 );
 
 
-// =========================================================
-// INICIO
-// =========================================================
+/* =========================================================
+   INICIO
+   ========================================================= */
 
-window.onload = function () {
+window.onload =
+    function () {
 
-    console.log(
-        "🚀 Iniciando EmotiScan..."
-    );
+        console.log(
+            "🚀 Iniciando EmotiScan..."
+        );
 
-    startCamera();
+        startCamera();
 
-};
+    };
 
 
-// =========================================================
-// LIMPIAR CÁMARA
-// =========================================================
+/* =========================================================
+   LIMPIAR CÁMARA
+   ========================================================= */
 
 window.addEventListener(
     "beforeunload",
@@ -1625,9 +1775,9 @@ window.addEventListener(
 );
 
 
-// =========================================================
-// TECLA ESPACIO
-// =========================================================
+/* =========================================================
+   TECLA ESPACIO
+   ========================================================= */
 
 document.addEventListener(
     "keydown",

@@ -5,6 +5,10 @@ node_modules/
 .env
 *.db
 emociones.db
+<<<<<<< HEAD
 mejor_modelo.keras
 modelo/modelo_emociones.keras
 dataset.zip
+=======
+mejor_modelo.keras
+>>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8

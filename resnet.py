@@ -1,14 +1,18 @@
 import os
 import json
 import logging
+import random
+
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from sklearn.utils.class_weight import compute_class_weight
 from sklearn.metrics import (
     classification_report,
     confusion_matrix,
-    accuracy_score
+    accuracy_score,
+    ConfusionMatrixDisplay
 )
 
 from tensorflow.keras import layers, models
@@ -24,7 +28,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN GENERAL
 # ==========================================================
 
 logging.basicConfig(
@@ -39,7 +43,9 @@ logger = logging.getLogger(__name__)
 # RUTAS
 # ==========================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
 DATASET_DIR = os.path.join(
     BASE_DIR,
@@ -66,12 +72,30 @@ RESULTS_DIR = os.path.join(
     "resultados"
 )
 
-os.makedirs(MODEL_DIR, exist_ok=True)
-os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(
+    MODEL_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    RESULTS_DIR,
+    exist_ok=True
+)
 
 
 # ==========================================================
 # CLASES
+# ==========================================================
+#
+# ESTE ORDEN ES MUY IMPORTANTE.
+#
+# 0 = Enojo
+# 1 = Felicidad
+# 2 = Tristeza
+# 3 = Neutral
+#
+# Este mismo orden deberá utilizarse después
+# en predict.py y en Render.
 # ==========================================================
 
 CLASSES = [
@@ -88,22 +112,16 @@ NUM_CLASSES = len(CLASSES)
 # PARÁMETROS
 # ==========================================================
 
-# IMPORTANTE:
-# Todo el entrenamiento utiliza imágenes de 224 x 224.
-
 IMG_SIZE = (224, 224)
 
-# Reducido para disminuir consumo de RAM.
 BATCH_SIZE = 16
 
 VALIDATION_SPLIT = 0.20
 
 SEED = 42
 
-# Primera fase
 INITIAL_EPOCHS = 15
 
-# Segunda fase
 FINE_TUNE_EPOCHS = 15
 
 TOTAL_EPOCHS = (
@@ -116,39 +134,113 @@ TOTAL_EPOCHS = (
 # SEMILLAS
 # ==========================================================
 
+random.seed(SEED)
+
 np.random.seed(SEED)
+
 tf.random.set_seed(SEED)
 
 
 # ==========================================================
-# COMPROBAR DATASET
+# CONFIGURACIÓN CPU / GPU
 # ==========================================================
 
-logger.info("=" * 70)
-logger.info("VERIFICANDO DATASET")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CONFIGURACIÓN DEL ENTORNO")
+print("=" * 70)
+
+gpus = tf.config.list_physical_devices("GPU")
+
+if gpus:
+
+    print("✅ GPU DETECTADA")
+
+    print(gpus)
+
+else:
+
+    print("⚠️ NO SE DETECTÓ GPU")
+
+    print("Se utilizará CPU.")
+
+
+# ==========================================================
+# INFORMACIÓN DEL ENTRENAMIENTO
+# ==========================================================
+
+print()
+print("=" * 70)
+print("              ENTRENAMIENTO EMOTISCAN")
+print("=" * 70)
+
+print()
+
+print("Clases:")
+
+for i, emotion in enumerate(CLASSES):
+
+    print(
+        f"{i} -> {emotion}"
+    )
+
+print()
+
+print(
+    f"Tamaño de imagen: "
+    f"{IMG_SIZE[0]} x {IMG_SIZE[1]}"
+)
+
+print(
+    f"Batch size: {BATCH_SIZE}"
+)
+
+print(
+    f"Validación: {VALIDATION_SPLIT * 100:.0f}%"
+)
+
+print(
+    f"Épocas iniciales: {INITIAL_EPOCHS}"
+)
+
+print(
+    f"Épocas fine-tuning: {FINE_TUNE_EPOCHS}"
+)
+
+
+# ==========================================================
+# VERIFICAR DATASET
+# ==========================================================
+
+print()
+print("=" * 70)
+print("              VERIFICANDO DATASET")
+print("=" * 70)
+
 
 if not os.path.exists(DATASET_DIR):
 
     raise FileNotFoundError(
-        f"No existe la carpeta dataset:\n{DATASET_DIR}"
+        f"No existe la carpeta:\n{DATASET_DIR}"
     )
+
 
 if not os.path.exists(TRAIN_DIR):
 
     raise FileNotFoundError(
-        f"No existe la carpeta train:\n{TRAIN_DIR}"
+        f"No existe la carpeta:\n{TRAIN_DIR}"
     )
+
 
 if not os.path.exists(TEST_DIR):
 
     raise FileNotFoundError(
-        f"No existe la carpeta test:\n{TEST_DIR}"
+        f"No existe la carpeta:\n{TEST_DIR}"
     )
 
 
 # ==========================================================
-# COMPROBAR CARPETAS DE CLASES
+# VERIFICAR CLASES
 # ==========================================================
 
 for class_name in CLASSES:
@@ -163,21 +255,27 @@ for class_name in CLASSES:
         class_name
     )
 
-    if not os.path.exists(train_class_dir):
+    if not os.path.exists(
+        train_class_dir
+    ):
 
         raise FileNotFoundError(
-            f"Falta la carpeta:\n{train_class_dir}"
+            f"Falta la carpeta:\n"
+            f"{train_class_dir}"
         )
 
-    if not os.path.exists(test_class_dir):
+    if not os.path.exists(
+        test_class_dir
+    ):
 
         raise FileNotFoundError(
-            f"Falta la carpeta:\n{test_class_dir}"
+            f"Falta la carpeta:\n"
+            f"{test_class_dir}"
         )
 
 
-logger.info(
-    "Dataset encontrado correctamente."
+print(
+    "✅ Todas las carpetas de clases existen."
 )
 
 
@@ -185,33 +283,35 @@ logger.info(
 # CONTAR IMÁGENES
 # ==========================================================
 
+VALID_EXTENSIONS = (
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".webp"
+)
+
+
 def count_images(folder):
 
-    extensions = (
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".bmp",
-        ".webp"
-    )
+    if not os.path.exists(folder):
+
+        return 0
 
     total = 0
 
-    if not os.path.exists(folder):
-        return 0
-
     for filename in os.listdir(folder):
 
-        filepath = os.path.join(
-            folder,
-            filename
-        )
+        if filename.lower().endswith(
+            VALID_EXTENSIONS
+        ):
 
-        if os.path.isfile(filepath):
+            filepath = os.path.join(
+                folder,
+                filename
+            )
 
-            if filename.lower().endswith(
-                extensions
-            ):
+            if os.path.isfile(filepath):
 
                 total += 1
 
@@ -219,13 +319,13 @@ def count_images(folder):
 
 
 # ==========================================================
-# MOSTRAR CANTIDAD DE IMÁGENES
+# MOSTRAR DISTRIBUCIÓN
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("IMÁGENES DEL DATASET")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              DISTRIBUCIÓN DEL DATASET")
+print("=" * 70)
 
 total_train = 0
 total_test = 0
@@ -249,41 +349,38 @@ for class_name in CLASSES:
     total_train += train_count
     total_test += test_count
 
-    logger.info(
+    print(
         f"{class_name:12s} | "
         f"Train: {train_count:5d} | "
         f"Test: {test_count:5d}"
     )
 
 
-logger.info("-" * 70)
+print("-" * 70)
 
-logger.info(
+print(
     f"TOTAL TRAIN: {total_train}"
 )
 
-logger.info(
+print(
     f"TOTAL TEST : {total_test}"
 )
 
-logger.info(
-    f"TOTAL DATASET: {total_train + total_test}"
+print(
+    f"TOTAL DATASET: "
+    f"{total_train + total_test}"
 )
 
 
 # ==========================================================
-# DATA GENERATORS
+# GENERADOR DE ENTRENAMIENTO
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("CREANDO GENERADORES")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CREANDO GENERADORES")
+print("=" * 70)
 
-
-# ==========================================================
-# TRAIN
-# ==========================================================
 
 train_datagen = ImageDataGenerator(
 
@@ -308,7 +405,7 @@ train_datagen = ImageDataGenerator(
 
 
 # ==========================================================
-# VALIDATION
+# GENERADOR DE VALIDACIÓN
 # ==========================================================
 
 validation_datagen = ImageDataGenerator(
@@ -320,7 +417,7 @@ validation_datagen = ImageDataGenerator(
 
 
 # ==========================================================
-# TEST
+# GENERADOR DE TEST
 # ==========================================================
 
 test_datagen = ImageDataGenerator(
@@ -330,18 +427,17 @@ test_datagen = ImageDataGenerator(
 
 
 # ==========================================================
-# TRAIN GENERATOR
+# TRAIN
 # ==========================================================
 
-logger.info("")
-logger.info("Creando TRAIN generator...")
+print()
+print("Creando TRAIN generator...")
+
 
 train_generator = train_datagen.flow_from_directory(
 
     TRAIN_DIR,
 
-    # IMPORTANTE:
-    # Keras utilizará 224 x 224.
     target_size=IMG_SIZE,
 
     batch_size=BATCH_SIZE,
@@ -359,11 +455,12 @@ train_generator = train_datagen.flow_from_directory(
 
 
 # ==========================================================
-# VALIDATION GENERATOR
+# VALIDATION
 # ==========================================================
 
-logger.info("")
-logger.info("Creando VALIDATION generator...")
+print()
+print("Creando VALIDATION generator...")
+
 
 validation_generator = validation_datagen.flow_from_directory(
 
@@ -386,11 +483,12 @@ validation_generator = validation_datagen.flow_from_directory(
 
 
 # ==========================================================
-# TEST GENERATOR
+# TEST
 # ==========================================================
 
-logger.info("")
-logger.info("Creando TEST generator...")
+print()
+print("Creando TEST generator...")
+
 
 test_generator = test_datagen.flow_from_directory(
 
@@ -409,51 +507,39 @@ test_generator = test_datagen.flow_from_directory(
 
 
 # ==========================================================
-# VERIFICAR TAMAÑO DE LAS IMÁGENES
+# VERIFICAR MAPEO
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("VERIFICANDO TAMAÑO DE ENTRADA")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              MAPEO DE CLASES")
+print("=" * 70)
 
-logger.info(
-    f"Tamaño esperado: {IMG_SIZE[0]} x {IMG_SIZE[1]} píxeles"
-)
-
-logger.info(
-    f"Forma de entrada del generador: "
-    f"{train_generator.image_shape}"
+print(
+    train_generator.class_indices
 )
 
 
-if train_generator.image_shape != (
-    IMG_SIZE[0],
-    IMG_SIZE[1],
-    3
-):
+expected_mapping = {
+    "Enojo": 0,
+    "Felicidad": 1,
+    "Tristeza": 2,
+    "Neutral": 3
+}
+
+
+if train_generator.class_indices != expected_mapping:
 
     raise ValueError(
-        "El tamaño de entrada no coincide con 224x224x3."
+        "El mapeo de clases no coincide con el esperado.\n"
+        f"Esperado: {expected_mapping}\n"
+        f"Encontrado: "
+        f"{train_generator.class_indices}"
     )
 
 
-logger.info(
-    "Tamaño de entrada correcto: 224 x 224 x 3"
-)
-
-
-# ==========================================================
-# MAPEO DE CLASES
-# ==========================================================
-
-logger.info("")
-logger.info("=" * 70)
-logger.info("MAPEO DE CLASES")
-logger.info("=" * 70)
-
-logger.info(
-    str(train_generator.class_indices)
+print(
+    "✅ Mapeo correcto."
 )
 
 
@@ -461,33 +547,52 @@ logger.info(
 # GUARDAR MAPEO
 # ==========================================================
 
-class_indices_path = os.path.join(
+CLASS_INDICES_PATH = os.path.join(
+
     MODEL_DIR,
+
     "class_indices.json"
 )
 
+
 with open(
-    class_indices_path,
+
+    CLASS_INDICES_PATH,
+
     "w",
+
     encoding="utf-8"
+
 ) as file:
 
     json.dump(
+
         train_generator.class_indices,
+
         file,
+
         ensure_ascii=False,
+
         indent=4
+
     )
+
+
+print(
+    f"✅ Mapeo guardado en:\n"
+    f"{CLASS_INDICES_PATH}"
+)
 
 
 # ==========================================================
 # CLASS WEIGHTS
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("CALCULANDO CLASS WEIGHTS")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CLASS WEIGHTS")
+print("=" * 70)
+
 
 train_labels = train_generator.classes
 
@@ -501,6 +606,7 @@ class_weights_array = compute_class_weight(
     ),
 
     y=train_labels
+
 )
 
 
@@ -508,18 +614,24 @@ class_weights = {
 
     int(class_id): float(weight)
 
-    for class_id, weight
-    in zip(
-        np.unique(train_labels),
+    for class_id, weight in zip(
+
+        np.unique(
+            train_labels
+        ),
+
         class_weights_array
+
     )
+
 }
 
 
 for class_id, weight in class_weights.items():
 
-    logger.info(
-        f"{CLASSES[class_id]:12s} -> {weight:.4f}"
+    print(
+        f"{CLASSES[class_id]:12s} -> "
+        f"{weight:.4f}"
     )
 
 
@@ -527,14 +639,10 @@ for class_id, weight in class_weights.items():
 # CONSTRUIR RESNET50
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("CONSTRUYENDO RESNET50")
-logger.info("=" * 70)
-
-logger.info(
-    "Entrada: 224 x 224 x 3"
-)
+print()
+print("=" * 70)
+print("              CONSTRUYENDO RESNET50")
+print("=" * 70)
 
 
 base_model = ResNet50(
@@ -544,38 +652,48 @@ base_model = ResNet50(
     include_top=False,
 
     input_shape=(
+
         IMG_SIZE[0],
+
         IMG_SIZE[1],
+
         3
+
     )
+
 )
 
-
-# ==========================================================
-# CONGELAR RESNET50
-# ==========================================================
 
 base_model.trainable = False
 
 
-logger.info(
-    "ResNet50 congelada para la primera fase."
+print(
+    "✅ ResNet50 cargada."
+)
+
+print(
+    "✅ ResNet50 congelada para Fase 1."
 )
 
 
 # ==========================================================
-# MODELO FINAL
+# CAPAS SUPERIORES
 # ==========================================================
 
 inputs = layers.Input(
 
     shape=(
+
         IMG_SIZE[0],
+
         IMG_SIZE[1],
+
         3
+
     ),
 
     name="imagen"
+
 )
 
 
@@ -584,6 +702,7 @@ x = base_model(
     inputs,
 
     training=False
+
 )
 
 
@@ -593,22 +712,19 @@ x = layers.GlobalAveragePooling2D()(x)
 x = layers.BatchNormalization()(x)
 
 
-x = layers.Dropout(
-    0.40
-)(x)
-
-
 x = layers.Dense(
+
     256,
+
     activation="relu"
+
 )(x)
 
 
-x = layers.BatchNormalization()(x)
-
-
 x = layers.Dropout(
-    0.30
+
+    0.40
+
 )(x)
 
 
@@ -618,7 +734,10 @@ outputs = layers.Dense(
 
     activation="softmax",
 
+    dtype="float32",
+
     name="emociones"
+
 )(x)
 
 
@@ -629,11 +748,12 @@ model = models.Model(
     outputs=outputs,
 
     name="EmotiScan_ResNet50"
+
 )
 
 
 # ==========================================================
-# COMPILACIÓN INICIAL
+# COMPILAR FASE 1
 # ==========================================================
 
 model.compile(
@@ -641,24 +761,28 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(
 
         learning_rate=1e-4
+
     ),
 
     loss="categorical_crossentropy",
 
     metrics=[
+
         "accuracy"
+
     ]
+
 )
 
 
 # ==========================================================
-# MOSTRAR MODELO
+# RESUMEN
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("RESUMEN DEL MODELO")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              RESUMEN DEL MODELO")
+print("=" * 70)
 
 model.summary()
 
@@ -667,19 +791,21 @@ model.summary()
 # CALLBACKS
 # ==========================================================
 
-MODEL_PATH = os.path.join(
-
-    MODEL_DIR,
-
-    "modelo_emociones.keras"
-)
-
-
-CHECKPOINT_PATH = os.path.join(
+BEST_MODEL_PATH = os.path.join(
 
     MODEL_DIR,
 
     "mejor_modelo.keras"
+
+)
+
+
+FINAL_MODEL_PATH = os.path.join(
+
+    MODEL_DIR,
+
+    "modelo_emociones.keras"
+
 )
 
 
@@ -688,6 +814,7 @@ CSV_LOG_PATH = os.path.join(
     RESULTS_DIR,
 
     "entrenamiento.csv"
+
 )
 
 
@@ -695,7 +822,7 @@ callbacks = [
 
     ModelCheckpoint(
 
-        CHECKPOINT_PATH,
+        BEST_MODEL_PATH,
 
         monitor="val_accuracy",
 
@@ -704,6 +831,7 @@ callbacks = [
         save_best_only=True,
 
         verbose=1
+
     ),
 
     EarlyStopping(
@@ -715,6 +843,7 @@ callbacks = [
         restore_best_weights=True,
 
         verbose=1
+
     ),
 
     ReduceLROnPlateau(
@@ -728,6 +857,7 @@ callbacks = [
         min_lr=1e-7,
 
         verbose=1
+
     ),
 
     CSVLogger(
@@ -735,26 +865,23 @@ callbacks = [
         CSV_LOG_PATH,
 
         append=False
+
     )
+
 ]
 
 
 # ==========================================================
 # FASE 1
-# TRANSFER LEARNING
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("FASE 1 - TRANSFER LEARNING")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              FASE 1 - TRANSFER LEARNING")
+print("=" * 70)
 
-logger.info(
+print(
     f"Épocas: {INITIAL_EPOCHS}"
-)
-
-logger.info(
-    "ResNet50 está congelada."
 )
 
 
@@ -771,59 +898,105 @@ history_initial = model.fit(
     callbacks=callbacks,
 
     verbose=1
+
 )
 
 
 # ==========================================================
-# FASE 2
-# FINE TUNING
+# CARGAR MEJOR MODELO
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("FASE 2 - FINE TUNING")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CARGANDO MEJOR MODELO")
+print("=" * 70)
 
 
-# Activar ResNet50
+model = tf.keras.models.load_model(
+
+    BEST_MODEL_PATH
+
+)
+
+
+print(
+    "✅ Mejor modelo cargado."
+)
+
+
+# ==========================================================
+# OBTENER RESNET50
+# ==========================================================
+
+base_model = None
+
+
+for layer in model.layers:
+
+    if isinstance(
+        layer,
+        tf.keras.Model
+    ):
+
+        base_model = layer
+
+        break
+
+
+if base_model is None:
+
+    raise RuntimeError(
+        "No se encontró la base ResNet50."
+    )
+
+
+print(
+    "✅ ResNet50 localizada."
+)
+
+
+# ==========================================================
+# FASE 2 - FINE TUNING
+# ==========================================================
+
+print()
+print("=" * 70)
+print("              FASE 2 - FINE TUNING")
+print("=" * 70)
+
+
 base_model.trainable = True
 
 
-# ==========================================================
-# CONGELAR PRIMERAS CAPAS
-# ==========================================================
+# Congelar todas las capas excepto las últimas 20
 
-FINE_TUNE_FROM = 140
-
-
-for layer in base_model.layers[
-    :FINE_TUNE_FROM
-]:
+for layer in base_model.layers[:-20]:
 
     layer.trainable = False
 
 
-# ==========================================================
-# CONGELAR BATCH NORMALIZATION
-# ==========================================================
+# BatchNormalization congelada
 
 for layer in base_model.layers:
 
     if isinstance(
+
         layer,
-        layers.BatchNormalization
+
+        tf.keras.layers.BatchNormalization
+
     ):
 
         layer.trainable = False
 
 
-logger.info(
-    f"Fine tuning desde la capa {FINE_TUNE_FROM}."
+print(
+    "✅ Últimas 20 capas habilitadas."
 )
 
 
 # ==========================================================
-# RECOMPILAR
+# COMPILAR FINE TUNING
 # ==========================================================
 
 model.compile(
@@ -831,18 +1004,22 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(
 
         learning_rate=1e-5
+
     ),
 
     loss="categorical_crossentropy",
 
     metrics=[
+
         "accuracy"
+
     ]
+
 )
 
 
 # ==========================================================
-# FINE TUNING
+# FASE 2
 # ==========================================================
 
 history_fine = model.fit(
@@ -860,37 +1037,52 @@ history_fine = model.fit(
     callbacks=callbacks,
 
     verbose=1
+
 )
 
 
 # ==========================================================
-# GUARDAR MODELO FINAL
+# CARGAR MEJOR MODELO FINAL
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("GUARDANDO MODELO FINAL")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CARGANDO MEJOR MODELO FINAL")
+print("=" * 70)
 
+
+model = tf.keras.models.load_model(
+
+    BEST_MODEL_PATH
+
+)
+
+
+# ==========================================================
+# GUARDAR MODELO KERAS
+# ==========================================================
 
 model.save(
-    MODEL_PATH
+
+    FINAL_MODEL_PATH
+
 )
 
 
-logger.info(
-    f"Modelo guardado en:\n{MODEL_PATH}"
+print(
+    f"✅ Modelo guardado:\n"
+    f"{FINAL_MODEL_PATH}"
 )
 
 
 # ==========================================================
-# EVALUACIÓN TEST
+# EVALUACIÓN SOBRE TEST
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("EVALUACIÓN FINAL SOBRE TEST")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              EVALUACIÓN FINAL")
+print("=" * 70)
 
 
 test_generator.reset()
@@ -901,16 +1093,19 @@ test_loss, test_accuracy = model.evaluate(
     test_generator,
 
     verbose=1
+
 )
 
 
-logger.info("")
-logger.info(
-    f"TEST LOSS     : {test_loss:.4f}"
+print()
+
+print(
+    f"Test Loss     : {test_loss:.4f}"
 )
 
-logger.info(
-    f"TEST ACCURACY : {test_accuracy:.4f}"
+print(
+    f"Test Accuracy : "
+    f"{test_accuracy * 100:.2f}%"
 )
 
 
@@ -918,10 +1113,8 @@ logger.info(
 # PREDICCIONES
 # ==========================================================
 
-logger.info("")
-logger.info(
-    "Generando predicciones..."
-)
+print()
+print("Generando predicciones...")
 
 
 test_generator.reset()
@@ -932,6 +1125,7 @@ predictions = model.predict(
     test_generator,
 
     verbose=1
+
 )
 
 
@@ -940,27 +1134,19 @@ y_pred = np.argmax(
     predictions,
 
     axis=1
+
 )
 
 
 y_true = test_generator.classes
 
 
-# ==========================================================
-# ACCURACY
-# ==========================================================
-
 accuracy = accuracy_score(
 
     y_true,
 
     y_pred
-)
 
-
-logger.info("")
-logger.info(
-    f"Accuracy final: {accuracy:.4f}"
 )
 
 
@@ -968,10 +1154,10 @@ logger.info(
 # CLASSIFICATION REPORT
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("CLASSIFICATION REPORT")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CLASSIFICATION REPORT")
+print("=" * 70)
 
 
 report = classification_report(
@@ -989,10 +1175,12 @@ report = classification_report(
     digits=4,
 
     zero_division=0
+
 )
 
 
-print("")
+print()
+
 print(report)
 
 
@@ -1001,6 +1189,7 @@ REPORT_PATH = os.path.join(
     RESULTS_DIR,
 
     "classification_report.txt"
+
 )
 
 
@@ -1014,20 +1203,12 @@ with open(
 
 ) as file:
 
-    file.write(
-        report
-    )
+    file.write(report)
 
 
 # ==========================================================
 # MATRIZ DE CONFUSIÓN
 # ==========================================================
-
-logger.info("")
-logger.info("=" * 70)
-logger.info("MATRIZ DE CONFUSIÓN")
-logger.info("=" * 70)
-
 
 cm = confusion_matrix(
 
@@ -1038,47 +1219,362 @@ cm = confusion_matrix(
     labels=np.arange(
         NUM_CLASSES
     )
+
 )
 
 
-print("")
+print()
+print("=" * 70)
+print("              MATRIZ DE CONFUSIÓN")
+print("=" * 70)
 
-print(
-    " " * 18 +
-    " ".join(
-        f"{name:>12}"
-        for name in CLASSES
-    )
-)
+print()
 
-
-for i, row in enumerate(cm):
-
-    print(
-
-        f"{CLASSES[i]:>12}       " +
-
-        " ".join(
-            f"{value:>12}"
-            for value in row
-        )
-    )
+print(cm)
 
 
-CM_PATH = os.path.join(
+CM_NPY_PATH = os.path.join(
 
     RESULTS_DIR,
 
     "matriz_confusion.npy"
+
 )
 
 
 np.save(
 
-    CM_PATH,
+    CM_NPY_PATH,
 
     cm
+
 )
+
+
+# ==========================================================
+# MATRIZ DE CONFUSIÓN COMO IMAGEN
+# ==========================================================
+
+disp = ConfusionMatrixDisplay(
+
+    confusion_matrix=cm,
+
+    display_labels=CLASSES
+
+)
+
+
+fig, ax = plt.subplots(
+
+    figsize=(8, 7)
+
+)
+
+
+disp.plot(
+
+    ax=ax,
+
+    values_format="d",
+
+    cmap="Blues"
+
+)
+
+
+plt.title(
+    "Matriz de Confusión - EmotiScan"
+)
+
+
+plt.tight_layout()
+
+
+CM_IMAGE_PATH = os.path.join(
+
+    RESULTS_DIR,
+
+    "matriz_confusion.png"
+
+)
+
+
+plt.savefig(
+
+    CM_IMAGE_PATH,
+
+    dpi=150,
+
+    bbox_inches="tight"
+
+)
+
+
+plt.close()
+
+
+# ==========================================================
+# GRÁFICAS DE ENTRENAMIENTO
+# ==========================================================
+
+initial_acc = history_initial.history.get(
+    "accuracy",
+    []
+)
+
+initial_val_acc = history_initial.history.get(
+    "val_accuracy",
+    []
+)
+
+initial_loss = history_initial.history.get(
+    "loss",
+    []
+)
+
+initial_val_loss = history_initial.history.get(
+    "val_loss",
+    []
+)
+
+
+fine_acc = history_fine.history.get(
+    "accuracy",
+    []
+)
+
+fine_val_acc = history_fine.history.get(
+    "val_accuracy",
+    []
+)
+
+fine_loss = history_fine.history.get(
+    "loss",
+    []
+)
+
+fine_val_loss = history_fine.history.get(
+    "val_loss",
+    []
+)
+
+
+all_acc = (
+    initial_acc +
+    fine_acc
+)
+
+all_val_acc = (
+    initial_val_acc +
+    fine_val_acc
+)
+
+all_loss = (
+    initial_loss +
+    fine_loss
+)
+
+all_val_loss = (
+    initial_val_loss +
+    fine_val_loss
+)
+
+
+epochs_range = range(
+
+    1,
+
+    len(all_acc) + 1
+
+)
+
+
+# ==========================================================
+# ACCURACY
+# ==========================================================
+
+plt.figure(
+
+    figsize=(10, 6)
+
+)
+
+
+plt.plot(
+
+    epochs_range,
+
+    all_acc,
+
+    label="Train Accuracy"
+
+)
+
+
+plt.plot(
+
+    epochs_range,
+
+    all_val_acc,
+
+    label="Validation Accuracy"
+
+)
+
+
+plt.axvline(
+
+    x=INITIAL_EPOCHS,
+
+    linestyle="--",
+
+    label="Inicio Fine Tuning"
+
+)
+
+
+plt.title(
+
+    "EmotiScan - Accuracy"
+
+)
+
+
+plt.xlabel(
+
+    "Época"
+
+)
+
+
+plt.ylabel(
+
+    "Accuracy"
+
+)
+
+
+plt.legend()
+
+
+plt.grid(True)
+
+
+ACCURACY_PATH = os.path.join(
+
+    RESULTS_DIR,
+
+    "accuracy.png"
+
+)
+
+
+plt.savefig(
+
+    ACCURACY_PATH,
+
+    dpi=150,
+
+    bbox_inches="tight"
+
+)
+
+
+plt.close()
+
+
+# ==========================================================
+# LOSS
+# ==========================================================
+
+plt.figure(
+
+    figsize=(10, 6)
+
+)
+
+
+plt.plot(
+
+    epochs_range,
+
+    all_loss,
+
+    label="Train Loss"
+
+)
+
+
+plt.plot(
+
+    epochs_range,
+
+    all_val_loss,
+
+    label="Validation Loss"
+
+)
+
+
+plt.axvline(
+
+    x=INITIAL_EPOCHS,
+
+    linestyle="--",
+
+    label="Inicio Fine Tuning"
+
+)
+
+
+plt.title(
+
+    "EmotiScan - Loss"
+
+)
+
+
+plt.xlabel(
+
+    "Época"
+
+)
+
+
+plt.ylabel(
+
+    "Loss"
+
+)
+
+
+plt.legend()
+
+
+plt.grid(True)
+
+
+LOSS_PATH = os.path.join(
+
+    RESULTS_DIR,
+
+    "loss.png"
+
+)
+
+
+plt.savefig(
+
+    LOSS_PATH,
+
+    dpi=150,
+
+    bbox_inches="tight"
+
+)
+
+
+plt.close()
 
 
 # ==========================================================
@@ -1097,19 +1593,21 @@ metrics = {
 
     "classes": CLASSES,
 
-    "test_loss": float(
-        test_loss
-    ),
+    "class_indices":
+        train_generator.class_indices,
 
-    "test_accuracy": float(
-        test_accuracy
-    ),
+    "test_loss":
+        float(test_loss),
 
-    "accuracy": float(
-        accuracy
-    ),
+    "test_accuracy":
+        float(test_accuracy),
 
-    "confusion_matrix": cm.tolist()
+    "accuracy":
+        float(accuracy),
+
+    "confusion_matrix":
+        cm.tolist()
+
 }
 
 
@@ -1118,6 +1616,7 @@ METRICS_PATH = os.path.join(
     RESULTS_DIR,
 
     "metricas.json"
+
 )
 
 
@@ -1140,425 +1639,282 @@ with open(
         ensure_ascii=False,
 
         indent=4
+
     )
 
 
 # ==========================================================
-# GRÁFICAS
+# CONVERTIR A TFLITE
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("GENERANDO GRÁFICAS")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              CONVIRTIENDO A TFLITE")
+print("=" * 70)
 
 
-import matplotlib.pyplot as plt
+TFLITE_PATH = os.path.join(
+
+    MODEL_DIR,
+
+    "modelo_resnet50_emociones.tflite"
+
+)
 
 
-# ==========================================================
-# HISTORIES
-# ==========================================================
+converter = tf.lite.TFLiteConverter.from_keras_model(
 
-initial_acc = history_initial.history[
-    "accuracy"
-]
+    model
 
-initial_val_acc = history_initial.history[
-    "val_accuracy"
-]
-
-initial_loss = history_initial.history[
-    "loss"
-]
-
-initial_val_loss = history_initial.history[
-    "val_loss"
-]
+)
 
 
-fine_acc = history_fine.history[
-    "accuracy"
-]
+# Optimizaciones compatibles con producción
 
-fine_val_acc = history_fine.history[
-    "val_accuracy"
-]
+converter.optimizations = [
 
-fine_loss = history_fine.history[
-    "loss"
-]
+    tf.lite.Optimize.DEFAULT
 
-fine_val_loss = history_fine.history[
-    "val_loss"
 ]
 
 
-all_acc = (
-
-    initial_acc +
-
-    fine_acc
-)
+tflite_model = converter.convert()
 
 
-all_val_acc = (
+with open(
 
-    initial_val_acc +
+    TFLITE_PATH,
 
-    fine_val_acc
-)
+    "wb"
 
+) as file:
 
-all_loss = (
+    file.write(
 
-    initial_loss +
+        tflite_model
 
-    fine_loss
-)
-
-
-all_val_loss = (
-
-    initial_val_loss +
-
-    fine_val_loss
-)
+    )
 
 
-epochs_range = range(
-
-    1,
-
-    len(all_acc) + 1
+print(
+    f"✅ TFLite generado:\n"
+    f"{TFLITE_PATH}"
 )
 
 
 # ==========================================================
-# ACCURACY
+# VERIFICAR TFLITE
 # ==========================================================
 
-plt.figure(
+print()
+print("=" * 70)
+print("              VERIFICANDO TFLITE")
+print("=" * 70)
 
-    figsize=(10, 6)
+
+interpreter = tf.lite.Interpreter(
+
+    model_path=TFLITE_PATH
+
 )
 
 
-plt.plot(
+interpreter.allocate_tensors()
 
-    epochs_range,
 
-    all_acc,
+input_details = interpreter.get_input_details()
 
-    label="Train Accuracy"
+output_details = interpreter.get_output_details()
+
+
+print()
+
+print(
+    "Input:"
+)
+
+print(
+    input_details[0]["shape"]
+)
+
+print(
+    input_details[0]["dtype"]
 )
 
 
-plt.plot(
+print()
 
-    epochs_range,
+print(
+    "Output:"
+)
 
-    all_val_acc,
+print(
+    output_details[0]["shape"]
+)
 
-    label="Validation Accuracy"
+print(
+    output_details[0]["dtype"]
 )
 
 
-plt.axvline(
+expected_input_shape = np.array(
 
-    x=INITIAL_EPOCHS,
+    [1, 224, 224, 3]
 
-    linestyle="--",
-
-    label="Inicio Fine Tuning"
 )
 
 
-plt.title(
-    "EmotiScan - Accuracy"
-)
+if not np.array_equal(
 
-plt.xlabel(
-    "Época"
-)
+    input_details[0]["shape"],
 
-plt.ylabel(
-    "Accuracy"
-)
+    expected_input_shape
 
-plt.legend()
+):
 
-plt.grid(
-    True
-)
+    print(
+        "⚠️ ADVERTENCIA: "
+        "el tamaño de entrada no coincide."
+    )
 
+else:
 
-accuracy_plot = os.path.join(
-
-    RESULTS_DIR,
-
-    "accuracy.png"
-)
-
-
-plt.savefig(
-
-    accuracy_plot,
-
-    dpi=150,
-
-    bbox_inches="tight"
-)
-
-
-plt.close()
-
-
-# ==========================================================
-# LOSS
-# ==========================================================
-
-plt.figure(
-
-    figsize=(10, 6)
-)
-
-
-plt.plot(
-
-    epochs_range,
-
-    all_loss,
-
-    label="Train Loss"
-)
-
-
-plt.plot(
-
-    epochs_range,
-
-    all_val_loss,
-
-    label="Validation Loss"
-)
-
-
-plt.axvline(
-
-    x=INITIAL_EPOCHS,
-
-    linestyle="--",
-
-    label="Inicio Fine Tuning"
-)
-
-
-plt.title(
-    "EmotiScan - Loss"
-)
-
-plt.xlabel(
-    "Época"
-)
-
-plt.ylabel(
-    "Loss"
-)
-
-plt.legend()
-
-plt.grid(
-    True
-)
-
-
-loss_plot = os.path.join(
-
-    RESULTS_DIR,
-
-    "loss.png"
-)
-
-
-plt.savefig(
-
-    loss_plot,
-
-    dpi=150,
-
-    bbox_inches="tight"
-)
-
-
-plt.close()
+    print(
+        "✅ Entrada TFLite correcta: "
+        "[1, 224, 224, 3]"
+    )
 
 
 # ==========================================================
-# MATRIZ DE CONFUSIÓN COMO IMAGEN
+# TAMAÑO DE ARCHIVOS
 # ==========================================================
 
-plt.figure(
-
-    figsize=(8, 7)
-)
-
-
-plt.imshow(cm)
+print()
+print("=" * 70)
+print("              ARCHIVOS GENERADOS")
+print("=" * 70)
 
 
-plt.title(
-    "Matriz de Confusión - EmotiScan"
-)
+generated_files = [
+
+    BEST_MODEL_PATH,
+
+    FINAL_MODEL_PATH,
+
+    CLASS_INDICES_PATH,
+
+    TFLITE_PATH,
+
+    CSV_LOG_PATH,
+
+    REPORT_PATH,
+
+    CM_NPY_PATH,
+
+    CM_IMAGE_PATH,
+
+    ACCURACY_PATH,
+
+    LOSS_PATH,
+
+    METRICS_PATH
+
+]
 
 
-plt.colorbar()
+for filepath in generated_files:
 
+    if os.path.exists(filepath):
 
-plt.xticks(
+        size_mb = (
 
-    np.arange(NUM_CLASSES),
+            os.path.getsize(filepath)
 
-    CLASSES,
+            /
 
-    rotation=45,
+            (1024 * 1024)
 
-    ha="right"
-)
+        )
 
+        print(
 
-plt.yticks(
+            f"✅ {filepath} "
+            f"({size_mb:.2f} MB)"
 
-    np.arange(NUM_CLASSES),
+        )
 
-    CLASSES
-)
+    else:
 
+        print(
 
-threshold = cm.max() / 2.0
+            f"❌ NO GENERADO: "
+            f"{filepath}"
 
-
-for i in range(NUM_CLASSES):
-
-    for j in range(NUM_CLASSES):
-
-        plt.text(
-
-            j,
-
-            i,
-
-            str(cm[i, j]),
-
-            ha="center",
-
-            va="center",
-
-            color=(
-                "white"
-                if cm[i, j] > threshold
-                else "black"
-            )
         )
 
 
-plt.xlabel(
-    "Predicción"
-)
-
-plt.ylabel(
-    "Real"
-)
-
-
-plt.tight_layout()
-
-
-cm_plot = os.path.join(
-
-    RESULTS_DIR,
-
-    "matriz_confusion.png"
-)
-
-
-plt.savefig(
-
-    cm_plot,
-
-    dpi=150,
-
-    bbox_inches="tight"
-)
-
-
-plt.close()
-
-
 # ==========================================================
-# FINAL
+# RESULTADO FINAL
 # ==========================================================
 
-logger.info("")
-logger.info("=" * 70)
-logger.info("ENTRENAMIENTO FINALIZADO")
-logger.info("=" * 70)
+print()
+print("=" * 70)
+print("              ENTRENAMIENTO FINALIZADO")
+print("=" * 70)
 
+print()
 
-logger.info(
-    f"Modelo final:\n{MODEL_PATH}"
+print(
+    f"Accuracy TEST: "
+    f"{accuracy * 100:.2f}%"
 )
 
+print()
 
-logger.info(
-    f"Mejor modelo:\n{CHECKPOINT_PATH}"
+print(
+    "Modelos:"
 )
 
-
-logger.info(
-    f"Resultados:\n{RESULTS_DIR}"
+print(
+    "✅ modelo/mejor_modelo.keras"
 )
 
-
-logger.info("")
-logger.info("Archivos generados:")
-
-logger.info(
-    "  - modelo/modelo_emociones.keras"
+print(
+    "✅ modelo/modelo_emociones.keras"
 )
 
-logger.info(
-    "  - modelo/mejor_modelo.keras"
+print(
+    "✅ modelo/modelo_resnet50_emociones.tflite"
 )
 
-logger.info(
-    "  - modelo/class_indices.json"
+print()
+
+print(
+    "Resultados:"
 )
 
-logger.info(
-    "  - resultados/entrenamiento.csv"
+print(
+    "✅ resultados/classification_report.txt"
 )
 
-logger.info(
-    "  - resultados/classification_report.txt"
+print(
+    "✅ resultados/matriz_confusion.png"
 )
 
-logger.info(
-    "  - resultados/metricas.json"
+print(
+    "✅ resultados/accuracy.png"
 )
 
-logger.info(
-    "  - resultados/matriz_confusion.npy"
+print(
+    "✅ resultados/loss.png"
 )
 
-logger.info(
-    "  - resultados/matriz_confusion.png"
+print(
+    "✅ resultados/metricas.json"
 )
 
-logger.info(
-    "  - resultados/accuracy.png"
-)
+print()
 
-logger.info(
-    "  - resultados/loss.png"
+print(
+    "🎉 EmotiScan terminó el entrenamiento."
 )

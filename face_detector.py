@@ -34,8 +34,10 @@ os.makedirs(
 # CARGAR HAAR CASCADE
 # ==========================================================
 
-HAAR_PATH = cv2.data.haarcascades + \
+HAAR_PATH = os.path.join(
+    cv2.data.haarcascades,
     "haarcascade_frontalface_default.xml"
+)
 
 face_cascade = cv2.CascadeClassifier(
     HAAR_PATH
@@ -44,7 +46,8 @@ face_cascade = cv2.CascadeClassifier(
 if face_cascade.empty():
 
     logger.error(
-        "❌ No se pudo cargar Haar Cascade"
+        "❌ No se pudo cargar Haar Cascade: %s",
+        HAAR_PATH
     )
 
     raise RuntimeError(
@@ -63,6 +66,13 @@ else:
 # ==========================================================
 
 def guardar_debug(nombre, imagen):
+    """
+    Guarda una imagen para verificar qué rostro
+    fue detectado y recortado.
+
+    Esto NO participa en la predicción.
+    Solo sirve para depuración.
+    """
 
     try:
 
@@ -74,25 +84,50 @@ def guardar_debug(nombre, imagen):
 
             return
 
+        if not isinstance(imagen, np.ndarray):
+
+            logger.warning(
+                "⚠️ No se puede guardar debug: formato inválido"
+            )
+
+            return
+
+        if imagen.size == 0:
+
+            logger.warning(
+                "⚠️ No se puede guardar debug: imagen vacía"
+            )
+
+            return
+
         ruta = os.path.join(
             DEBUG_DIR,
             nombre
         )
 
-        cv2.imwrite(
+        resultado = cv2.imwrite(
             ruta,
             imagen
         )
 
-        logger.info(
-            "💾 Debug guardado: %s",
-            ruta
-        )
+        if resultado:
+
+            logger.info(
+                "💾 Imagen de debug guardada: %s",
+                ruta
+            )
+
+        else:
+
+            logger.warning(
+                "⚠️ OpenCV no pudo guardar: %s",
+                ruta
+            )
 
     except Exception as e:
 
         logger.warning(
-            "⚠️ No se pudo guardar debug: %s",
+            "⚠️ Error guardando imagen de debug: %s",
             e
         )
 
@@ -102,8 +137,16 @@ def guardar_debug(nombre, imagen):
 # ==========================================================
 
 def preparar_imagen(img):
+    """
+    Verifica que la imagen sea válida y la convierte
+    al formato BGR utilizado por OpenCV.
+    """
 
     try:
+
+        # --------------------------------------------------
+        # Validar None
+        # --------------------------------------------------
 
         if img is None:
 
@@ -113,6 +156,10 @@ def preparar_imagen(img):
 
             return None
 
+        # --------------------------------------------------
+        # Validar numpy
+        # --------------------------------------------------
+
         if not isinstance(img, np.ndarray):
 
             logger.error(
@@ -120,6 +167,10 @@ def preparar_imagen(img):
             )
 
             return None
+
+        # --------------------------------------------------
+        # Validar imagen vacía
+        # --------------------------------------------------
 
         if img.size == 0:
 
@@ -129,26 +180,48 @@ def preparar_imagen(img):
 
             return None
 
+        # --------------------------------------------------
         # Imagen en escala de grises
+        # --------------------------------------------------
+
         if len(img.shape) == 2:
+
+            logger.info(
+                "🔄 Imagen en escala de grises. "
+                "Convirtiendo a BGR..."
+            )
 
             img = cv2.cvtColor(
                 img,
                 cv2.COLOR_GRAY2BGR
             )
 
-        # Imagen RGBA
+        # --------------------------------------------------
+        # Imagen RGBA / BGRA
+        # --------------------------------------------------
+
         elif len(img.shape) == 3 and img.shape[2] == 4:
+
+            logger.info(
+                "🔄 Imagen BGRA. Eliminando canal alfa..."
+            )
 
             img = cv2.cvtColor(
                 img,
                 cv2.COLOR_BGRA2BGR
             )
 
+        # --------------------------------------------------
         # Imagen BGR normal
+        # --------------------------------------------------
+
         elif len(img.shape) == 3 and img.shape[2] == 3:
 
             pass
+
+        # --------------------------------------------------
+        # Formato no compatible
+        # --------------------------------------------------
 
         else:
 
@@ -177,10 +250,25 @@ def preparar_imagen(img):
 
 
 # ==========================================================
-# DETECCIÓN HAAR
+# DETECTAR ROSTRO CON HAAR
 # ==========================================================
 
 def detectar_con_haar(img):
+    """
+    Detecta rostros utilizando Haar Cascade.
+
+    Si encuentra varios rostros:
+    1. Agrupa detecciones duplicadas.
+    2. Descarta rostros demasiado pequeños.
+    3. Prioriza el rostro más cercano al centro.
+    4. Recorta el rostro con un margen.
+
+    Retorna:
+        rostro recortado como numpy.ndarray
+
+    Si no encuentra rostro:
+        None
+    """
 
     try:
 
@@ -188,9 +276,9 @@ def detectar_con_haar(img):
             "🔎 Iniciando detección Haar Cascade..."
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # PREPARAR IMAGEN
-        # --------------------------------------------------
+        # ==================================================
 
         img = preparar_imagen(img)
 
@@ -198,18 +286,31 @@ def detectar_con_haar(img):
 
             return None
 
-        # --------------------------------------------------
-        # ESCALA DE GRISES
-        # --------------------------------------------------
+        logger.info(
+            "📷 Imagen para detección: %s",
+            img.shape
+        )
+
+        # ==================================================
+        # CONVERTIR A ESCALA DE GRISES
+        # ==================================================
 
         gray = cv2.cvtColor(
             img,
             cv2.COLOR_BGR2GRAY
         )
 
-        # --------------------------------------------------
+        # ==================================================
+        # MEJORAR CONTRASTE
+        # ==================================================
+
+        gray = cv2.equalizeHist(
+            gray
+        )
+
+        # ==================================================
         # SUAVIZADO
-        # --------------------------------------------------
+        # ==================================================
 
         gray = cv2.GaussianBlur(
             gray,
@@ -217,9 +318,9 @@ def detectar_con_haar(img):
             0
         )
 
-        # --------------------------------------------------
-        # DETECCIÓN
-        # --------------------------------------------------
+        # ==================================================
+        # DETECTAR ROSTROS
+        # ==================================================
 
         faces = face_cascade.detectMultiScale(
             gray,
@@ -229,22 +330,26 @@ def detectar_con_haar(img):
             maxSize=(500, 500)
         )
 
-        if len(faces) == 0:
+        # ==================================================
+        # VALIDAR DETECCIONES
+        # ==================================================
 
-            logger.error(
-                "❌ No se encontró ningún rostro"
+        if faces is None or len(faces) == 0:
+
+            logger.warning(
+                "⚠️ Haar Cascade no encontró ningún rostro"
             )
 
             return None
 
         logger.info(
-            "👤 Detecciones encontradas: %d",
+            "👤 Haar Cascade encontró %d rostro(s)",
             len(faces)
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # MOSTRAR DETECCIONES
-        # --------------------------------------------------
+        # ==================================================
 
         for i, (x, y, w, h) in enumerate(faces):
 
@@ -260,7 +365,7 @@ def detectar_con_haar(img):
             )
 
         # ==================================================
-        # ELIMINAR DETECCIONES DUPLICADAS
+        # CONVERTIR A LISTA DE RECTÁNGULOS
         # ==================================================
 
         rectangulos = []
@@ -268,20 +373,32 @@ def detectar_con_haar(img):
         for (x, y, w, h) in faces:
 
             rectangulos.append(
-                [int(x), int(y), int(w), int(h)]
+                [
+                    int(x),
+                    int(y),
+                    int(w),
+                    int(h)
+                ]
             )
 
-        # Haar puede detectar varias veces el mismo rostro.
-        # groupRectangles permite agrupar esas detecciones.
+        # ==================================================
+        # AGRUPAR DETECCIONES DUPLICADAS
+        # ==================================================
+
         rectangulos_agrupados, pesos = cv2.groupRectangles(
             rectangulos,
             groupThreshold=1,
             eps=0.4
         )
 
-        # Si el agrupamiento elimina todo, usamos las
-        # detecciones originales.
-        if len(rectangulos_agrupados) > 0:
+        # ==================================================
+        # SELECCIONAR DETECCIONES FINALES
+        # ==================================================
+
+        if (
+            rectangulos_agrupados is not None
+            and len(rectangulos_agrupados) > 0
+        ):
 
             faces_finales = rectangulos_agrupados
 
@@ -293,7 +410,7 @@ def detectar_con_haar(img):
         else:
 
             faces_finales = np.array(
-                faces
+                rectangulos
             )
 
             logger.info(
@@ -301,7 +418,7 @@ def detectar_con_haar(img):
             )
 
         # ==================================================
-        # SELECCIONAR EL ROSTRO PRINCIPAL
+        # INFORMACIÓN DE LA IMAGEN
         # ==================================================
 
         alto_img, ancho_img = img.shape[:2]
@@ -310,6 +427,10 @@ def detectar_con_haar(img):
         centro_img_y = alto_img / 2
 
         candidatos = []
+
+        # ==================================================
+        # ANALIZAR CANDIDATOS
+        # ==================================================
 
         for rect in faces_finales:
 
@@ -322,7 +443,8 @@ def detectar_con_haar(img):
             centro_y = y + h / 2
 
             distancia = np.sqrt(
-                (centro_x - centro_img_x) ** 2 +
+                (centro_x - centro_img_x) ** 2
+                +
                 (centro_y - centro_img_y) ** 2
             )
 
@@ -339,10 +461,15 @@ def detectar_con_haar(img):
                 }
             )
 
-        # Primero priorizamos rostros razonablemente grandes
+        # ==================================================
+        # FILTRAR ROSTROS PEQUEÑOS
+        # ==================================================
+
         candidatos_validos = [
-            c for c in candidatos
-            if c["w"] >= 80 and c["h"] >= 80
+            c
+            for c in candidatos
+            if c["w"] >= 80
+            and c["h"] >= 80
         ]
 
         if len(candidatos_validos) == 0:
@@ -353,17 +480,15 @@ def detectar_con_haar(img):
 
             return None
 
-        # Seleccionar el candidato más cercano al centro,
-        # pero dando importancia también al tamaño.
-        #
-        # Esto evita que una detección gigante y desplazada
-        # gane simplemente por tener mayor área.
+        # ==================================================
+        # SELECCIONAR ROSTRO PRINCIPAL
+        # ==================================================
 
         mejor = min(
             candidatos_validos,
-            key=lambda c: (
-                c["distancia"] / max(c["w"], c["h"])
-            )
+            key=lambda c:
+            c["distancia"] /
+            max(c["w"], c["h"])
         )
 
         x = mejor["x"]
@@ -381,21 +506,21 @@ def detectar_con_haar(img):
             w * h
         )
 
-        # --------------------------------------------------
-        # MARGEN DEL 5%
-        # --------------------------------------------------
+        # ==================================================
+        # AGREGAR MARGEN
+        # ==================================================
 
         margen_x = int(
-            w * 0.05
+            w * 0.15
         )
 
         margen_y = int(
-            h * 0.05
+            h * 0.20
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # COORDENADAS FINALES
-        # --------------------------------------------------
+        # ==================================================
 
         x1 = max(
             0,
@@ -426,16 +551,28 @@ def detectar_con_haar(img):
             y2
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # RECORTAR ROSTRO
-        # --------------------------------------------------
+        # ==================================================
 
         rostro = img[
             y1:y2,
             x1:x2
         ].copy()
 
-        if rostro is None or rostro.size == 0:
+        # ==================================================
+        # VALIDAR RECORTE
+        # ==================================================
+
+        if rostro is None:
+
+            logger.error(
+                "❌ El recorte devolvió None"
+            )
+
+            return None
+
+        if rostro.size == 0:
 
             logger.error(
                 "❌ El recorte del rostro está vacío"
@@ -461,20 +598,24 @@ def detectar_con_haar(img):
             rostro.shape
         )
 
-        # --------------------------------------------------
-        # GUARDAR ROSTRO
-        # --------------------------------------------------
+        # ==================================================
+        # GUARDAR ROSTRO DETECTADO
+        # ==================================================
 
         guardar_debug(
             "rostro_detectado.jpg",
             rostro
         )
 
-        # --------------------------------------------------
-        # DIBUJAR RECTÁNGULO
-        # --------------------------------------------------
+        # ==================================================
+        # DIBUJAR RECTÁNGULOS
+        # ==================================================
 
         img_con_rect = img.copy()
+
+        # --------------------------------------------------
+        # Rectángulos de todas las detecciones
+        # --------------------------------------------------
 
         for rect in faces_finales:
 
@@ -483,7 +624,6 @@ def detectar_con_haar(img):
                 rect
             )
 
-            # Rectángulo de todas las detecciones
             cv2.rectangle(
                 img_con_rect,
                 (fx, fy),
@@ -492,7 +632,10 @@ def detectar_con_haar(img):
                 2
             )
 
+        # --------------------------------------------------
         # Rectángulo del rostro seleccionado
+        # --------------------------------------------------
+
         cv2.rectangle(
             img_con_rect,
             (x1, y1),
@@ -500,6 +643,10 @@ def detectar_con_haar(img):
             (0, 255, 0),
             3
         )
+
+        # ==================================================
+        # GUARDAR DEBUG CON RECTÁNGULOS
+        # ==================================================
 
         guardar_debug(
             "rostro_con_rectangulo.jpg",
@@ -521,7 +668,7 @@ def detectar_con_haar(img):
     except Exception as e:
 
         logger.exception(
-            "❌ Error detectando rostro: %s",
+            "❌ Error detectando rostro con Haar: %s",
             e
         )
 
@@ -533,30 +680,140 @@ def detectar_con_haar(img):
 # ==========================================================
 
 def detectar_rostro(img):
+    """
+    Función principal para detectar y recortar un rostro.
+
+    Flujo:
+
+        Imagen original
+              ↓
+        Validación
+              ↓
+        Haar Cascade
+              ↓
+        Selección del rostro principal
+              ↓
+        Recorte
+              ↓
+        Guardar debug
+              ↓
+        Retornar rostro
+
+    IMPORTANTE:
+
+    Este archivo NO predice emociones.
+
+    El rostro retornado debe enviarse posteriormente
+    al modelo de reconocimiento de emociones.
+    """
 
     try:
 
         logger.info(
-            "🚀 Iniciando proceso de detección facial..."
+            "=========================================="
         )
+
+        logger.info(
+            "👤 INICIANDO DETECCIÓN DE ROSTRO"
+        )
+
+        logger.info(
+            "=========================================="
+        )
+
+        # ==================================================
+        # PREPARAR IMAGEN
+        # ==================================================
+
+        img = preparar_imagen(
+            img
+        )
+
+        if img is None:
+
+            logger.error(
+                "❌ Imagen inválida"
+            )
+
+            return None
+
+        # ==================================================
+        # INFORMACIÓN DE LA IMAGEN
+        # ==================================================
+
+        logger.info(
+            "📷 Imagen recibida correctamente"
+        )
+
+        logger.info(
+            "📐 Dimensiones: %s",
+            img.shape
+        )
+
+        logger.info(
+            "💾 Tipo: %s",
+            img.dtype
+        )
+
+        # ==================================================
+        # GUARDAR ORIGINAL
+        # ==================================================
+
+        guardar_debug(
+            "imagen_original.jpg",
+            img
+        )
+
+        # ==================================================
+        # DETECTAR ROSTRO
+        # ==================================================
 
         rostro = detectar_con_haar(
             img
         )
 
-        if rostro is None:
+        # ==================================================
+        # ROSTRO ENCONTRADO
+        # ==================================================
 
-            logger.error(
-                "❌ No fue posible detectar un rostro"
+        if rostro is not None:
+
+            logger.info(
+                "=========================================="
             )
 
-            return None
+            logger.info(
+                "✅ ROSTRO DETECTADO CORRECTAMENTE"
+            )
 
-        logger.info(
-            "✅ Proceso de detección terminado correctamente"
+            logger.info(
+                "📐 Tamaño: %s",
+                rostro.shape
+            )
+
+            logger.info(
+                "=========================================="
+            )
+
+            return rostro
+
+        # ==================================================
+        # NO ENCONTRADO
+        # ==================================================
+
+        logger.error(
+            "=========================================="
         )
 
-        return rostro
+        logger.error(
+            "❌ NO SE ENCONTRÓ NINGÚN ROSTRO"
+        )
+
+        logger.error(
+            "=========================================="
+        )
+
+        return None
 
     except Exception as e:
 
@@ -566,3 +823,124 @@ def detectar_rostro(img):
         )
 
         return None
+
+
+# ==========================================================
+# PRUEBA LOCAL
+# ==========================================================
+
+if __name__ == "__main__":
+
+    logger.info(
+        "=========================================="
+    )
+
+    logger.info(
+        "   PRUEBA DEL DETECTOR DE ROSTROS"
+    )
+
+    logger.info(
+        "=========================================="
+    )
+
+    # ======================================================
+    # IMAGEN DE PRUEBA
+    # ======================================================
+
+    ruta_imagen = os.path.join(
+        BASE_DIR,
+        "test.jpg"
+    )
+
+    logger.info(
+        "📂 Imagen de prueba: %s",
+        ruta_imagen
+    )
+
+    # ======================================================
+    # CARGAR IMAGEN
+    # ======================================================
+
+    imagen = cv2.imread(
+        ruta_imagen
+    )
+
+    # ======================================================
+    # VERIFICAR IMAGEN
+    # ======================================================
+
+    if imagen is None:
+
+        logger.error(
+            "❌ No se encontró la imagen de prueba"
+        )
+
+        logger.error(
+            "📂 Ruta: %s",
+            ruta_imagen
+        )
+
+    else:
+
+        logger.info(
+            "✅ Imagen de prueba cargada"
+        )
+
+        logger.info(
+            "📐 Tamaño: %s",
+            imagen.shape
+        )
+
+        # ==================================================
+        # DETECTAR ROSTRO
+        # ==================================================
+
+        rostro = detectar_rostro(
+            imagen
+        )
+
+        # ==================================================
+        # RESULTADO
+        # ==================================================
+
+        if rostro is not None:
+
+            logger.info(
+                "=========================================="
+            )
+
+            logger.info(
+                "✅ PRUEBA EXITOSA"
+            )
+
+            logger.info(
+                "📐 Tamaño del rostro: %s",
+                rostro.shape
+            )
+
+            logger.info(
+                "📂 Rostros de debug guardados en:"
+            )
+
+            logger.info(
+                "%s",
+                DEBUG_DIR
+            )
+
+            logger.info(
+                "=========================================="
+            )
+
+        else:
+
+            logger.error(
+                "=========================================="
+            )
+
+            logger.error(
+                "❌ PRUEBA FALLIDA"
+            )
+
+            logger.error(
+                "=========================================="
+            )

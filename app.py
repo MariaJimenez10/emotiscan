@@ -1,84 +1,229 @@
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    session,
+    jsonify,
+    send_from_directory
+)
+
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
+
+from datetime import datetime
+
+from flask_cors import CORS
+
 import os
 import cv2
 import base64
 import logging
 import numpy as np
 import sqlite3
-
-from flask import Flask, render_template, request, jsonify, session, redirect
-from flask_cors import CORS
+import json
+import gc
 
 
 # ==========================================================
-# IMPORTAR MÓDULOS LOCALES
+# CONFIGURACIÓN DE LOGGING
+# ==========================================================
+
+logging.basicConfig(
+    level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
+
+
+# ==========================================================
+# IMPORTAR MÓDULOS DEL PROYECTO
 # ==========================================================
 
 import face_detector
 import predict
 
+from mensajes import obtener_mensaje
+
 
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN FLASK
 # ==========================================================
 
 app = Flask(__name__)
 
-app.secret_key = "tu_clave_secreta_aqui"
+app.secret_key = os.getenv(
+    "SECRET_KEY",
+    "emocionesIA_segura_2026"
+)
 
 CORS(app)
 
-logging.basicConfig(level=logging.INFO)
 
-logger = logging.getLogger(__name__)
+# ==========================================================
+# DIRECTORIO PRINCIPAL
+# ==========================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-DB_PATH = os.path.join(BASE_DIR, "emotiscan.db")
-
-DEBUG_DIR = os.path.join(BASE_DIR, "debug_rostros")
-
-os.makedirs(DEBUG_DIR, exist_ok=True)
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
 
 # ==========================================================
 # BASE DE DATOS
 # ==========================================================
 
+if os.environ.get("RENDER"):
+
+    DB_PATH = "/tmp/emotiscan.db"
+
+else:
+
+    DB_PATH = os.path.join(
+        BASE_DIR,
+        "emotiscan.db"
+    )
+
+
+# ==========================================================
+# DIRECTORIOS
+# ==========================================================
+
+DEBUG_DIR = os.path.join(
+    BASE_DIR,
+    "debug_rostros"
+)
+
+ROSTROS_DIR = os.path.join(
+    BASE_DIR,
+    "rostros_detectados"
+)
+
+
+os.makedirs(
+    DEBUG_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    ROSTROS_DIR,
+    exist_ok=True
+)
+
+
+# ==========================================================
+# CONSEJOS
+# ==========================================================
+
+CONSEJOS = {
+
+    "Enojo":
+        "😡 Respira profundamente y cuenta hasta 10.",
+
+    "Felicidad":
+        "😊 ¡Qué bien! Disfruta este momento.",
+
+    "Tristeza":
+        "😢 Habla con alguien de confianza.",
+
+    "Sorpresa":
+        "😮 Tómate un momento para procesarlo.",
+
+    "Neutral":
+        "😐 Estás en equilibrio.",
+
+    "Furia":
+        "😡 Respira profundamente y cuenta hasta 10.",
+
+    "Alegria":
+        "😊 ¡Qué bien! Disfruta este momento."
+
+}
+
+
+# ==========================================================
+# CONEXIÓN BASE DE DATOS
+# ==========================================================
+
+def get_db_connection():
+
+    conn = sqlite3.connect(
+        DB_PATH,
+        timeout=30
+    )
+
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+
+# ==========================================================
+# INICIALIZAR BASE DE DATOS
+# ==========================================================
+
 def init_db():
 
     try:
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
 
         cursor = conn.cursor()
 
-        # --------------------------------------------------
-        # USUARIOS
-        # --------------------------------------------------
+        # ==================================================
+        # TABLA USUARIOS
+        # ==================================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
+
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
+
+                nombre TEXT,
+
+                email TEXT UNIQUE,
+
                 password TEXT NOT NULL,
-                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+                usuario TEXT UNIQUE,
+
+                fecha_creacion
+                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
             )
         """)
 
-        # --------------------------------------------------
-        # EMOCIONES
-        # --------------------------------------------------
+        # ==================================================
+        # TABLA EMOCIONES
+        # ==================================================
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS emociones (
+
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                usuario_id INTEGER NOT NULL,
+
+                usuario_id INTEGER,
+
+                usuario TEXT,
+
                 emocion TEXT NOT NULL,
-                confianza REAL NOT NULL,
+
+                confianza REAL DEFAULT 0,
+
                 todas_emociones TEXT,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
+
+                mensaje TEXT,
+
+                fecha
+                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                fecha_registro
+                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY(usuario_id)
+                    REFERENCES usuarios(id)
+
             )
         """)
 
@@ -86,54 +231,60 @@ def init_db():
 
         conn.close()
 
-        logger.info("✅ Base de datos inicializada")
+        logger.info(
+            "✅ Base de datos inicializada correctamente"
+        )
 
     except Exception as e:
 
-        logger.error(
-            f"❌ Error inicializando BD: {e}"
+        logger.exception(
+            f"❌ Error inicializando base de datos: {e}"
         )
 
 
-def get_db_connection():
+# ==========================================================
+# COMPROBAR USUARIO AUTENTICADO
+# ==========================================================
 
-    return sqlite3.connect(DB_PATH)
+def usuario_autenticado():
+
+    return (
+        session.get("usuario_id")
+        or session.get("user")
+    )
 
 
 # ==========================================================
-# PÁGINA DE INICIO
+# PÁGINA PRINCIPAL
 # ==========================================================
 
 @app.route("/")
 def index():
 
-    # Si ya inició sesión, mostramos el inicio
-    # con acceso a la detección.
+    if usuario_autenticado():
 
-    if "usuario_id" in session:
-
-        return render_template(
-            "inicio.html",
-            nombre=session.get(
-                "usuario_nombre",
-                "Usuario"
-            )
+        return redirect(
+            "/inicio"
         )
 
-    # Si no ha iniciado sesión,
-    # también mostramos la portada.
+    error = request.args.get(
+        "error"
+    )
 
     return render_template(
-        "inicio.html",
-        nombre=None
+        "login.html",
+        error=error
     )
 
 
 # ==========================================================
-# REGISTRO - PÁGINA
+# PÁGINA REGISTRO
 # ==========================================================
 
-@app.route("/registro", methods=["GET"])
+@app.route(
+    "/registro",
+    methods=["GET"]
+)
 def registro_pagina():
 
     return render_template(
@@ -142,133 +293,29 @@ def registro_pagina():
 
 
 # ==========================================================
-# REGISTRO - PROCESAR
+# RUTA REGISTER
 # ==========================================================
 
-@app.route("/registro", methods=["POST"])
-def registro():
+@app.route(
+    "/register",
+    methods=["GET"]
+)
+def register():
 
-    try:
-
-        data = request.get_json(
-            silent=True
-        )
-
-        if not data:
-
-            return jsonify({
-
-                "success": False,
-
-                "error": "No se recibieron datos"
-
-            }), 400
-
-
-        nombre = data.get("nombre")
-
-        email = data.get("email")
-
-        password = data.get("password")
-
-
-        if not nombre or not email or not password:
-
-            return jsonify({
-
-                "success": False,
-
-                "error": "Todos los campos son obligatorios"
-
-            }), 400
-
-
-        conn = get_db_connection()
-
-        cursor = conn.cursor()
-
-
-        cursor.execute(
-            """
-            INSERT INTO usuarios
-            (nombre, email, password)
-            VALUES (?, ?, ?)
-            """,
-            (
-                nombre,
-                email,
-                password
-            )
-        )
-
-
-        conn.commit()
-
-        conn.close()
-
-
-        logger.info(
-            f"✅ Usuario registrado: {email}"
-        )
-
-
-        return jsonify({
-
-            "success": True,
-
-            "mensaje":
-                "Registro exitoso. Ahora inicia sesión."
-
-        })
-
-
-    except sqlite3.IntegrityError:
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "El email ya está registrado"
-
-        }), 400
-
-
-    except Exception as e:
-
-        logger.exception(
-            "❌ Error en registro"
-        )
-
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "Error interno del servidor"
-
-        }), 500
-
-
-# ==========================================================
-# LOGIN - PÁGINA
-# ==========================================================
-
-@app.route("/login", methods=["GET"])
-def login_pagina():
-
-    return render_template(
-        "login.html"
+    return redirect(
+        "/registro"
     )
 
 
 # ==========================================================
-# LOGIN - PROCESAR
+# PROCESAR REGISTRO
 # ==========================================================
 
-@app.route("/login", methods=["POST"])
-def login():
+@app.route(
+    "/registro",
+    methods=["POST"]
+)
+def registro():
 
     try:
 
@@ -287,87 +334,120 @@ def login():
 
             }), 400
 
+        nombre = (
+            data.get("nombre")
+            or data.get("usuario")
+        )
 
-        email = data.get("email")
+        email = data.get(
+            "email"
+        )
 
-        password = data.get("password")
+        password = data.get(
+            "password"
+        )
 
+        # ==================================================
+        # VALIDAR NOMBRE
+        # ==================================================
 
-        if not email or not password:
+        if not nombre:
 
             return jsonify({
 
                 "success": False,
 
                 "error":
-                    "Email y contraseña son obligatorios"
+                    "El nombre es obligatorio"
 
             }), 400
 
+        # ==================================================
+        # VALIDAR CONTRASEÑA
+        # ==================================================
+
+        if not password:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "La contraseña es obligatoria"
+
+            }), 400
+
+        # ==================================================
+        # GENERAR HASH
+        # ==================================================
+
+        password_hash = generate_password_hash(
+            password
+        )
+
+        # ==================================================
+        # GUARDAR USUARIO
+        # ==================================================
 
         conn = get_db_connection()
 
         cursor = conn.cursor()
 
-
         cursor.execute(
             """
-            SELECT id, nombre
-            FROM usuarios
-            WHERE email = ?
-            AND password = ?
+            INSERT INTO usuarios
+            (
+                nombre,
+                email,
+                password,
+                usuario
+            )
+            VALUES (?, ?, ?, ?)
             """,
             (
-                email,
-                password
+                nombre,
+                email if email else None,
+                password_hash,
+                nombre
             )
         )
 
-
-        usuario = cursor.fetchone()
+        conn.commit()
 
         conn.close()
 
+        logger.info(
+            f"✅ Usuario registrado: {nombre}"
+        )
 
-        if usuario:
+        return jsonify({
 
-            session["usuario_id"] = usuario[0]
+            "success": True,
 
-            session["usuario_nombre"] = usuario[1]
+            "mensaje":
+                "Registro exitoso. Ahora inicia sesión.",
 
+            "redirect":
+                "/login"
 
-            logger.info(
-                f"✅ Login correcto: {email}"
-            )
+        })
 
-
-            return jsonify({
-
-                "success": True,
-
-                "nombre": usuario[1],
-
-                "redirect": "/inicio"
-
-            })
-
+    except sqlite3.IntegrityError:
 
         return jsonify({
 
             "success": False,
 
             "error":
-                "Credenciales incorrectas"
+                "El usuario o email ya está registrado"
 
-        })
-
+        }), 400
 
     except Exception as e:
 
         logger.exception(
-            "❌ Error en login"
+            f"❌ Error en registro: {e}"
         )
-
 
         return jsonify({
 
@@ -380,147 +460,706 @@ def login():
 
 
 # ==========================================================
-# INICIO DESPUÉS DEL LOGIN
+# REGISTRO FORMULARIO ANTIGUO
+# ==========================================================
+
+@app.route(
+    "/guardar",
+    methods=["POST"]
+)
+def guardar_usuario():
+
+    try:
+
+        usuario = request.form.get(
+            "usuario"
+        )
+
+        password = request.form.get(
+            "password"
+        )
+
+        if not usuario or not password:
+
+            return (
+                "❌ Usuario y contraseña son requeridos",
+                400
+            )
+
+        password_hash = generate_password_hash(
+            password
+        )
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO usuarios
+            (
+                usuario,
+                nombre,
+                password
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                usuario,
+                usuario,
+                password_hash
+            )
+        )
+
+        conn.commit()
+
+        conn.close()
+
+        return redirect(
+            "/"
+        )
+
+    except sqlite3.IntegrityError:
+
+        return (
+            "⚠️ El usuario ya existe. "
+            "<a href='/registro'>Intentar de nuevo</a>"
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error registrando usuario: {e}"
+        )
+
+        return (
+            "❌ Error interno",
+            500
+        )
+
+
+# ==========================================================
+# LOGIN - PÁGINA
+# ==========================================================
+
+@app.route(
+    "/login",
+    methods=["GET"]
+)
+def login_pagina():
+
+    return render_template(
+        "login.html"
+    )
+
+
+# ==========================================================
+# LOGIN - PROCESAR
+# ==========================================================
+
+@app.route(
+    "/login",
+    methods=["POST"]
+)
+def login():
+
+    try:
+
+        # ==================================================
+        # LOGIN MEDIANTE JSON
+        # ==================================================
+
+        if request.is_json:
+
+            data = request.get_json(
+                silent=True
+            )
+
+            if not data:
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "No se recibieron datos"
+
+                }), 400
+
+            email = data.get(
+                "email"
+            )
+
+            usuario = data.get(
+                "usuario"
+            )
+
+            password = data.get(
+                "password"
+            )
+
+            # ==================================================
+            # VALIDAR CONTRASEÑA
+            # ==================================================
+
+            if not password:
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "La contraseña es obligatoria"
+
+                }), 400
+
+            # ==================================================
+            # CONECTAR BD
+            # ==================================================
+
+            conn = get_db_connection()
+
+            cursor = conn.cursor()
+
+            # ==================================================
+            # BUSCAR POR EMAIL
+            # ==================================================
+
+            if email:
+
+                cursor.execute(
+                    """
+                    SELECT
+                        id,
+                        nombre,
+                        usuario,
+                        email,
+                        password
+                    FROM usuarios
+                    WHERE email = ?
+                    """,
+                    (email,)
+                )
+
+            # ==================================================
+            # BUSCAR POR USUARIO
+            # ==================================================
+
+            elif usuario:
+
+                cursor.execute(
+                    """
+                    SELECT
+                        id,
+                        nombre,
+                        usuario,
+                        email,
+                        password
+                    FROM usuarios
+                    WHERE usuario = ?
+                    """,
+                    (usuario,)
+                )
+
+            else:
+
+                conn.close()
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "Debes ingresar usuario o email"
+
+                }), 400
+
+            resultado = cursor.fetchone()
+
+            conn.close()
+
+            # ==================================================
+            # COMPROBAR SI EXISTE
+            # ==================================================
+
+            if resultado:
+
+                password_guardada = (
+                    resultado["password"]
+                )
+
+                password_correcta = False
+
+                # ==================================================
+                # COMPROBAR PASSWORD HASH
+                # ==================================================
+
+                try:
+
+                    password_correcta = check_password_hash(
+                        password_guardada,
+                        password
+                    )
+
+                except Exception:
+
+                    password_correcta = False
+
+                # ==================================================
+                # COMPATIBILIDAD PASSWORD ANTIGUA
+                # ==================================================
+
+                if not password_correcta:
+
+                    if password_guardada == password:
+
+                        password_correcta = True
+
+                # ==================================================
+                # LOGIN CORRECTO
+                # ==================================================
+
+                if password_correcta:
+
+                    session.clear()
+
+                    session["usuario_id"] = (
+                        resultado["id"]
+                    )
+
+                    session["usuario_nombre"] = (
+                        resultado["nombre"]
+                        or resultado["usuario"]
+                        or "Usuario"
+                    )
+
+                    session["user"] = (
+                        resultado["usuario"]
+                        or resultado["nombre"]
+                        or "Usuario"
+                    )
+
+                    logger.info(
+                        "✅ Login correcto"
+                    )
+
+                    return jsonify({
+
+                        "success": True,
+
+                        "nombre":
+                            session["usuario_nombre"],
+
+                        "redirect":
+                            "/inicio"
+
+                    })
+
+            # ==================================================
+            # CREDENCIALES INCORRECTAS
+            # ==================================================
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Credenciales incorrectas"
+
+            }), 401
+
+        # ==================================================
+        # LOGIN MEDIANTE FORMULARIO
+        # ==================================================
+
+        usuario = request.form.get(
+            "usuario"
+        )
+
+        password = request.form.get(
+            "password"
+        )
+
+        if not usuario or not password:
+
+            return (
+                "❌ Usuario y contraseña son requeridos",
+                400
+            )
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                nombre,
+                usuario,
+                password
+            FROM usuarios
+            WHERE usuario = ?
+            """,
+            (usuario,)
+        )
+
+        resultado = cursor.fetchone()
+
+        conn.close()
+
+        # ==================================================
+        # COMPROBAR USUARIO
+        # ==================================================
+
+        if resultado:
+
+            password_guardada = (
+                resultado["password"]
+            )
+
+            password_correcta = False
+
+            # ==================================================
+            # COMPROBAR HASH
+            # ==================================================
+
+            try:
+
+                password_correcta = check_password_hash(
+                    password_guardada,
+                    password
+                )
+
+            except Exception:
+
+                password_correcta = False
+
+            # ==================================================
+            # PASSWORD ANTIGUA
+            # ==================================================
+
+            if not password_correcta:
+
+                if password_guardada == password:
+
+                    password_correcta = True
+
+            # ==================================================
+            # LOGIN CORRECTO
+            # ==================================================
+
+            if password_correcta:
+
+                session.clear()
+
+                session["usuario_id"] = (
+                    resultado["id"]
+                )
+
+                session["usuario_nombre"] = (
+                    resultado["nombre"]
+                    or resultado["usuario"]
+                    or "Usuario"
+                )
+
+                session["user"] = (
+                    resultado["usuario"]
+                    or resultado["nombre"]
+                    or "Usuario"
+                )
+
+                logger.info(
+                    f"✅ Login correcto: {usuario}"
+                )
+
+                return redirect(
+                    "/inicio"
+                )
+
+        # ==================================================
+        # LOGIN INCORRECTO
+        # ==================================================
+
+        return redirect(
+            "/?error=invalid"
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error en login: {e}"
+        )
+
+        if request.is_json:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Error interno del servidor"
+
+            }), 500
+
+        return (
+            "❌ Error interno del servidor",
+            500
+        )
+
+
+# ==========================================================
+# INICIO
 # ==========================================================
 
 @app.route("/inicio")
 def inicio():
 
-    # ------------------------------------------------------
-    # COMPROBAR SESIÓN
-    # ------------------------------------------------------
+    if not usuario_autenticado():
 
-    if "usuario_id" not in session:
+        return redirect(
+            "/login"
+        )
 
-        return redirect("/login")
+    nombre = session.get(
+        "usuario_nombre",
+        session.get(
+            "user",
+            "Usuario"
+        )
+    )
 
+    ahora = datetime.now()
 
     return render_template(
 
         "inicio.html",
 
-        nombre=session.get(
-            "usuario_nombre",
-            "Usuario"
+        nombre=nombre,
+
+        usuario=nombre,
+
+        fecha=ahora.strftime(
+            "%Y-%m-%d"
+        ),
+
+        hora=ahora.strftime(
+            "%H:%M:%S"
         )
 
     )
 
 
 # ==========================================================
-# CÁMARA / DETECCIÓN
+# CÁMARA
 # ==========================================================
 
 @app.route("/camara")
 def camara():
 
-    # ------------------------------------------------------
-    # PROTEGER LA CÁMARA
-    # ------------------------------------------------------
-
-    if "usuario_id" not in session:
+    if not usuario_autenticado():
 
         logger.warning(
             "⚠️ Intento de acceder a cámara sin login"
         )
 
-        return redirect("/login")
-
-
-    # ------------------------------------------------------
-    # USUARIO AUTENTICADO
-    # ------------------------------------------------------
+        return redirect(
+            "/login"
+        )
 
     return render_template(
         "index.html"
     )
+
+
 # ==========================================================
-# HISTORIAL DE EMOCIONES
+# FUNCIÓN ANALIZAR IMAGEN
 # ==========================================================
 
-@app.route("/historial")
-def historial():
+def analizar_imagen(frame):
 
-    # Comprobar que el usuario haya iniciado sesión
-    if "usuario_id" not in session:
-        return redirect("/login")
+    if frame is None:
+
+        raise ValueError(
+            "Imagen inválida"
+        )
+
+    logger.info(
+        f"📷 Imagen recibida: {frame.shape}"
+    )
+
+    # ======================================================
+    # DETECTAR ROSTRO
+    # ======================================================
+
+    logger.info(
+        "👤 Detectando rostro..."
+    )
+
+    rostro = face_detector.detectar_rostro(
+        frame
+    )
+
+    if rostro is None:
+
+        logger.warning(
+            "⚠️ No se detectó ningún rostro"
+        )
+
+        return (
+            None,
+            0,
+            {},
+            "No se detectó ningún rostro"
+        )
+
+    logger.info(
+        f"✅ Rostro detectado: {rostro.shape}"
+    )
+
+    # ======================================================
+    # GUARDAR ROSTRO
+    # ======================================================
 
     try:
-        conn = get_db_connection()
-        conn.row_factory = sqlite3.Row
 
-        registros = conn.execute(
-            """
-            SELECT id, emocion, confianza, todas_emociones, fecha
-            FROM emociones
-            WHERE usuario_id = ?
-            ORDER BY fecha DESC
-            """,
-            (session["usuario_id"],)
-        ).fetchall()
+        timestamp = datetime.now().strftime(
+            "%Y%m%d_%H%M%S_%f"
+        )
 
-        conn.close()
+        rostro_path = os.path.join(
+            ROSTROS_DIR,
+            f"rostro_{timestamp}.jpg"
+        )
 
-        return render_template(
-            "historial.html",
-            registros=registros,
-            nombre=session.get("usuario_nombre", "Usuario")
+        cv2.imwrite(
+            rostro_path,
+            rostro
+        )
+
+        logger.info(
+            f"💾 Rostro guardado: {rostro_path}"
         )
 
     except Exception as e:
-        logger.exception(
-            f"❌ Error cargando historial: {e}"
+
+        logger.warning(
+            f"⚠️ No se pudo guardar rostro: {e}"
         )
 
-        return "Error al cargar el historial", 500
-
-
-# ==========================================================
-# LOGOUT
-# ==========================================================
-
-@app.route("/logout")
-def logout():
-
-    nombre = session.get(
-        "usuario_nombre",
-        "Usuario"
-    )
-
-    session.clear()
-
+    # ======================================================
+    # PREDICCIÓN
+    # ======================================================
 
     logger.info(
-        f"👋 Sesión cerrada: {nombre}"
+        "🧠 PREDICIENDO EMOCIÓN..."
     )
 
+    resultado = predict.predecir(
+        rostro
+    )
 
-    return redirect("/")
+    # ======================================================
+    # RESULTADO
+    # ======================================================
+
+    if isinstance(
+        resultado,
+        (tuple, list)
+    ):
+
+        if len(resultado) == 4:
+
+            emocion = resultado[0]
+
+            confianza = resultado[1]
+
+            todas = resultado[2]
+
+            consejo = resultado[3]
+
+        elif len(resultado) == 3:
+
+            emocion = resultado[0]
+
+            confianza = resultado[1]
+
+            todas = resultado[2]
+
+            consejo = CONSEJOS.get(
+                emocion,
+                "Cuida de ti mismo."
+            )
+
+        else:
+
+            raise ValueError(
+                "predict.predecir() debe devolver "
+                "3 o 4 valores"
+            )
+
+    else:
+
+        raise ValueError(
+            "El resultado de predict.predecir() "
+            "no tiene un formato válido"
+        )
+
+    logger.info(
+        f"🎯 EMOCIÓN: {emocion}"
+    )
+
+    logger.info(
+        f"📊 CONFIANZA: {confianza:.2f}%"
+    )
+
+    logger.info(
+        f"📊 TODAS: {todas}"
+    )
+
+    return (
+        emocion,
+        confianza,
+        todas,
+        consejo
+    )
 
 
 # ==========================================================
 # ANALIZAR EMOCIÓN
 # ==========================================================
 
-@app.route("/analizar", methods=["POST"])
+@app.route(
+    "/analizar",
+    methods=["POST"]
+)
 def analizar():
 
     try:
 
         logger.info("=" * 60)
 
-        logger.info("📥 /analizar")
+        logger.info(
+            "📥 /analizar"
+        )
 
         logger.info(
             "🧠 INICIANDO ANÁLISIS"
         )
 
-
         # ==================================================
-        # 1. COMPROBAR SESIÓN
+        # COMPROBAR SESIÓN
         # ==================================================
 
-        if "usuario_id" not in session:
+        usuario_id = session.get(
+            "usuario_id"
+        )
+
+        usuario = session.get(
+            "user"
+        )
+
+        if not usuario_id and not usuario:
 
             logger.warning(
                 "⚠️ Análisis rechazado: usuario no autenticado"
@@ -535,37 +1174,15 @@ def analizar():
 
             }), 401
 
-
         # ==================================================
-        # 2. OBTENER JSON
+        # OBTENER JSON
         # ==================================================
-
-        if not request.is_json:
-
-            logger.error(
-                "❌ La petición no es JSON"
-            )
-
-            return jsonify({
-
-                "success": False,
-
-                "error":
-                    "La petición debe ser JSON"
-
-            }), 400
-
 
         data = request.get_json(
             silent=True
         )
 
-
         if not data:
-
-            logger.error(
-                "❌ JSON vacío"
-            )
 
             return jsonify({
 
@@ -576,33 +1193,16 @@ def analizar():
 
             }), 400
 
-
-        logger.info(
-            f"📦 Campos JSON: {list(data.keys())}"
-        )
-
-
         # ==================================================
-        # 3. OBTENER IMAGEN
+        # OBTENER IMAGEN
         # ==================================================
 
-        imagen_base64 = data.get(
-            "image"
+        imagen_base64 = (
+            data.get("image")
+            or data.get("imagen")
         )
-
-
-        if imagen_base64 is None:
-
-            imagen_base64 = data.get(
-                "imagen"
-            )
-
 
         if not imagen_base64:
-
-            logger.error(
-                "❌ No se recibió imagen"
-            )
 
             return jsonify({
 
@@ -613,60 +1213,40 @@ def analizar():
 
             }), 400
 
-
-        logger.info(
-            "✅ Campo de imagen encontrado"
-        )
-
-
         # ==================================================
-        # 4. DECODIFICAR IMAGEN
+        # DECODIFICAR IMAGEN
         # ==================================================
 
         try:
 
             if "," in imagen_base64:
 
-                imagen_base64 = \
+                imagen_base64 = (
                     imagen_base64.split(
                         ",",
                         1
                     )[1]
-
+                )
 
             img_bytes = base64.b64decode(
-
                 imagen_base64,
-
                 validate=True
-
             )
-
 
             nparr = np.frombuffer(
-
                 img_bytes,
-
                 dtype=np.uint8
-
             )
-
 
             frame = cv2.imdecode(
-
                 nparr,
-
                 cv2.IMREAD_COLOR
-
             )
-
 
         except Exception as e:
 
             logger.error(
-
                 f"❌ Error decodificando imagen: {e}"
-
             )
 
             return jsonify({
@@ -678,14 +1258,7 @@ def analizar():
 
             }), 400
 
-
         if frame is None:
-
-            logger.error(
-
-                "❌ cv2.imdecode devolvió None"
-
-            )
 
             return jsonify({
 
@@ -696,76 +1269,24 @@ def analizar():
 
             }), 400
 
-
-        logger.info(
-
-            f"📷 Imagen recibida: {frame.shape}"
-
-        )
-
-
-        logger.info(
-
-            f"💾 Tipo: {frame.dtype}"
-
-        )
-
-
         # ==================================================
-        # 5. GUARDAR IMAGEN ORIGINAL
+        # ANALIZAR
         # ==================================================
 
-        original_path = os.path.join(
-
-            DEBUG_DIR,
-
-            "frame_recibido.jpg"
-
-        )
-
-
-        cv2.imwrite(
-
-            original_path,
-
+        (
+            emocion,
+            confianza,
+            todas,
+            consejo
+        ) = analizar_imagen(
             frame
-
         )
-
-
-        logger.info(
-
-            f"💾 Imagen guardada: {original_path}"
-
-        )
-
 
         # ==================================================
-        # 6. DETECTAR ROSTRO
+        # SIN ROSTRO
         # ==================================================
 
-        logger.info(
-
-            "👤 Detectando rostro..."
-
-        )
-
-
-        rostro = face_detector.detectar_rostro(
-
-            frame
-
-        )
-
-
-        if rostro is None:
-
-            logger.warning(
-
-                "⚠️ No se detectó ningún rostro"
-
-            )
-
+        if emocion is None:
 
             return jsonify({
 
@@ -781,89 +1302,49 @@ def analizar():
                     0,
 
                 "todas":
-                    {}
+                    {},
+
+                "consejo":
+                    consejo
 
             })
 
-
-        logger.info(
-
-            f"✅ ROSTRO DETECTADO: {rostro.shape}"
-
-        )
-
-
         # ==================================================
-        # 7. GUARDAR ROSTRO
+        # OBTENER MENSAJE
         # ==================================================
 
-        rostro_path = os.path.join(
+        try:
 
-            DEBUG_DIR,
-
-            "rostro_analizar.jpg"
-
-        )
-
-
-        cv2.imwrite(
-
-            rostro_path,
-
-            rostro
-
-        )
-
-
-        logger.info(
-
-            f"💾 Rostro guardado: {rostro_path}"
-
-        )
-
-
-        # ==================================================
-        # 8. PREDECIR EMOCIÓN
-        # ==================================================
-
-        logger.info(
-
-            "🧠 PREDICIENDO EMOCIÓN..."
-
-        )
-
-
-        emocion, confianza, todas, consejo = \
-            predict.predecir(
-
-                rostro
-
+            mensaje = obtener_mensaje(
+                emocion
             )
 
+        except Exception:
 
-        logger.info(
-
-            f"🎯 EMOCIÓN: {emocion}"
-
-        )
-
-
-        logger.info(
-
-            f"📊 CONFIANZA: {confianza:.2f}%"
-
-        )
-
-
-        logger.info(
-
-            f"📊 TODAS: {todas}"
-
-        )
-
+            mensaje = CONSEJOS.get(
+                emocion,
+                "Cuida de ti mismo."
+            )
 
         # ==================================================
-        # 9. GUARDAR EN BASE DE DATOS
+        # CONVERTIR RESULTADOS A JSON
+        # ==================================================
+
+        try:
+
+            todas_json = json.dumps(
+                todas,
+                ensure_ascii=False
+            )
+
+        except Exception:
+
+            todas_json = str(
+                todas
+            )
+
+        # ==================================================
+        # GUARDAR ANÁLISIS
         # ==================================================
 
         try:
@@ -872,49 +1353,48 @@ def analizar():
 
             cursor = conn.cursor()
 
-
             cursor.execute(
                 """
                 INSERT INTO emociones
                 (
                     usuario_id,
+                    usuario,
                     emocion,
                     confianza,
-                    todas_emociones
+                    todas_emociones,
+                    mensaje
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    session["usuario_id"],
+                    usuario_id,
+                    usuario,
                     emocion,
-                    confianza,
-                    str(todas)
+                    float(confianza),
+                    todas_json,
+                    mensaje
                 )
             )
-
 
             conn.commit()
 
             conn.close()
 
-
             logger.info(
                 "✅ Análisis guardado en BD"
             )
 
-
         except Exception as e:
 
-            logger.error(
-
-                f"❌ Error guardando BD: {e}"
-
+            logger.exception(
+                f"❌ Error guardando análisis: {e}"
             )
 
+        # ==================================================
+        # LIBERAR MEMORIA
+        # ==================================================
 
-        # ==================================================
-        # 10. RESPUESTA
-        # ==================================================
+        gc.collect()
 
         logger.info(
             "✅ ANÁLISIS COMPLETADO"
@@ -922,21 +1402,43 @@ def analizar():
 
         logger.info("=" * 60)
 
+        # ==================================================
+        # RESPUESTA
+        # ==================================================
 
         return jsonify({
 
-            "success": True,
+            "success":
+                True,
 
-            "emocion": emocion,
+            "emocion":
+                emocion,
 
-            "confianza": confianza,
+            "emotion":
+                emocion,
 
-            "todas": todas,
+            "confianza":
+                confianza,
 
-            "consejo": consejo
+            "confidence":
+                confianza,
+
+            "todas":
+                todas,
+
+            "advice":
+                consejo,
+
+            "consejo":
+                consejo,
+
+            "message":
+                mensaje,
+
+            "mensaje":
+                mensaje
 
         })
-
 
     except Exception as e:
 
@@ -944,10 +1446,12 @@ def analizar():
             "❌ ERROR GENERAL EN /analizar"
         )
 
+        gc.collect()
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "error":
                 str(e)
@@ -956,21 +1460,460 @@ def analizar():
 
 
 # ==========================================================
-# INICIAR SERVIDOR
+# HISTORIAL
+# ==========================================================
+
+@app.route("/historial")
+def historial():
+
+    if not usuario_autenticado():
+
+        return redirect(
+            "/login"
+        )
+
+    try:
+
+        conn = get_db_connection()
+
+        usuario_id = session.get(
+            "usuario_id"
+        )
+
+        usuario = session.get(
+            "user"
+        )
+
+        if usuario_id:
+
+            registros = conn.execute(
+                """
+                SELECT
+                    id,
+                    emocion,
+                    confianza,
+                    todas_emociones,
+                    mensaje,
+                    fecha
+                FROM emociones
+                WHERE usuario_id = ?
+                   OR usuario = ?
+                ORDER BY fecha DESC
+                """,
+                (
+                    usuario_id,
+                    usuario
+                )
+            ).fetchall()
+
+        else:
+
+            registros = conn.execute(
+                """
+                SELECT
+                    id,
+                    emocion,
+                    confianza,
+                    todas_emociones,
+                    mensaje,
+                    fecha
+                FROM emociones
+                WHERE usuario = ?
+                ORDER BY fecha DESC
+                """,
+                (usuario,)
+            ).fetchall()
+
+        conn.close()
+
+        nombre = session.get(
+            "usuario_nombre",
+            session.get(
+                "user",
+                "Usuario"
+            )
+        )
+
+        return render_template(
+
+            "historial.html",
+
+            registros=registros,
+
+            nombre=nombre
+
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error cargando historial: {e}"
+        )
+
+        return (
+            "Error al cargar el historial",
+            500
+        )
+
+
+# ==========================================================
+# DASHBOARD
+# ==========================================================
+
+@app.route("/dashboard")
+def dashboard():
+
+    if not usuario_autenticado():
+
+        return redirect(
+            "/login"
+        )
+
+    try:
+
+        conn = get_db_connection()
+
+        usuario_id = session.get(
+            "usuario_id"
+        )
+
+        usuario = session.get(
+            "user"
+        )
+
+        if usuario_id:
+
+            datos = conn.execute(
+                """
+                SELECT
+                    emocion,
+                    COUNT(*) AS cantidad
+                FROM emociones
+                WHERE usuario_id = ?
+                   OR usuario = ?
+                GROUP BY emocion
+                """,
+                (
+                    usuario_id,
+                    usuario
+                )
+            ).fetchall()
+
+        else:
+
+            datos = conn.execute(
+                """
+                SELECT
+                    emocion,
+                    COUNT(*) AS cantidad
+                FROM emociones
+                WHERE usuario = ?
+                GROUP BY emocion
+                """,
+                (usuario,)
+            ).fetchall()
+
+        conn.close()
+
+        # ==================================================
+        # EMOCIONES
+        # ==================================================
+
+        EMOCIONES = [
+            "Enojo",
+            "Felicidad",
+            "Neutral",
+            "Tristeza",
+            "Sorpresa"
+        ]
+
+        conteo = {
+            emocion: 0
+            for emocion in EMOCIONES
+        }
+
+        for row in datos:
+
+            emocion = row["emocion"]
+
+            if emocion in conteo:
+
+                conteo[emocion] = row["cantidad"]
+
+        return render_template(
+
+            "dashboard.html",
+
+            conteo=conteo
+
+        )
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error dashboard: {e}"
+        )
+
+        return (
+            "Error cargando dashboard",
+            500
+        )
+
+
+# ==========================================================
+# PÁGINA IMAGEN
+# ==========================================================
+
+@app.route(
+    "/imagen",
+    methods=["GET"]
+)
+def imagen():
+
+    return render_template(
+        "imagen.html"
+    )
+
+
+# ==========================================================
+# PREDICCIÓN DE IMAGEN
+# ==========================================================
+
+@app.route(
+    "/predict_image",
+    methods=["POST"]
+)
+def predict_image():
+
+    try:
+
+        # ==================================================
+        # COMPROBAR ARCHIVO
+        # ==================================================
+
+        if "imagen" not in request.files:
+
+            return jsonify({
+
+                "estado":
+                    "error",
+
+                "detalle":
+                    "No se envió imagen"
+
+            }), 400
+
+        archivo = request.files[
+            "imagen"
+        ]
+
+        if archivo.filename == "":
+
+            return jsonify({
+
+                "estado":
+                    "error",
+
+                "detalle":
+                    "No se seleccionó imagen"
+
+            }), 400
+
+        # ==================================================
+        # LEER IMAGEN
+        # ==================================================
+
+        file_bytes = np.frombuffer(
+            archivo.read(),
+            np.uint8
+        )
+
+        img = cv2.imdecode(
+            file_bytes,
+            cv2.IMREAD_COLOR
+        )
+
+        if img is None:
+
+            return jsonify({
+
+                "estado":
+                    "error",
+
+                "detalle":
+                    "Error al leer imagen"
+
+            }), 400
+
+        # ==================================================
+        # ANALIZAR
+        # ==================================================
+
+        (
+            emocion,
+            confianza,
+            todas,
+            consejo
+        ) = analizar_imagen(
+            img
+        )
+
+        if emocion is None:
+
+            return jsonify({
+
+                "estado":
+                    "error",
+
+                "detalle":
+                    "No se detectó ningún rostro",
+
+                "emocion":
+                    "No detectado"
+
+            }), 400
+
+        # ==================================================
+        # MENSAJE
+        # ==================================================
+
+        try:
+
+            mensaje = obtener_mensaje(
+                emocion
+            )
+
+        except Exception:
+
+            mensaje = CONSEJOS.get(
+                emocion,
+                "Cuida de ti mismo."
+            )
+
+        gc.collect()
+
+        return jsonify({
+
+            "estado":
+                "success",
+
+            "emocion":
+                emocion,
+
+            "confianza":
+                confianza,
+
+            "todas":
+                todas,
+
+            "consejo":
+                consejo,
+
+            "mensaje":
+                mensaje
+
+        })
+
+    except Exception as e:
+
+        logger.exception(
+            f"❌ Error predict_image: {e}"
+        )
+
+        gc.collect()
+
+        return jsonify({
+
+            "estado":
+                "error",
+
+            "detalle":
+                str(e)
+
+        }), 500
+
+
+# ==========================================================
+# CERRAR SESIÓN
+# ==========================================================
+
+@app.route("/logout")
+def logout():
+
+    nombre = session.get(
+        "usuario_nombre",
+        session.get(
+            "user",
+            "Usuario"
+        )
+    )
+
+    session.clear()
+
+    logger.info(
+        f"👋 Sesión cerrada: {nombre}"
+    )
+
+    return redirect(
+        "/"
+    )
+
+
+# ==========================================================
+# HEALTH CHECK
+# ==========================================================
+
+@app.route("/health")
+def health():
+
+    return jsonify({
+
+        "status":
+            "healthy",
+
+        "version":
+            "tflite"
+
+    }), 200
+
+
+# ==========================================================
+# ARCHIVOS STATIC
+# ==========================================================
+
+@app.route(
+    "/static/<path:filename>"
+)
+def static_files(filename):
+
+    return send_from_directory(
+
+        os.path.join(
+            BASE_DIR,
+            "static"
+        ),
+
+        filename
+
+    )
+
+
+# ==========================================================
+# INICIALIZAR BASE DE DATOS
+# ==========================================================
+
+init_db()
+
+
+# ==========================================================
+# EJECUTAR LOCALMENTE
 # ==========================================================
 
 if __name__ == "__main__":
 
-    # ------------------------------------------------------
-    # BASE DE DATOS
-    # ------------------------------------------------------
-
-    init_db()
-
-
-    # ------------------------------------------------------
+    # ======================================================
     # CARGAR MODELO
-    # ------------------------------------------------------
+    # ======================================================
 
     try:
 
@@ -983,24 +1926,29 @@ if __name__ == "__main__":
     except Exception as e:
 
         logger.exception(
-            "❌ Error cargando modelo"
+            "⚠️ No se pudo cargar el modelo al iniciar"
         )
 
+    # ======================================================
+    # PUERTO
+    # ======================================================
 
-    # ------------------------------------------------------
-    # SERVIDOR
-    # ------------------------------------------------------
-
-    logger.info(
-        "🚀 Servidor en puerto 10000"
+    port = int(
+        os.environ.get(
+            "PORT",
+            10000
+        )
     )
 
+    logger.info(
+        f"🚀 Servidor iniciando en puerto {port}"
+    )
 
     app.run(
 
         host="0.0.0.0",
 
-        port=10000,
+        port=port,
 
         debug=False
 
