@@ -484,13 +484,14 @@ def detectar_con_haar(img):
         # SELECCIONAR ROSTRO PRINCIPAL
         # ==================================================
 
-        mejor = min(
-            candidatos_validos,
-            key=lambda c:
-            c["distancia"] /
-            max(c["w"], c["h"])
-        )
+        # Seleccionamos el rostro más grande.
+        # Normalmente corresponde a la persona que está
+        # más cerca de la cámara.
 
+        mejor = max(
+        candidatos_validos,
+        key=lambda c: c["area"]
+        )
         x = mejor["x"]
         y = mejor["y"]
         w = mejor["w"]
@@ -509,15 +510,8 @@ def detectar_con_haar(img):
         # ==================================================
         # AGREGAR MARGEN
         # ==================================================
-
-        margen_x = int(
-            w * 0.15
-        )
-
-        margen_y = int(
-            h * 0.20
-        )
-
+        margen_x = int(w * 0.05)
+        margen_y = int(h * 0.08)
         # ==================================================
         # COORDENADAS FINALES
         # ==================================================

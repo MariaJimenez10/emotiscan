@@ -5,9 +5,13 @@ import random
 import cv2
 import numpy as np
 
-from tflite_runtime.interpreter import Interpreter
-
-
+try:
+    from tflite_runtime.interpreter import Interpreter
+    print("✅ Usando tflite_runtime")
+except ImportError:
+    import tensorflow as tf
+    Interpreter = tf.lite.Interpreter
+    print("✅ Usando TensorFlow Lite")
 # ==========================================================
 # CONFIGURACIÓN
 # ==========================================================
@@ -19,7 +23,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
 # ==========================================================
 # DIRECTORIO DEL PROYECTO
 # ==========================================================
@@ -27,7 +30,6 @@ logger = logging.getLogger(__name__)
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
-
 
 # ==========================================================
 # MODELO
@@ -50,8 +52,8 @@ IMG_SIZE = 224
 EMOCIONES = [
     "Enojo",
     "Felicidad",
-    "Neutral",
-    "Tristeza"
+    "Tristeza",
+    "Neutral"
 ]
 
 
