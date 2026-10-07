@@ -1,14 +1,56 @@
+# Entorno virtual
+
 venv/
-__pycache__/
+.venv/
+
+# Caché de Python
+
+**pycache**/
 *.pyc
-node_modules/
+*.pyo
+
+# Variables de entorno
+
 .env
+.env.*
+
+# Bases de datos locales
+
 *.db
-emociones.db
-<<<<<<< HEAD
-mejor_modelo.keras
-modelo/modelo_emociones.keras
+*.sqlite
+*.sqlite3
+
+# Dependencias de Node
+
+node_modules/
+
+# Archivos generados por la aplicación
+
+debug_rostros/
+rostros_detectados/
+errores_enojo/
+
+# Dataset y archivos comprimidos
+
+dataset/
 dataset.zip
-=======
-mejor_modelo.keras
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+
+# Modelos grandes que NO se suben al repositorio
+
+*.keras
+*.h5
+
+# Archivos de entrenamiento temporales
+
+*.ckpt
+*.joblib
+
+# Archivos temporales
+
+*.tmp
+*.log
+
+# Sistema operativo
+
+.DS_Store
+Thumbs.db

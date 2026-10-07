@@ -52,8 +52,8 @@ IMG_SIZE = 224
 EMOCIONES = [
     "Enojo",
     "Felicidad",
-    "Tristeza",
-    "Neutral"
+    "Neutral",
+    "Tristeza"
 ]
 
 
