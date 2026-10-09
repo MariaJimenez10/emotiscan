@@ -3,21 +3,22 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.keras import layers, models
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
-from tensorflow.keras.callbacks import (
-    EarlyStopping,
-    ReduceLROnPlateau,
-    ModelCheckpoint
-)
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization, Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import (
+    ModelCheckpoint,
+    EarlyStopping,
+    ReduceLROnPlateau
+)
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import classification_report, confusion_matrix
 
-
-# ============================================================
+# ==========================================================
 # CONFIGURACIÓN
-# ============================================================
+# ==========================================================
 
 SEED = 42
 
@@ -32,15 +33,12 @@ TRAIN_DIR = "dataset/train"
 TEST_DIR = "dataset/test"
 
 MODEL_DIR = "modelo"
+MODEL_PATH = os.path.join(MODEL_DIR, "resnet50_emociones_mejorado.keras")
+
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-MODEL_PATH = os.path.join(
-    MODEL_DIR,
-    "resnet50_emociones_mejorado.keras"
-)
-
 # IMPORTANTE:
-# Este orden DEBE mantenerse también en predict.py
+# ESTE ORDEN DEBE SER IGUAL AL DE LAS CARPETAS
 CLASSES = [
     "Enojo",
     "Felicidad",
@@ -50,52 +48,31 @@ CLASSES = [
 
 NUM_CLASSES = len(CLASSES)
 
-print("=" * 70)
-print("ENTRENAMIENTO RESNET50 - EMOTISCAN")
-print("=" * 70)
-
-print("\nClases:")
-for i, clase in enumerate(CLASSES):
-    print(f"  {i} = {clase}")
-
-print(f"\nImagen: {IMG_SIZE}")
-print(f"Batch: {BATCH_SIZE}")
-print(f"Train: {TRAIN_DIR}")
-print(f"Test:  {TEST_DIR}")
+print("\n==========================================")
+print("      ENTRENAMIENTO EMOTISCAN")
+print("==========================================")
+print("Clases:", CLASSES)
+print("==========================================\n")
 
 
-# ============================================================
+# ==========================================================
 # GENERADORES
-# ============================================================
-
-print("\n" + "=" * 70)
-print("PREPARANDO DATASET")
-print("=" * 70)
-
-
-# AUMENTO DE DATOS
-#
-# Se aplican transformaciones para que el modelo no memorice
-# solamente las imágenes del dataset.
-#
-# No usamos cambios demasiado agresivos porque podrían alterar
-# las características emocionales del rostro.
+# ==========================================================
 
 train_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,
 
-    rotation_range=12,
-    width_shift_range=0.10,
-    height_shift_range=0.10,
-    zoom_range=0.10,
+    rotation_range=15,
+    width_shift_range=0.12,
+    height_shift_range=0.12,
+    zoom_range=0.15,
 
-    brightness_range=(0.85, 1.15),
+    brightness_range=(0.75, 1.25),
 
     horizontal_flip=True,
 
     fill_mode="nearest"
 )
-
 
 test_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input
@@ -104,39 +81,27 @@ test_datagen = ImageDataGenerator(
 
 train_generator = train_datagen.flow_from_directory(
     TRAIN_DIR,
-
     target_size=IMG_SIZE,
-
     batch_size=BATCH_SIZE,
-
     classes=CLASSES,
-
     class_mode="categorical",
-
     shuffle=True,
-
     seed=SEED
 )
 
-
 test_generator = test_datagen.flow_from_directory(
     TEST_DIR,
-
     target_size=IMG_SIZE,
-
     batch_size=BATCH_SIZE,
-
     classes=CLASSES,
-
     class_mode="categorical",
-
     shuffle=False
 )
 
 
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("CLASES DETECTADAS")
-print("=" * 70)
+print("==========================================")
 
 print(train_generator.class_indices)
 
@@ -144,31 +109,13 @@ print("\nImágenes entrenamiento:", train_generator.samples)
 print("Imágenes prueba:", test_generator.samples)
 
 
-# ============================================================
-# CALCULAR PESOS DE LAS CLASES
-# ============================================================
-
-print("\n" + "=" * 70)
-print("CALCULANDO PESOS DE CLASE")
-print("=" * 70)
-
-
-class_counts = np.bincount(
-    train_generator.classes,
-    minlength=NUM_CLASSES
-)
-
-print("\nCantidad de imágenes por clase:")
-
-for i, clase in enumerate(CLASSES):
-    print(f"{i} - {clase}: {class_counts[i]}")
-
-
-classes_presentes = np.arange(NUM_CLASSES)
+# ==========================================================
+# PESOS DE CLASE
+# ==========================================================
 
 class_weights_array = compute_class_weight(
     class_weight="balanced",
-    classes=classes_presentes,
+    classes=np.arange(NUM_CLASSES),
     y=train_generator.classes
 )
 
@@ -177,155 +124,101 @@ class_weights = {
     for i, weight in enumerate(class_weights_array)
 }
 
-
-print("\nPesos calculados:")
+print("\n==========================================")
+print("PESOS DE CLASE")
+print("==========================================")
 
 for i, clase in enumerate(CLASSES):
     print(
-        f"{clase}: {class_weights[i]:.4f}"
+        f"{clase}: {class_weights[i]:.3f}"
     )
 
 
-# ============================================================
+# ==========================================================
 # MODELO RESNET50
-# ============================================================
+# ==========================================================
 
-print("\n" + "=" * 70)
-print("CREANDO RESNET50")
-print("=" * 70)
-
+print("\n==========================================")
+print("CARGANDO RESNET50")
+print("==========================================\n")
 
 base_model = ResNet50(
     weights="imagenet",
-
     include_top=False,
-
-    input_shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3
-    )
+    input_shape=(224, 224, 3)
 )
-
-
-# Primera etapa:
-# congelamos ResNet50
 
 base_model.trainable = False
 
 
-inputs = layers.Input(
-    shape=(
-        IMG_SIZE[0],
-        IMG_SIZE[1],
-        3
-    )
-)
-
+inputs = Input(shape=(224, 224, 3))
 
 x = base_model(
     inputs,
     training=False
 )
 
+x = GlobalAveragePooling2D()(x)
 
-x = layers.GlobalAveragePooling2D()(x)
-
-
-x = layers.Dense(
+x = Dense(
     256,
     activation="relu"
 )(x)
 
+x = BatchNormalization()(x)
 
-x = layers.BatchNormalization()(x)
+x = Dropout(0.50)(x)
 
-
-x = layers.Dropout(
-    0.45
-)(x)
-
-
-outputs = layers.Dense(
+outputs = Dense(
     NUM_CLASSES,
     activation="softmax"
 )(x)
 
-
-model = models.Model(
+model = Model(
     inputs,
     outputs
 )
 
 
-# ============================================================
-# COMPILACIÓN ETAPA 1
-# ============================================================
+# ==========================================================
+# ETAPA 1
+# ==========================================================
+
+print("\n==========================================")
+print("ETAPA 1 - ENTRENAMIENTO")
+print("==========================================\n")
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(
-        learning_rate=0.0003
+        learning_rate=2e-4
     ),
-
     loss="categorical_crossentropy",
-
-    metrics=[
-        "accuracy"
-    ]
+    metrics=["accuracy"]
 )
 
-
-model.summary()
-
-
-# ============================================================
-# CALLBACKS
-# ============================================================
 
 checkpoint = ModelCheckpoint(
     MODEL_PATH,
-
     monitor="val_accuracy",
-
     save_best_only=True,
-
     mode="max",
-
     verbose=1
 )
-
 
 early_stopping = EarlyStopping(
     monitor="val_loss",
-
-    patience=6,
-
+    patience=5,
     restore_best_weights=True,
-
     verbose=1
 )
-
 
 reduce_lr = ReduceLROnPlateau(
     monitor="val_loss",
-
     factor=0.3,
-
     patience=2,
-
     min_lr=1e-7,
-
     verbose=1
 )
-
-
-# ============================================================
-# ETAPA 1
-# ============================================================
-
-print("\n" + "=" * 70)
-print("ETAPA 1 - ENTRENAMIENTO CON RESNET50 CONGELADA")
-print("=" * 70)
 
 
 history1 = model.fit(
@@ -333,7 +226,7 @@ history1 = model.fit(
 
     validation_data=test_generator,
 
-    epochs=12,
+    epochs=15,
 
     class_weight=class_weights,
 
@@ -345,120 +238,34 @@ history1 = model.fit(
 )
 
 
-# ============================================================
+# ==========================================================
 # ETAPA 2 - FINE TUNING
-# ============================================================
+# ==========================================================
 
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("ETAPA 2 - FINE TUNING")
-print("=" * 70)
-
-
-# Descongelamos ResNet50
+print("==========================================\n")
 
 base_model.trainable = True
 
 
-# Primero congelamos las primeras capas.
-#
-# Dejamos entrenables las capas superiores,
-# que son las que más nos interesa adaptar
-# al reconocimiento de emociones.
-
-fine_tune_from = 100
-
-
-for layer in base_model.layers[:fine_tune_from]:
-
+# Congelar primeras capas
+for layer in base_model.layers[:80]:
     layer.trainable = False
 
 
-for layer in base_model.layers[fine_tune_from:]:
-
-    layer.trainable = True
-
-
-# BatchNormalization puede generar inestabilidad
-# durante fine tuning con datasets pequeños.
-
+# Mantener BatchNormalization congelado
 for layer in base_model.layers:
-
-    if isinstance(
-        layer,
-        layers.BatchNormalization
-    ):
-
+    if isinstance(layer, BatchNormalization):
         layer.trainable = False
 
 
-print(
-    f"\nCapas congeladas inicialmente: "
-    f"{fine_tune_from}"
-)
-
-
-trainable_count = sum(
-    1 for layer in model.layers
-    if layer.trainable
-)
-
-print(
-    "Capas entrenables:",
-    trainable_count
-)
-
-
-# Learning rate MUCHO menor para fine tuning.
-
 model.compile(
     optimizer=tf.keras.optimizers.Adam(
-        learning_rate=1e-5
+        learning_rate=5e-6
     ),
-
     loss="categorical_crossentropy",
-
-    metrics=[
-        "accuracy"
-    ]
-)
-
-
-# Nuevos callbacks para fine tuning.
-
-checkpoint_ft = ModelCheckpoint(
-    MODEL_PATH,
-
-    monitor="val_accuracy",
-
-    save_best_only=True,
-
-    mode="max",
-
-    verbose=1
-)
-
-
-early_stopping_ft = EarlyStopping(
-    monitor="val_loss",
-
-    patience=7,
-
-    restore_best_weights=True,
-
-    verbose=1
-)
-
-
-reduce_lr_ft = ReduceLROnPlateau(
-    monitor="val_loss",
-
-    factor=0.3,
-
-    patience=2,
-
-    min_lr=1e-8,
-
-    verbose=1
+    metrics=["accuracy"]
 )
 
 
@@ -467,69 +274,60 @@ history2 = model.fit(
 
     validation_data=test_generator,
 
-    epochs=20,
+    epochs=25,
 
     class_weight=class_weights,
 
     callbacks=[
-        checkpoint_ft,
-        early_stopping_ft,
-        reduce_lr_ft
+        checkpoint,
+        early_stopping,
+        reduce_lr
     ]
 )
 
 
-# ============================================================
+# ==========================================================
 # CARGAR MEJOR MODELO
-# ============================================================
+# ==========================================================
 
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("CARGANDO MEJOR MODELO")
-print("=" * 70)
-
+print("==========================================\n")
 
 model = tf.keras.models.load_model(
     MODEL_PATH
 )
 
 
-# ============================================================
+# ==========================================================
 # EVALUACIÓN
-# ============================================================
+# ==========================================================
 
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("EVALUACIÓN FINAL")
-print("=" * 70)
-
+print("==========================================\n")
 
 test_generator.reset()
-
 
 loss, accuracy = model.evaluate(
     test_generator,
     verbose=1
 )
 
+print("\nAccuracy final:")
+print(f"{accuracy * 100:.2f}%")
 
-print("\nLoss:", loss)
-print("Accuracy:", accuracy)
 
-
-# ============================================================
+# ==========================================================
 # PREDICCIONES
-# ============================================================
-
-print("\nGenerando predicciones...")
-
+# ==========================================================
 
 test_generator.reset()
-
 
 predicciones = model.predict(
     test_generator,
     verbose=1
 )
-
 
 y_pred = np.argmax(
     predicciones,
@@ -539,136 +337,76 @@ y_pred = np.argmax(
 y_true = test_generator.classes
 
 
-# ============================================================
-# MÉTRICAS
-# ============================================================
+# ==========================================================
+# REPORTE
+# ==========================================================
 
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix
-)
-
-
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("REPORTE DE CLASIFICACIÓN")
-print("=" * 70)
+print("==========================================\n")
 
-
-reporte = classification_report(
-    y_true,
-    y_pred,
-
-    target_names=CLASSES,
-
-    digits=4,
-
-    zero_division=0
+print(
+    classification_report(
+        y_true,
+        y_pred,
+        target_names=CLASSES,
+        digits=4
+    )
 )
 
 
-print(reporte)
-
-
-# ============================================================
+# ==========================================================
 # MATRIZ DE CONFUSIÓN
-# ============================================================
+# ==========================================================
 
-matriz = confusion_matrix(
+print("\n==========================================")
+print("MATRIZ DE CONFUSIÓN")
+print("==========================================\n")
+
+cm = confusion_matrix(
     y_true,
     y_pred
 )
 
+print("              ", CLASSES)
 
-print("\n" + "=" * 70)
-print("MATRIZ DE CONFUSIÓN")
-print("=" * 70)
-
-
-print("\nFilas = REAL")
-print("Columnas = PREDICCIÓN\n")
-
-
-print(" " * 15, end="")
-
-for clase in CLASSES:
+for i, fila in enumerate(cm):
     print(
-        f"{clase:>12}",
-        end=""
+        f"{CLASSES[i]:12} {fila}"
     )
 
-print()
 
+# ==========================================================
+# RECALL POR EMOCIÓN
+# ==========================================================
 
-for i, fila in enumerate(matriz):
-
-    print(
-        f"{CLASSES[i]:>15}",
-        end=""
-    )
-
-    for valor in fila:
-
-        print(
-            f"{valor:>12}",
-            end=""
-        )
-
-    print()
-
-
-# ============================================================
-# RECALL INDIVIDUAL
-# ============================================================
-
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("RECALL POR EMOCIÓN")
-print("=" * 70)
-
+print("==========================================\n")
 
 for i, clase in enumerate(CLASSES):
 
-    verdaderos = matriz[i, i]
+    verdaderos = cm[i, i]
 
-    total_reales = np.sum(
-        matriz[i]
+    total = np.sum(cm[i])
+
+    recall = (
+        verdaderos / total
+        if total > 0
+        else 0
     )
-
-    if total_reales > 0:
-
-        recall = (
-            verdaderos /
-            total_reales
-        )
-
-    else:
-
-        recall = 0
-
 
     print(
-        f"{clase:12}: "
-        f"{recall * 100:.2f}%"
+        f"{clase}: {recall * 100:.2f}%"
     )
 
 
-# ============================================================
-# GUARDAR MODELO FINAL
-# ============================================================
-
-print("\n" + "=" * 70)
-print("MODELO GUARDADO")
-print("=" * 70)
-
-
-print(
-    "\nArchivo:"
-)
-
-print(
-    MODEL_PATH
-)
-
-
-print("\n" + "=" * 70)
+print("\n==========================================")
 print("ENTRENAMIENTO TERMINADO")
-print("=" * 70)
+print("==========================================")
+
+print("\nModelo guardado en:")
+
+print(MODEL_PATH)
+
+print("\n==========================================\n")

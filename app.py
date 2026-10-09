@@ -1624,7 +1624,6 @@ def dashboard():
             "Felicidad",
             "Neutral",
             "Tristeza",
-            "Sorpresa"
         ]
 
         conteo = {

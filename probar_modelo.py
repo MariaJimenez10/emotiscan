@@ -1,75 +1,73 @@
 import os
 import cv2
 import numpy as np
-import tensorflow as tf
+from collections import Counter
 
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.resnet50 import preprocess_input
+# ==========================================================
+# TFLITE
+# ==========================================================
+
+try:
+    from tflite_runtime.interpreter import Interpreter
+    print("✅ Usando tflite_runtime")
+except ImportError:
+    import tensorflow as tf
+    Interpreter = tf.lite.Interpreter
+    print("✅ Usando TensorFlow Lite")
 
 
 # ==========================================================
 # CONFIGURACIÓN
 # ==========================================================
 
-<<<<<<< HEAD
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(
+MODELO = os.path.join(
     BASE_DIR,
-    "modelo",
-    "mejor_modelo.keras"
+    "modelo_resnet50_emociones.tflite"
 )
 
-TEST_DIR = os.path.join(
+DATASET_TEST = os.path.join(
     BASE_DIR,
     "dataset",
     "test"
 )
 
-IMG_SIZE = 224
-
-CLASSES = [
+# IMPORTANTE:
+# Este debe ser EXACTAMENTE el orden usado durante el entrenamiento.
+EMOCIONES = [
     "Enojo",
     "Felicidad",
     "Tristeza",
     "Neutral"
-=======
-MODEL_PATH = "modelo_resnet50_emociones.h5"
-
-DATASET_PATH = "dataset/train"
-
-EMOCIONES = [
-    "Enojo",
-    "Felicidad",
-    "Neutral",
-    "Tristeza"
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
 ]
+
+IMG_SIZE = 224
 
 
 # ==========================================================
 # CARGAR MODELO
 # ==========================================================
 
-<<<<<<< HEAD
-print("=" * 70)
-print("CARGANDO MODELO")
-print("=" * 70)
+print("\n" + "=" * 60)
+print("🔄 CARGANDO MODELO")
+print("=" * 60)
 
-model = load_model(
-    MODEL_PATH,
-    compile=False
-)
+interpreter = Interpreter(model_path=MODELO)
+interpreter.allocate_tensors()
 
-print("Modelo cargado.")
-print("Entrada:", model.input_shape)
-print("Salida :", model.output_shape)
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-print()
+print("✅ Modelo cargado")
+print("📥 Entrada:", input_details[0]["shape"])
+print("📥 Tipo:", input_details[0]["dtype"])
+print("📤 Salida:", output_details[0]["shape"])
+print("📤 Tipo:", output_details[0]["dtype"])
 
 
 # ==========================================================
-# PREPARAR IMAGEN
+# PREPROCESAMIENTO
 # ==========================================================
 
 def preparar_imagen(ruta):
@@ -77,291 +75,380 @@ def preparar_imagen(ruta):
     imagen = cv2.imread(ruta)
 
     if imagen is None:
-        raise ValueError(
-            f"No se pudo leer: {ruta}"
-        )
+        return None
 
-    # OpenCV = BGR
-    # entrenamiento = RGB
-    imagen = cv2.cvtColor(
-        imagen,
-        cv2.COLOR_BGR2RGB
-    )
+    # OpenCV BGR -> RGB
+    imagen = cv2.cvtColor(imagen, cv2.COLOR_BGR2RGB)
 
+    # Redimensionar
     imagen = cv2.resize(
         imagen,
-        (IMG_SIZE, IMG_SIZE),
-        interpolation=cv2.INTER_AREA
+        (IMG_SIZE, IMG_SIZE)
     )
 
-    imagen = imagen.astype(
-        np.float32
-    )
+    # Convertir a float32
+    imagen = imagen.astype(np.float32)
 
-    imagen = preprocess_input(
-        imagen
-    )
+    # ======================================================
+    # PREPROCESAMIENTO RESNET50
+    # ======================================================
 
+    # RGB -> BGR
+    imagen = imagen[:, :, ::-1]
+
+    # Media de ResNet50 / ImageNet
+    imagen[:, :, 0] -= 103.939
+    imagen[:, :, 1] -= 116.779
+    imagen[:, :, 2] -= 123.680
+
+    # Agregar dimensión batch
     imagen = np.expand_dims(
         imagen,
         axis=0
     )
 
-    return imagen
+    return imagen.astype(np.float32)
 
 
 # ==========================================================
-# BUSCAR UNA IMAGEN DE CADA CLASE
+# PREDICCIÓN
 # ==========================================================
 
-print("=" * 70)
-print("PROBANDO UNA IMAGEN REAL DEL DATASET POR CLASE")
-print("=" * 70)
+def predecir(ruta):
+
+    imagen = preparar_imagen(ruta)
+
+    if imagen is None:
+        return None
+
+    interpreter.set_tensor(
+        input_details[0]["index"],
+        imagen
+    )
+
+    interpreter.invoke()
+
+    salida = interpreter.get_tensor(
+        output_details[0]["index"]
+    )[0]
+
+    # Si por alguna razón la salida no suma aproximadamente 1,
+    # aplicamos softmax.
+    if not np.isclose(
+        np.sum(salida),
+        1.0,
+        atol=0.05
+    ):
+        exp = np.exp(
+            salida - np.max(salida)
+        )
+        salida = exp / np.sum(exp)
+
+    indice = int(
+        np.argmax(salida)
+    )
+
+    return indice, salida
 
 
-for clase_real in CLASSES:
+# ==========================================================
+# MATRIZ DE CONFUSIÓN
+# ==========================================================
+
+matriz = np.zeros(
+    (len(EMOCIONES), len(EMOCIONES)),
+    dtype=int
+)
+
+
+# ==========================================================
+# CONTADORES
+# ==========================================================
+
+total = 0
+correctas = 0
+
+resultados_por_clase = {
+    emocion: {
+        "total": 0,
+        "correctas": 0
+    }
+    for emocion in EMOCIONES
+}
+
+
+# ==========================================================
+# PROBAR DATASET
+# ==========================================================
+
+print("\n" + "=" * 60)
+print("🧪 PROBANDO DATASET DE TEST")
+print("=" * 60)
+
+print("📂", DATASET_TEST)
+
+if not os.path.exists(DATASET_TEST):
+
+    print("\n❌ ERROR:")
+    print("No existe la carpeta:")
+    print(DATASET_TEST)
+    print("\nVerifica que tengas:")
+    print("dataset/test/Enojo")
+    print("dataset/test/Felicidad")
+    print("dataset/test/Tristeza")
+    print("dataset/test/Neutral")
+
+    exit()
+
+
+for indice_real, emocion_real in enumerate(EMOCIONES):
 
     carpeta = os.path.join(
-        TEST_DIR,
-        clase_real
+        DATASET_TEST,
+        emocion_real
     )
+
+    if not os.path.exists(carpeta):
+
+        print(
+            f"\n⚠️ No existe la carpeta: {carpeta}"
+        )
+
+        continue
 
     archivos = [
         archivo
         for archivo in os.listdir(carpeta)
         if archivo.lower().endswith(
-            (
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".bmp",
-                ".webp"
+            (".jpg", ".jpeg", ".png", ".bmp")
+        )
+    ]
+
+    print(
+        f"\n📁 {emocion_real}: {len(archivos)} imágenes"
+    )
+
+    for numero, archivo in enumerate(archivos):
+
+        ruta = os.path.join(
+            carpeta,
+            archivo
+        )
+
+        resultado = predecir(ruta)
+
+        if resultado is None:
+            continue
+
+        indice_predicho, probabilidades = resultado
+
+        total += 1
+
+        resultados_por_clase[
+            emocion_real
+        ]["total"] += 1
+
+        matriz[
+            indice_real,
+            indice_predicho
+        ] += 1
+
+        if indice_predicho == indice_real:
+
+            correctas += 1
+
+            resultados_por_clase[
+                emocion_real
+            ]["correctas"] += 1
+
+        # Mostrar progreso cada 100 imágenes
+        if (numero + 1) % 100 == 0:
+
+            print(
+                f"   procesadas: {numero + 1}/{len(archivos)}"
             )
-        )
-    ]
-
-    if not archivos:
-
-        print()
-        print(
-            f"No existen imágenes para {clase_real}"
-        )
-=======
-print("======================================")
-print("CARGANDO MODELO")
-print("======================================")
-
-model = load_model(MODEL_PATH)
-
-print("Modelo cargado correctamente")
 
 
 # ==========================================================
-# PROBAR UNA IMAGEN DE CADA CLASE
+# RESULTADOS
 # ==========================================================
 
-for clase_idx, emocion in enumerate(EMOCIONES):
+print("\n\n" + "=" * 60)
+print("📊 RESULTADOS DEL MODELO")
+print("=" * 60)
 
-    carpeta = os.path.join(
-        DATASET_PATH,
+if total == 0:
+
+    print("❌ No se procesaron imágenes.")
+    exit()
+
+
+accuracy = (
+    correctas / total
+) * 100
+
+
+print(
+    f"\n🎯 Accuracy general: {accuracy:.2f}%"
+)
+
+print(
+    f"✅ Correctas: {correctas}/{total}"
+)
+
+
+# ==========================================================
+# RESULTADOS POR EMOCIÓN
+# ==========================================================
+
+print("\n" + "=" * 60)
+print("📌 RESULTADOS POR EMOCIÓN")
+print("=" * 60)
+
+for emocion in EMOCIONES:
+
+    datos = resultados_por_clase[
         emocion
-    )
-
-    if not os.path.exists(carpeta):
-
-        print(f"\n❌ No existe: {carpeta}")
-
-        continue
-
-
-    archivos = [
-        f for f in os.listdir(carpeta)
-        if f.lower().endswith(
-            (".jpg", ".jpeg", ".png")
-        )
     ]
 
+    total_clase = datos["total"]
+    correctas_clase = datos["correctas"]
 
-    if len(archivos) == 0:
+    if total_clase > 0:
 
-        print(f"\n❌ No hay imágenes en {emocion}")
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+        porcentaje = (
+            correctas_clase /
+            total_clase
+        ) * 100
 
-        continue
+    else:
 
-
-<<<<<<< HEAD
-    # Primera imagen
-=======
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-    archivo = archivos[0]
-
-    ruta = os.path.join(
-        carpeta,
-        archivo
-    )
-
-
-<<<<<<< HEAD
-    imagen = preparar_imagen(
-        ruta
-    )
-
-
-    pred = model.predict(
-        imagen,
-=======
-    print("\n======================================")
-    print(f"CLASE REAL: {emocion}")
-    print(f"IMAGEN: {archivo}")
-    print("======================================")
-
-
-    # ======================================================
-    # CARGAR
-    # ======================================================
-
-    img = cv2.imread(ruta)
-
-
-    if img is None:
-
-        print("❌ No se pudo cargar")
-
-        continue
-
-
-    print("Imagen original:", img.shape)
-    print("Tipo:", img.dtype)
-
-
-    # ======================================================
-    # RESIZE
-    # ======================================================
-
-    img = cv2.resize(
-        img,
-        (224, 224)
-    )
-
-
-    # ======================================================
-    # FLOAT32
-    # ======================================================
-
-    img = img.astype(
-        np.float32
-    )
-
-
-    # ======================================================
-    # PREPROCESS
-    # ======================================================
-
-    img = preprocess_input(img)
-
-
-    # ======================================================
-    # BATCH
-    # ======================================================
-
-    img = np.expand_dims(
-        img,
-        axis=0
-    )
-
+        porcentaje = 0
 
     print(
-        "Entrada modelo:",
-        img.shape
+        f"\n{emocion}:"
+    )
+
+    print(
+        f"   Total: {total_clase}"
+    )
+
+    print(
+        f"   Correctas: {correctas_clase}"
+    )
+
+    print(
+        f"   Accuracy: {porcentaje:.2f}%"
     )
 
 
-    # ======================================================
-    # PREDICCIÓN
-    # ======================================================
+# ==========================================================
+# MATRIZ DE CONFUSIÓN
+# ==========================================================
 
-    pred = model.predict(
-        img,
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-        verbose=0
-    )[0]
+print("\n" + "=" * 60)
+print("📊 MATRIZ DE CONFUSIÓN")
+print("=" * 60)
 
+print(
+    "\nFilas = emoción REAL"
+)
 
-<<<<<<< HEAD
-=======
-    print("\nPredicción:")
+print(
+    "Columnas = emoción PREDICHA\n"
+)
 
-    for i, valor in enumerate(pred):
+print(
+    "                  " +
+    "  ".join(
+        f"{e:>10}"
+        for e in EMOCIONES
+    )
+)
 
-        print(
-            f"{EMOCIONES[i]}: "
-            f"{valor:.6f} "
-            f"({valor * 100:.2f}%)"
+for i, emocion in enumerate(EMOCIONES):
+
+    valores = matriz[i]
+
+    print(
+        f"{emocion:>15}  " +
+        "  ".join(
+            f"{valor:>10}"
+            for valor in valores
         )
-
-
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
-    indice = int(
-        np.argmax(pred)
     )
 
 
-<<<<<<< HEAD
-    clase_predicha = CLASSES[
-        indice
+# ==========================================================
+# PORCENTAJES DE PREDICCIÓN
+# ==========================================================
+
+print("\n" + "=" * 60)
+print("📈 DISTRIBUCIÓN DE PREDICCIONES")
+print("=" * 60)
+
+totales_predicciones = np.sum(
+    matriz,
+    axis=0
+)
+
+for i, emocion in enumerate(EMOCIONES):
+
+    cantidad = totales_predicciones[i]
+
+    porcentaje = (
+        cantidad / total
+    ) * 100
+
+    print(
+        f"{emocion:10}: "
+        f"{cantidad:5} "
+        f"({porcentaje:6.2f}%)"
+    )
+
+
+# ==========================================================
+# CONCLUSIÓN AUTOMÁTICA
+# ==========================================================
+
+print("\n" + "=" * 60)
+print("🔎 CONCLUSIÓN")
+print("=" * 60)
+
+for emocion in EMOCIONES:
+
+    datos = resultados_por_clase[
+        emocion
     ]
 
+    if datos["total"] > 0:
 
-    print()
-    print("-" * 70)
+        porcentaje = (
+            datos["correctas"] /
+            datos["total"]
+        ) * 100
 
-    print(
-        f"REAL      : {clase_real}"
-    )
+        if porcentaje < 30:
 
-    print(
-        f"PREDICCIÓN: {clase_predicha}"
-    )
+            print(
+                f"❌ {emocion}: "
+                f"muy bajo ({porcentaje:.2f}%)"
+            )
 
-    print(
-        f"ARCHIVO   : {archivo}"
-    )
+        elif porcentaje < 60:
 
-    print()
+            print(
+                f"⚠️ {emocion}: "
+                f"bajo/regular ({porcentaje:.2f}%)"
+            )
 
-    for nombre, prob in zip(
-        CLASSES,
-        pred
-    ):
+        else:
 
-        print(
-            f"{nombre:12s}: "
-            f"{float(prob) * 100:6.2f}%"
-        )
+            print(
+                f"✅ {emocion}: "
+                f"aceptable ({porcentaje:.2f}%)"
+            )
 
-
-print()
-print("=" * 70)
-print("PRUEBA TERMINADA")
-print("=" * 70)
-=======
-    print("\n--------------------------------------")
-
-    print(
-        "REAL:",
-        emocion
-    )
-
-    print(
-        "PREDICCIÓN:",
-        EMOCIONES[indice]
-    )
-
-    print(
-        "CONFIANZA:",
-        f"{pred[indice] * 100:.2f}%"
-    )
-
-    print("--------------------------------------")
->>>>>>> b2b5a0ad109606f33b3ce92679f1ab8de8c621f8
+print("\n" + "=" * 60)
+print("🏁 PRUEBA TERMINADA")
+print("=" * 60)

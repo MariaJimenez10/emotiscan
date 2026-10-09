@@ -1,0 +1,91 @@
+[33m4dc65aa9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Actualización
+ debug_rostros/imagen_original.jpg                  | Bin [31m72088[m -> [32m90589[m bytes
+ debug_rostros/rostro_con_rectangulo.jpg            | Bin [31m82185[m -> [32m95440[m bytes
+ debug_rostros/rostro_detectado.jpg                 | Bin [31m29799[m -> [32m12148[m bytes
+ evaluametricas.py                                  | 668 [32m++++++++++++++++++++[m
+ modelo/modelo_resnet50_emociones.tflite            | Bin [31m0[m -> [32m24453264[m bytes
+ modelo/resnet50_emociones_mejorado.keras           | Bin [31m0[m -> [32m256630922[m bytes
+ predict.py                                         |   4 [32m+[m[31m-[m
+ resnet50mejorado.py                                | 674 [32m+++++++++++++++++++++[m
+ resultados/accuracy.png                            | Bin [31m72214[m -> [32m69497[m bytes
+ resultados/classification_report.txt               |  14 [32m+[m[31m-[m
+ resultados/entrenamiento.csv                       |  13 [32m+[m
+ resultados/loss.png                                | Bin [31m65352[m -> [32m61384[m bytes
+ resultados/matriz_confusion.npy                    | Bin [31m256[m -> [32m256[m bytes
+ resultados/matriz_confusion.png                    | Bin [31m49987[m -> [32m48339[m bytes
+ resultados/metricas.json                           |  44 [32m+[m[31m-[m
+ .../rostro_20261005_212322_125959.jpg              | Bin [31m40206[m -> [32m0[m bytes
+ .../rostro_20261005_212325_113052.jpg              | Bin [31m44271[m -> [32m0[m bytes
+ .../rostro_20261005_212328_120510.jpg              | Bin [31m46277[m -> [32m0[m bytes
+ .../rostro_20261005_212331_119208.jpg              | Bin [31m44642[m -> [32m0[m bytes
+ .../rostro_20261005_212334_094702.jpg              | Bin [31m45307[m -> [32m0[m bytes
+ .../rostro_20261005_212337_528455.jpg              | Bin [31m45990[m -> [32m0[m bytes
+ .../rostro_20261005_212340_100765.jpg              | Bin [31m45467[m -> [32m0[m bytes
+ .../rostro_20261005_212343_078595.jpg              | Bin [31m46117[m -> [32m0[m bytes
+ .../rostro_20261005_212346_083951.jpg              | Bin [31m46891[m -> [32m0[m bytes
+ .../rostro_20261005_212349_085071.jpg              | Bin [31m44858[m -> [32m0[m bytes
+ .../rostro_20261005_212352_081157.jpg              | Bin [31m28523[m -> [32m0[m bytes
+ .../rostro_20261005_212355_110035.jpg              | Bin [31m31207[m -> [32m0[m bytes
+ .../rostro_20261005_212358_102279.jpg              | Bin [31m27583[m -> [32m0[m bytes
+ .../rostro_20261005_212401_096453.jpg              | Bin [31m33021[m -> [32m0[m bytes
+ .../rostro_20261005_212404_106613.jpg              | Bin [31m33765[m -> [32m0[m bytes
+ .../rostro_20261005_212407_106959.jpg              | Bin [31m30327[m -> [32m0[m bytes
+ .../rostro_20261005_212410_096660.jpg              | Bin [31m33538[m -> [32m0[m bytes
+ .../rostro_20261005_212413_114164.jpg              | Bin [31m34518[m -> [32m0[m bytes
+ .../rostro_20261005_212416_122237.jpg              | Bin [31m35560[m -> [32m0[m bytes
+ .../rostro_20261005_212419_083465.jpg              | Bin [31m36883[m -> [32m0[m bytes
+ .../rostro_20261005_212422_129607.jpg              | Bin [31m41152[m -> [32m0[m bytes
+ .../rostro_20261005_212425_110176.jpg              | Bin [31m44713[m -> [32m0[m bytes
+ .../rostro_20261005_212428_324929.jpg              | Bin [31m41329[m -> [32m0[m bytes
+ .../rostro_20261005_212431_233001.jpg              | Bin [31m42348[m -> [32m0[m bytes
+ .../rostro_20261005_212434_134345.jpg              | Bin [31m42069[m -> [32m0[m bytes
+ .../rostro_20261005_212437_233151.jpg              | Bin [31m33736[m -> [32m0[m bytes
+ .../rostro_20261005_212440_267109.jpg              | Bin [31m33351[m -> [32m0[m bytes
+ .../rostro_20261005_212443_100828.jpg              | Bin [31m36273[m -> [32m0[m bytes
+ .../rostro_20261005_212446_125378.jpg              | Bin [31m27937[m -> [32m0[m bytes
+ .../rostro_20261005_212449_256073.jpg              | Bin [31m48740[m -> [32m0[m bytes
+ .../rostro_20261005_212452_265894.jpg              | Bin [31m44141[m -> [32m0[m bytes
+ .../rostro_20261005_212455_199556.jpg              | Bin [31m59539[m -> [32m0[m bytes
+ .../rostro_20261005_212458_295605.jpg              | Bin [31m42468[m -> [32m0[m bytes
+ .../rostro_20261005_212501_134928.jpg              | Bin [31m35949[m -> [32m0[m bytes
+ .../rostro_20261005_212504_183583.jpg              | Bin [31m38802[m -> [32m0[m bytes
+ .../rostro_20261005_212507_093938.jpg              | Bin [31m42676[m -> [32m0[m bytes
+ .../rostro_20261005_212510_142688.jpg              | Bin [31m41476[m -> [32m0[m bytes
+ .../rostro_20261005_212513_130427.jpg              | Bin [31m40147[m -> [32m0[m bytes
+ .../rostro_20261005_212516_066061.jpg              | Bin [31m44519[m -> [32m0[m bytes
+ .../rostro_20261005_212519_379303.jpg              | Bin [31m38084[m -> [32m0[m bytes
+ .../rostro_20261005_212522_103094.jpg              | Bin [31m39368[m -> [32m0[m bytes
+ .../rostro_20261005_212525_258409.jpg              | Bin [31m40554[m -> [32m0[m bytes
+ .../rostro_20261005_212528_064074.jpg              | Bin [31m30234[m -> [32m0[m bytes
+ .../rostro_20261005_212531_101833.jpg              | Bin [31m46515[m -> [32m0[m bytes
+ .../rostro_20261005_212534_077315.jpg              | Bin [31m45720[m -> [32m0[m bytes
+ .../rostro_20261005_212537_089824.jpg              | Bin [31m44203[m -> [32m0[m bytes
+ .../rostro_20261005_212540_066735.jpg              | Bin [31m46273[m -> [32m0[m bytes
+ .../rostro_20261005_212543_136863.jpg              | Bin [31m46620[m -> [32m0[m bytes
+ .../rostro_20261005_212546_125107.jpg              | Bin [31m47381[m -> [32m0[m bytes
+ .../rostro_20261005_212549_099074.jpg              | Bin [31m28404[m -> [32m0[m bytes
+ .../rostro_20261005_212552_055173.jpg              | Bin [31m37871[m -> [32m0[m bytes
+ .../rostro_20261005_212555_073843.jpg              | Bin [31m39561[m -> [32m0[m bytes
+ .../rostro_20261005_212603_045776.jpg              | Bin [31m32692[m -> [32m0[m bytes
+ .../rostro_20261005_212606_642060.jpg              | Bin [31m41838[m -> [32m0[m bytes
+ .../rostro_20261005_212609_562148.jpg              | Bin [31m40189[m -> [32m0[m bytes
+ .../rostro_20261005_212610_975058.jpg              | Bin [31m41848[m -> [32m0[m bytes
+ .../rostro_20261006_064000_420813.jpg              | Bin [31m32877[m -> [32m0[m bytes
+ .../rostro_20261006_064015_153952.jpg              | Bin [31m46194[m -> [32m0[m bytes
+ .../rostro_20261006_064018_292538.jpg              | Bin [31m50754[m -> [32m0[m bytes
+ .../rostro_20261006_064021_252270.jpg              | Bin [31m46248[m -> [32m0[m bytes
+ .../rostro_20261006_064024_261525.jpg              | Bin [31m47007[m -> [32m0[m bytes
+ .../rostro_20261006_064425_443397.jpg              | Bin [31m34097[m -> [32m0[m bytes
+ .../rostro_20261006_064428_378509.jpg              | Bin [31m28679[m -> [32m0[m bytes
+ .../rostro_20261006_064431_397443.jpg              | Bin [31m26942[m -> [32m0[m bytes
+ .../rostro_20261006_064434_401491.jpg              | Bin [31m27159[m -> [32m0[m bytes
+ .../rostro_20261006_064437_392875.jpg              | Bin [31m21167[m -> [32m0[m bytes
+ .../rostro_20261006_064440_445220.jpg              | Bin [31m25906[m -> [32m0[m bytes
+ .../rostro_20261006_064443_431459.jpg              | Bin [31m27062[m -> [32m0[m bytes
+ .../rostro_20261006_064446_392372.jpg              | Bin [31m27069[m -> [32m0[m bytes
+ .../rostro_20261006_064449_618190.jpg              | Bin [31m26248[m -> [32m0[m bytes
+ .../rostro_20261006_064452_422451.jpg              | Bin [31m52090[m -> [32m0[m bytes
+ .../rostro_20261006_064455_421260.jpg              | Bin [31m53166[m -> [32m0[m bytes
+ .../rostro_20261006_064458_523868.jpg              | Bin [31m39775[m -> [32m0[m bytes
+ .../rostro_20261006_064501_358416.jpg              | Bin [31m37694[m -> [32m0[m bytes
+ .../rostro_20261006_064504_518940.jpg     
