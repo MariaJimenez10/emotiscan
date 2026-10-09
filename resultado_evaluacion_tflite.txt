@@ -1,0 +1,25 @@
+EVALUACION DEL MODELO TFLITE
+Modelo: C:\Users\Equipo\OneDrive\Desktop\111\emotiscan\modelo\modelo_resnet50_emociones.tflite
+Imagenes evaluadas: 3526
+Errores de lectura/procesamiento: 0
+Accuracy: 55.28%
+
+REPORTE POR EMOCION
+              precision    recall  f1-score   support
+
+       Enojo     0.8282    0.2030    0.3261       926
+   Felicidad     0.8135    0.7486    0.7797      1241
+     Neutral     0.3131    0.7951    0.4493       493
+    Tristeza     0.4862    0.5081    0.4969       866
+
+    accuracy                         0.5528      3526
+   macro avg     0.6102    0.5637    0.5130      3526
+weighted avg     0.6670    0.5528    0.5449      3526
+
+MATRIZ DE CONFUSION
+Filas = emoción real; columnas = emoción predicha
+Orden: ['Enojo', 'Felicidad', 'Neutral', 'Tristeza']
+[[188 119 311 308]
+ [ 18 929 200  94]
+ [  5  33 392  63]
+ [ 16  61 349 440]]
