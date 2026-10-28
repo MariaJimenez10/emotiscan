@@ -1,0 +1,20 @@
+Accuracy test: 57.50%
+
+Orden de clases: Enojo, Felicidad, Tristeza, Neutral
+
+              precision    recall  f1-score   support
+
+       Enojo     0.9406    0.2497    0.3946       825
+   Felicidad     0.8164    0.8479    0.8318       881
+    Tristeza     0.4819    0.5432    0.5107       613
+     Neutral     0.2554    0.7683    0.3834       246
+
+    accuracy                         0.5750      2565
+   macro avg     0.6236    0.6023    0.5301      2565
+weighted avg     0.7226    0.5750    0.5715      2565
+
+Matriz de confusión:
+[[206 110 261 248]
+ [  3 747  53  78]
+ [ 10  45 333 225]
+ [  0  13  44 189]]

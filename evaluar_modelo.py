@@ -1,233 +1,134 @@
 
-import os
+import logging
+from pathlib import Path
+from collections import defaultdict
+
 import cv2
 import numpy as np
 
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix
-)
+from predict import EMOCIONES, predecir
 
-import predict
+# Reducir los mensajes de cada prediccion.
+logging.disable(logging.CRITICAL)
 
-
-# ==========================================================
-# CONFIGURACION
-# ==========================================================
-
-DATASET_PATH = os.path.join("dataset", "test")
-
-EMOCIONES = [
-    "Enojo",
-    "Felicidad",
-    "Neutral",
-    "Tristeza"
-]
+BASE_DIR = Path(__file__).resolve().parent
+CARPETA_TEST = BASE_DIR / "dataset" / "test"
+CLASES = list(EMOCIONES)
+EXTENSIONES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
-# ==========================================================
-# CARGAR MODELO TFLITE DE LA APLICACION
-# ==========================================================
+def main():
+    if not CARPETA_TEST.is_dir():
+        print(f"No existe la carpeta: {CARPETA_TEST}")
+        return
 
-print("=" * 60)
-print("EVALUACION DEL MODELO TFLITE DE EMOTISCAN AI")
-print("=" * 60)
-
-predict.cargar_modelo()
-
-if predict.interpreter is None:
-    raise RuntimeError("No se pudo cargar el modelo TFLite.")
-
-print("Modelo cargado desde:", predict.MODEL_PATH)
-print("Clases:", predict.EMOCIONES)
-
-if list(predict.EMOCIONES) != EMOCIONES:
-    raise ValueError(
-        "El orden de las emociones no coincide con predict.py."
+    matriz = np.zeros(
+        (len(CLASES), len(CLASES)),
+        dtype=np.int64
     )
 
+    errores = []
+    fallidas = 0
+    total = 0
 
-# ==========================================================
-# PREPARAR IMAGENES Y ETIQUETAS
-# ==========================================================
+    indices = {clase: i for i, clase in enumerate(CLASES)}
 
-y_real = []
-y_predicho = []
-errores_lectura = 0
+    print("Evaluando el modelo actual...")
+    print("No se entrenara ni reemplazara ningun modelo.\n")
 
-for indice, emocion in enumerate(EMOCIONES):
+    for real in CLASES:
+        carpeta = CARPETA_TEST / real
 
-    carpeta = os.path.join(DATASET_PATH, emocion)
+        if not carpeta.is_dir():
+            print(f"Falta la carpeta: {carpeta}")
+            return
 
-    if not os.path.isdir(carpeta):
-        print(f"ADVERTENCIA: no existe la carpeta {carpeta}")
-        continue
-
-    archivos = [
-        archivo for archivo in os.listdir(carpeta)
-        if archivo.lower().endswith(
-            (".jpg", ".jpeg", ".png", ".bmp")
+        archivos = sorted(
+            p for p in carpeta.rglob("*")
+            if p.is_file() and p.suffix.lower() in EXTENSIONES
         )
-    ]
 
-    print(f"{emocion}: {len(archivos)} imágenes")
+        correctas = 0
 
-    for archivo in archivos:
+        for archivo in archivos:
+            imagen = cv2.imread(str(archivo))
 
-        ruta = os.path.join(carpeta, archivo)
-        imagen = cv2.imread(ruta)
+            if imagen is None:
+                fallidas += 1
+                continue
 
-        if imagen is None:
-            errores_lectura += 1
-            continue
+            try:
+                predicha, confianza, todas, consejo = predecir(imagen)
+            except Exception as error:
+                fallidas += 1
+                print(f"Error en {archivo.name}: {error}")
+                continue
 
-        try:
-            # Usar el mismo preprocesamiento que predict.py
-            entrada = predict.preparar_rostro(imagen)
+            if predicha not in indices:
+                fallidas += 1
+                continue
 
-            detalles_entrada = predict.input_details[0]
-            dtype = detalles_entrada["dtype"]
+            matriz[indices[real], indices[predicha]] += 1
+            total += 1
 
-            # Adaptar la entrada al tipo esperado por TFLite
-            if dtype in (np.int8, np.uint8):
-                escala, cero = detalles_entrada["quantization"]
-
-                if escala <= 0:
-                    raise ValueError(
-                        "Cuantización de entrada inválida."
-                    )
-
-                entrada = np.round(
-                    entrada / escala + cero
+            if predicha == real:
+                correctas += 1
+            else:
+                errores.append(
+                    (real, predicha, archivo.name, confianza)
                 )
 
-                limites = np.iinfo(dtype)
-                entrada = np.clip(
-                    entrada,
-                    limites.min,
-                    limites.max
-                ).astype(dtype)
-
-            else:
-                entrada = entrada.astype(dtype)
-
-            predict.interpreter.set_tensor(
-                detalles_entrada["index"],
-                entrada
-            )
-
-            predict.interpreter.invoke()
-
-            salida = predict.interpreter.get_tensor(
-                predict.output_details[0]["index"]
-            )
-
-            salida = np.asarray(
-                salida,
-                dtype=np.float64
-            ).reshape(-1)
-
-            if len(salida) != len(EMOCIONES):
-                raise ValueError(
-                    f"El modelo devolvió {len(salida)} valores "
-                    f"en lugar de {len(EMOCIONES)}."
-                )
-
-            # Convertir la salida a probabilidades si es necesario
-            if (
-                np.all(salida >= 0)
-                and np.isclose(np.sum(salida), 1.0, atol=0.02)
-            ):
-                probabilidades = salida / np.sum(salida)
-            else:
-                salida = salida - np.max(salida)
-                exp_salida = np.exp(salida)
-                probabilidades = exp_salida / np.sum(exp_salida)
-
-            prediccion = int(np.argmax(probabilidades))
-
-            y_real.append(indice)
-            y_predicho.append(prediccion)
-
-        except Exception as error:
-            print(f"Error con {ruta}: {error}")
-            errores_lectura += 1
-
-
-# ==========================================================
-# RESULTADOS
-# ==========================================================
-
-if not y_real:
-    raise RuntimeError(
-        "No se evaluaron imágenes. Revisa la ruta dataset/test "
-        "y las carpetas de emociones."
-    )
-
-print("\n" + "=" * 60)
-print("RESUMEN")
-print("=" * 60)
-print("Imágenes evaluadas:", len(y_real))
-print("Imágenes con errores:", errores_lectura)
-
-accuracy = accuracy_score(y_real, y_predicho)
-
-print(f"\nACCURACY: {accuracy * 100:.2f}%")
-
-print("\nREPORTE POR EMOCION")
-print(
-    classification_report(
-        y_real,
-        y_predicho,
-        labels=list(range(len(EMOCIONES))),
-        target_names=EMOCIONES,
-        digits=4,
-        zero_division=0
-    )
-)
-
-matriz = confusion_matrix(
-    y_real,
-    y_predicho,
-    labels=list(range(len(EMOCIONES)))
-)
-
-print("MATRIZ DE CONFUSION")
-print("Filas = emoción real; columnas = emoción predicha")
-print("Orden:", EMOCIONES)
-print(matriz)
-
-with open(
-    "resultado_evaluacion_tflite.txt",
-    "w",
-    encoding="utf-8"
-) as archivo:
-
-    archivo.write("EVALUACION DEL MODELO TFLITE\n")
-    archivo.write(f"Modelo: {predict.MODEL_PATH}\n")
-    archivo.write(f"Imagenes evaluadas: {len(y_real)}\n")
-    archivo.write(f"Errores de lectura/procesamiento: {errores_lectura}\n")
-    archivo.write(f"Accuracy: {accuracy * 100:.2f}%\n\n")
-
-    archivo.write("REPORTE POR EMOCION\n")
-    archivo.write(
-        classification_report(
-            y_real,
-            y_predicho,
-            labels=list(range(len(EMOCIONES))),
-            target_names=EMOCIONES,
-            digits=4,
-            zero_division=0
+        print(
+            f"{real}: {correctas}/{len(archivos)} "
+            "imagenes clasificadas correctamente "
+            "(el total procesado puede ser menor si hay errores de lectura)"
         )
-    )
 
-    archivo.write("\nMATRIZ DE CONFUSION\n")
-    archivo.write(
-        "Filas = emoción real; columnas = emoción predicha\n"
-    )
-    archivo.write(f"Orden: {EMOCIONES}\n")
-    archivo.write(np.array2string(matriz))
+    print("\n========== MATRIZ DE CONFUSION ==========")
+    print("Filas = emocion real; columnas = emocion predicha")
+    print("Orden:", CLASES)
+    print(matriz)
 
-print("\nResultados guardados en resultado_evaluacion_tflite.txt")
-print("Evaluación finalizada.")
+    aciertos = int(np.trace(matriz))
+    exactitud = 100 * aciertos / total if total else 0
+
+    print("\n========== RESULTADOS ==========")
+    print(f"Imagenes evaluadas: {total}")
+    print(f"Imagenes no procesadas: {fallidas}")
+    print(f"Aciertos: {aciertos}")
+    print(f"Exactitud global: {exactitud:.2f}%")
+
+    print("\n========== METRICAS POR EMOCION ==========")
+
+    for i, clase in enumerate(CLASES):
+        verdaderos = int(matriz[i, i])
+        total_real = int(matriz[i, :].sum())
+        total_predicho = int(matriz[:, i].sum())
+
+        recall = (
+            100 * verdaderos / total_real
+            if total_real else 0
+        )
+        precision = (
+            100 * verdaderos / total_predicho
+            if total_predicho else 0
+        )
+
+        print(
+            f"{clase}: recall={recall:.2f}% | "
+            f"precision={precision:.2f}% | "
+            f"casos reales={total_real}"
+        )
+
+    print("\n========== PRIMEROS 30 ERRORES ==========")
+    for real, predicha, nombre, confianza in errores[:30]:
+        print(
+            f"Real: {real} | Predicha: {predicha} | "
+            f"{confianza:.2f}% | {nombre}"
+        )
+
+    print("\nEvaluacion terminada. No se modifico el modelo.")
+
+
+if __name__ == "__main__":
+    main()

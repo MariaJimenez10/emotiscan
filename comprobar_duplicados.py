@@ -1,213 +1,175 @@
 
 import os
-import cv2
+import json
+import random
 import numpy as np
+import cv2
 import tensorflow as tf
 
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
-import predict
-
-
-# ==========================================================
-# CONFIGURACION
-# ==========================================================
+from tensorflow.keras.applications.resnet50 import preprocess_input
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_PATH = os.path.join(BASE_DIR, "dataset", "test")
-
-KERAS_PATH = os.path.join(
+MODEL_KERAS = os.path.join(
     BASE_DIR, "modelo", "resnet50_emociones_mejorado.keras"
 )
+MODEL_TFLITE = os.path.join(
+    BASE_DIR, "modelo", "modelo_resnet50_emociones.tflite"
+)
+DATASET = os.path.join(BASE_DIR, "dataset", "test")
+CLASSES_FILE = os.path.join(BASE_DIR, "modelo", "clases.json")
 
-EMOCIONES = ["Enojo", "Felicidad", "Neutral", "Tristeza"]
+IMG_SIZE = 224
+SEED = 42
+IMAGES_PER_CLASS = 5
 
+with open(CLASSES_FILE, "r", encoding="utf-8") as f:
+    CLASSES = json.load(f)
 
-# ==========================================================
-# CARGAR LOS DOS MODELOS
-# ==========================================================
+print("Clases:", CLASSES)
 
-print("=" * 65)
-print("COMPARACION CON IMAGENES REALES: KERAS VS TFLITE")
-print("=" * 65)
-
-if not os.path.isfile(KERAS_PATH):
-    raise FileNotFoundError(f"No existe el modelo Keras: {KERAS_PATH}")
+for path in (MODEL_KERAS, MODEL_TFLITE):
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"No se encontró: {path}")
 
 print("\nCargando modelo Keras...")
-modelo_keras = tf.keras.models.load_model(KERAS_PATH, compile=False)
+keras_model = tf.keras.models.load_model(
+    MODEL_KERAS, compile=False
+)
 
-print("Cargando modelo TFLite de EmotiScan...")
-predict.cargar_modelo()
+print("Cargando modelo TFLite...")
+interpreter = tf.lite.Interpreter(model_path=MODEL_TFLITE)
+interpreter.allocate_tensors()
 
-if predict.interpreter is None:
-    raise RuntimeError("No se pudo cargar el modelo TFLite.")
+input_info = interpreter.get_input_details()[0]
+output_info = interpreter.get_output_details()[0]
 
-if list(predict.EMOCIONES) != EMOCIONES:
-    raise ValueError("El orden de las clases no coincide con predict.py.")
+if input_info["dtype"] != np.float32:
+    raise TypeError(
+        f"Este diagnóstico espera entrada float32; "
+        f"el TFLite utiliza {input_info['dtype']}."
+    )
 
-detalles_entrada = predict.input_details[0]
-detalles_salida = predict.output_details[0]
+if output_info["dtype"] != np.float32:
+    raise TypeError(
+        f"Este diagnóstico espera salida float32; "
+        f"el TFLite utiliza {output_info['dtype']}."
+    )
 
-print("Keras:", KERAS_PATH)
-print("TFLite:", predict.MODEL_PATH)
-print("Clases:", EMOCIONES)
+rng = random.Random(SEED)
+comparaciones = []
+errores = []
 
+print("\nComparando predicciones con las mismas imágenes...")
 
-# ==========================================================
-# EVALUAR LAS MISMAS IMAGENES EN AMBOS MODELOS
-# ==========================================================
-
-y_real = []
-pred_keras = []
-pred_tflite = []
-
-diferencias = []
-errores = 0
-
-for indice, emocion in enumerate(EMOCIONES):
-    carpeta = os.path.join(DATASET_PATH, emocion)
+for clase_real in CLASSES:
+    carpeta = os.path.join(DATASET, clase_real)
 
     if not os.path.isdir(carpeta):
-        print(f"ADVERTENCIA: falta la carpeta {carpeta}")
+        print(f"AVISO: falta la carpeta {carpeta}")
         continue
 
-    archivos = sorted([
-        nombre for nombre in os.listdir(carpeta)
-        if nombre.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
-    ])
+    archivos = [
+        os.path.join(carpeta, nombre)
+        for nombre in os.listdir(carpeta)
+        if nombre.lower().endswith(
+            (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+        )
+    ]
 
-    print(f"\nEvaluando {emocion}: {len(archivos)} imágenes")
+    rng.shuffle(archivos)
+    seleccion = archivos[:IMAGES_PER_CLASS]
 
-    for nombre in archivos:
-        ruta = os.path.join(carpeta, nombre)
-        imagen = cv2.imread(ruta)
+    for ruta in seleccion:
+        imagen_bgr = cv2.imread(ruta)
 
-        if imagen is None:
-            errores += 1
-            print("No se pudo leer:", ruta)
+        if imagen_bgr is None:
+            errores.append(ruta)
             continue
 
-        try:
-            # Mismo preprocesamiento que usa la aplicación.
-            entrada = predict.preparar_rostro(imagen)
-            entrada = np.asarray(entrada, dtype=np.float32)
+        # Una única preparación compartida por ambos modelos.
+        imagen_rgb = cv2.cvtColor(
+            imagen_bgr, cv2.COLOR_BGR2RGB
+        )
+        imagen_rgb = cv2.resize(
+            imagen_rgb, (IMG_SIZE, IMG_SIZE),
+            interpolation=cv2.INTER_AREA
+        )
 
-            if entrada.shape != tuple(detalles_entrada["shape"]):
-                raise ValueError(
-                    f"Forma de entrada inesperada: {entrada.shape}; "
-                    f"se esperaba {detalles_entrada['shape']}"
-                )
+        lote = np.expand_dims(
+            imagen_rgb.astype(np.float32), axis=0
+        )
+        lote = preprocess_input(lote.copy())
 
-            # Predicción Keras.
-            salida_keras = modelo_keras(
-                entrada, training=False
-            ).numpy().reshape(-1)
+        # Predicción Keras.
+        pred_keras = np.asarray(
+            keras_model(lote, training=False)
+        )[0]
 
-            # Predicción TFLite.
-            dtype_tflite = detalles_entrada["dtype"]
+        # Predicción TFLite con el mismo tensor.
+        interpreter.set_tensor(input_info["index"], lote)
+        interpreter.invoke()
+        pred_tflite = interpreter.get_tensor(
+            output_info["index"]
+        )[0]
 
-            if dtype_tflite in (np.int8, np.uint8):
-                escala, cero = detalles_entrada["quantization"]
+        if len(pred_keras) != len(CLASSES):
+            raise ValueError("La salida Keras no coincide con clases.json.")
 
-                if escala <= 0:
-                    raise ValueError("Escala de cuantización inválida.")
+        if len(pred_tflite) != len(CLASSES):
+            raise ValueError("La salida TFLite no coincide con clases.json.")
 
-                entrada_tflite = np.clip(
-                    np.round(entrada / escala + cero),
-                    np.iinfo(dtype_tflite).min,
-                    np.iinfo(dtype_tflite).max
-                ).astype(dtype_tflite)
-            else:
-                entrada_tflite = entrada.astype(dtype_tflite)
+        if not (
+            np.all(np.isfinite(pred_keras))
+            and np.all(np.isfinite(pred_tflite))
+        ):
+            print("AVISO: salida no válida:", ruta)
+            continue
 
-            predict.interpreter.set_tensor(
-                detalles_entrada["index"], entrada_tflite
-            )
-            predict.interpreter.invoke()
+        clase_k = CLASSES[int(np.argmax(pred_keras))]
+        clase_t = CLASSES[int(np.argmax(pred_tflite))]
 
-            salida_tflite = predict.interpreter.get_tensor(
-                detalles_salida["index"]
-            ).astype(np.float64).reshape(-1)
+        diferencia = float(
+            np.mean(np.abs(pred_keras - pred_tflite))
+        )
 
-            # Si la salida es cuantizada, convertirla a valores reales.
-            if detalles_salida["dtype"] in (np.int8, np.uint8):
-                escala_s, cero_s = detalles_salida["quantization"]
-                if escala_s <= 0:
-                    raise ValueError("Escala de salida inválida.")
-                salida_tflite = (salida_tflite - cero_s) * escala_s
+        comparaciones.append({
+            "real": clase_real,
+            "keras": clase_k,
+            "tflite": clase_t,
+            "diferencia": diferencia,
+            "archivo": os.path.basename(ruta)
+        })
 
-            if len(salida_keras) != 4 or len(salida_tflite) != 4:
-                raise ValueError("Uno de los modelos no devolvió 4 valores.")
-
-            clase_keras = int(np.argmax(salida_keras))
-            clase_tflite = int(np.argmax(salida_tflite))
-
-            y_real.append(indice)
-            pred_keras.append(clase_keras)
-            pred_tflite.append(clase_tflite)
-
-            diferencias.append(
-                float(np.max(np.abs(salida_keras - salida_tflite)))
-            )
-
-        except Exception as error:
-            errores += 1
-            print(f"Error en {ruta}: {error}")
-
-
-# ==========================================================
-# MOSTRAR RESULTADOS
-# ==========================================================
-
-if not y_real:
-    raise RuntimeError("No se pudo evaluar ninguna imagen.")
-
-acc_keras = accuracy_score(y_real, pred_keras)
-acc_tflite = accuracy_score(y_real, pred_tflite)
-
-desacuerdos = sum(
-    a != b for a, b in zip(pred_keras, pred_tflite)
-)
+        print(
+            f"Real: {clase_real:10} | "
+            f"Keras: {clase_k:10} | "
+            f"TFLite: {clase_t:10} | "
+            f"Diferencia media: {diferencia:.6f} | "
+            f"{os.path.basename(ruta)}"
+        )
 
 print("\n" + "=" * 65)
-print("RESUMEN DE LA COMPARACION")
+print("RESUMEN")
 print("=" * 65)
-print("Imágenes evaluadas:", len(y_real))
-print("Errores de lectura/procesamiento:", errores)
-print(f"Accuracy Keras:  {acc_keras * 100:.2f}%")
-print(f"Accuracy TFLite: {acc_tflite * 100:.2f}%")
-print("Predicciones diferentes:", desacuerdos)
-print(f"Porcentaje de desacuerdo: {desacuerdos / len(y_real) * 100:.2f}%")
-print(
-    "Diferencia máxima entre salidas:",
-    f"{max(diferencias):.10f}" if diferencias else "No disponible"
-)
 
-print("\nREPORTE KERAS")
-print(classification_report(
-    y_real, pred_keras,
-    labels=list(range(4)),
-    target_names=EMOCIONES,
-    digits=4,
-    zero_division=0
-))
+if comparaciones:
+    coincidencias = sum(
+        x["keras"] == x["tflite"] for x in comparaciones
+    )
+    diferencia_media = np.mean([
+        x["diferencia"] for x in comparaciones
+    ])
 
-print("\nREPORTE TFLITE")
-print(classification_report(
-    y_real, pred_tflite,
-    labels=list(range(4)),
-    target_names=EMOCIONES,
-    digits=4,
-    zero_division=0
-))
+    print("Imágenes comparadas:", len(comparaciones))
+    print("Predicciones coincidentes:", coincidencias)
+    print(
+        "Porcentaje de coincidencia:",
+        f"{100 * coincidencias / len(comparaciones):.2f}%"
+    )
+    print("Diferencia absoluta media de salidas:", 
+          f"{diferencia_media:.6f}")
+else:
+    print("No se pudieron comparar imágenes.")
 
-print("\nMATRIZ DE CONFUSION KERAS")
-print("Filas = emoción real; columnas = predicción")
-print(confusion_matrix(y_real, pred_keras, labels=list(range(4))))
-
-print("\nMATRIZ DE CONFUSION TFLITE")
-print("Filas = emoción real; columnas = predicción")
-print(confusion_matrix(y_real, pred_tflite, labels=list(range(4))))
-
-print("\nComparación finalizada.")
+print("Imágenes no leídas:", len(errores))
+print("\nNo se entrenó ni se modificó ningún modelo.")

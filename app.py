@@ -227,6 +227,49 @@ def init_db():
             )
         """)
 
+                # ==================================================
+        # TABLA DE SESIONES DE ANÁLISIS
+        # ==================================================
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sesiones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER,
+                usuario TEXT,
+                fecha_inicio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fecha_fin TIMESTAMP,
+                estado TEXT DEFAULT 'activa',
+                FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
+            )
+        """)
+
+        # ==================================================
+        # MIGRACIÓN SEGURA DE LA TABLA EMOCIONES
+        # ==================================================
+
+        cursor.execute("PRAGMA table_info(emociones)")
+
+        columnas = {
+            fila["name"]
+            for fila in cursor.fetchall()
+        }
+
+        if "sesion_id" not in columnas:
+            cursor.execute("""
+                ALTER TABLE emociones
+                ADD COLUMN sesion_id INTEGER
+            """)
+
+        # ==================================================
+        # ÍNDICE PARA CONSULTAR UNA SESIÓN RÁPIDAMENTE
+        # ==================================================
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_emociones_sesion
+            ON emociones(sesion_id)
+        """)
+
         conn.commit()
 
         conn.close()
@@ -1124,6 +1167,287 @@ def analizar_imagen(frame):
         consejo
     )
 
+# ==========================================================
+# SESIONES DE ANALISIS EMOCIONAL Y ESTADISTICAS
+# ==========================================================
+
+from datetime import datetime
+from collections import Counter
+
+
+def obtener_estadisticas_sesion(sesion_id, usuario_id):
+    """Calcula las estadisticas de una sesion sin modificar el historial."""
+
+    conn = get_db_connection()
+
+    try:
+        sesion = conn.execute(
+            """
+            SELECT id, fecha_inicio, fecha_fin, estado
+            FROM sesiones
+            WHERE id = ? AND usuario_id = ?
+            """,
+            (sesion_id, usuario_id)
+        ).fetchone()
+
+        if not sesion:
+            return None
+
+        registros = conn.execute(
+            """
+            SELECT emocion, confianza, fecha, fecha_registro
+            FROM emociones
+            WHERE sesion_id = ? AND usuario_id = ?
+            ORDER BY id ASC
+            """,
+            (sesion_id, usuario_id)
+        ).fetchall()
+
+        inicio_texto = sesion["fecha_inicio"]
+        fin_texto = sesion["fecha_fin"]
+
+        def convertir_fecha(valor):
+            if not valor:
+                return None
+            try:
+                return datetime.fromisoformat(str(valor))
+            except (ValueError, TypeError):
+                return None
+
+        inicio = convertir_fecha(inicio_texto)
+        fin = convertir_fecha(fin_texto)
+
+        if fin is None:
+            fin = datetime.now()
+
+        duracion = 0
+        if inicio:
+            duracion = max(0, int((fin - inicio).total_seconds()))
+
+        conteo = Counter()
+        minutos = {}
+
+        for registro in registros:
+            emocion = registro["emocion"] or "Sin deteccion"
+            conteo[emocion] += 1
+
+            fecha_registro = (
+                registro["fecha_registro"] or registro["fecha"]
+            )
+            fecha = convertir_fecha(fecha_registro)
+
+            if fecha and inicio:
+                minuto = max(
+                    1,
+                    int((fecha - inicio).total_seconds() // 60) + 1
+                )
+            else:
+                minuto = 1
+
+            if minuto not in minutos:
+                minutos[minuto] = Counter()
+
+            minutos[minuto][emocion] += 1
+
+        total = len(registros)
+        emociones = []
+
+        for emocion, cantidad in conteo.most_common():
+            emociones.append({
+                "emocion": emocion,
+                "cantidad": cantidad,
+                "porcentaje": round(
+                    cantidad * 100 / total, 2
+                ) if total else 0
+            })
+
+        confianza_valida = [
+            float(r["confianza"])
+            for r in registros
+            if r["confianza"] is not None
+        ]
+
+        por_minuto = [
+            {
+                "minuto": minuto,
+                "total": sum(datos.values()),
+                "emociones": dict(datos)
+            }
+            for minuto, datos in sorted(minutos.items())
+        ]
+
+        cantidad_minutos = max(1, (duracion + 59) // 60)
+
+        return {
+            "success": True,
+            "sesion_id": sesion_id,
+            "total_detecciones": total,
+            "emocion_principal": (
+                conteo.most_common(1)[0][0] if conteo else "Sin detecciones"
+            ),
+            "duracion_segundos": duracion,
+            "emociones": emociones,
+            "por_minuto": por_minuto,
+            "promedio_detecciones_minuto": round(
+                total / cantidad_minutos, 2
+            ),
+            "confianza_promedio": round(
+                sum(confianza_valida) / len(confianza_valida), 2
+            ) if confianza_valida else 0
+        }
+
+    finally:
+        conn.close()
+
+
+@app.route("/sesion/iniciar", methods=["POST"])
+def iniciar_sesion():
+    usuario_id = session.get("usuario_id")
+
+    if not usuario_id:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesion para registrar el analisis."
+        }), 401
+
+    conn = get_db_connection()
+
+    try:
+        usuario = (
+            session.get("usuario_nombre")
+            or session.get("usuario")
+            or session.get("user")
+            or ""
+        )
+
+        cursor = conn.execute(
+            """
+            INSERT INTO sesiones (usuario_id, usuario, estado)
+            VALUES (?, ?, 'activa')
+            """,
+            (usuario_id, usuario)
+        )
+
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "sesion_id": cursor.lastrowid,
+            "mensaje": "Sesion iniciada correctamente"
+        }), 200
+
+    except Exception:
+        app.logger.exception("Error al iniciar sesion emocional")
+        return jsonify({
+            "success": False,
+            "error": "No se pudo iniciar la sesion."
+        }), 500
+
+    finally:
+        conn.close()
+
+
+@app.route("/sesion/estadisticas", methods=["GET"])
+def estadisticas_sesion():
+    usuario_id = session.get("usuario_id")
+
+    if not usuario_id:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesion."
+        }), 401
+
+    try:
+        sesion_id = request.args.get("sesion_id", type=int)
+
+        if not sesion_id:
+            return jsonify({
+                "success": False,
+                "error": "Falta el identificador de la sesion."
+            }), 400
+
+        resultado = obtener_estadisticas_sesion(
+            sesion_id, usuario_id
+        )
+
+        if resultado is None:
+            return jsonify({
+                "success": False,
+                "error": "No se encontro la sesion."
+            }), 404
+
+        return jsonify(resultado), 200
+
+    except Exception:
+        app.logger.exception("Error al consultar estadisticas")
+        return jsonify({
+            "success": False,
+            "error": "No se pudieron calcular las estadisticas."
+        }), 500
+
+
+@app.route("/sesion/finalizar", methods=["POST"])
+def finalizar_sesion():
+    usuario_id = session.get("usuario_id")
+    datos = request.get_json(silent=True) or {}
+
+    if not usuario_id:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesion."
+        }), 401
+
+    sesion_id = datos.get("sesion_id")
+
+    if not sesion_id:
+        return jsonify({
+            "success": False,
+            "error": "Falta el identificador de la sesion."
+        }), 400
+
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.execute(
+            """
+            UPDATE sesiones
+            SET fecha_fin = CURRENT_TIMESTAMP,
+                estado = 'finalizada'
+            WHERE id = ? AND usuario_id = ?
+            """,
+            (sesion_id, usuario_id)
+        )
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({
+                "success": False,
+                "error": "No se encontro la sesion."
+            }), 404
+
+    except Exception:
+        app.logger.exception("Error al finalizar sesion")
+        return jsonify({
+            "success": False,
+            "error": "No se pudo finalizar la sesion."
+        }), 500
+
+    finally:
+        conn.close()
+
+    resultado = obtener_estadisticas_sesion(
+        int(sesion_id), usuario_id
+    )
+
+    if resultado is None:
+        return jsonify({
+            "success": False,
+            "error": "No se encontraron las estadisticas."
+        }), 404
+
+    resultado["mensaje"] = "Sesion finalizada correctamente"
+    return jsonify(resultado), 200
 
 # ==========================================================
 # ANALIZAR EMOCIÓN
@@ -1362,9 +1686,10 @@ def analizar():
                     emocion,
                     confianza,
                     todas_emociones,
-                    mensaje
+                    mensaje,
+                    sesion_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     usuario_id,
@@ -1372,7 +1697,8 @@ def analizar():
                     emocion,
                     float(confianza),
                     todas_json,
-                    mensaje
+                    mensaje,
+                    data.get("sesion_id")
                 )
             )
 
@@ -1457,6 +1783,300 @@ def analizar():
                 str(e)
 
         }), 500
+
+
+# ==========================================================
+# SESIONES DE ANALISIS ESTADISTICO DE EMOTISCAN
+# ==========================================================
+
+def obtener_usuario_sesion():
+    """Obtiene el identificador y nombre del usuario autenticado."""
+    usuario_id = session.get("usuario_id")
+    usuario = session.get("user")
+
+    if not usuario_id and not usuario:
+        return None, None
+
+    conn = get_db_connection()
+    try:
+        if not usuario_id and usuario:
+            fila = conn.execute(
+                "SELECT id FROM usuarios WHERE usuario = ?",
+                (usuario,)
+            ).fetchone()
+
+            if fila:
+                usuario_id = fila["id"]
+
+        return usuario_id, usuario
+    finally:
+        conn.close()
+
+
+def calcular_estadisticas_sesion(conn, sesion):
+    """Calcula estadísticas únicamente con las detecciones de la sesión."""
+    sesion_id = sesion["id"]
+
+    filas = conn.execute("""
+        SELECT
+            emocion,
+            confianza,
+            COALESCE(fecha_registro, fecha) AS momento
+        FROM emociones
+        WHERE sesion_id = ?
+        ORDER BY COALESCE(fecha_registro, fecha), id
+    """, (sesion_id,)).fetchall()
+
+    total = len(filas)
+    conteos = {}
+    por_minuto = {}
+    suma_confianza = 0.0
+
+    for fila in filas:
+        emocion = fila["emocion"] or "Sin clasificar"
+        conteos[emocion] = conteos.get(emocion, 0) + 1
+
+        confianza = float(fila["confianza"] or 0)
+        suma_confianza += confianza
+
+        momento = str(fila["momento"] or "")
+        minuto = momento[:16] if len(momento) >= 16 else "Sin fecha"
+
+        if minuto not in por_minuto:
+            por_minuto[minuto] = {}
+
+        por_minuto[minuto][emocion] = (
+            por_minuto[minuto].get(emocion, 0) + 1
+        )
+
+    emociones = [
+        {
+            "emocion": emocion,
+            "cantidad": cantidad,
+            "porcentaje": (cantidad / total * 100) if total else 0
+        }
+        for emocion, cantidad in sorted(
+            conteos.items(),
+            key=lambda elemento: elemento[1],
+            reverse=True
+        )
+    ]
+
+    minutos = [
+        {
+            "minuto": minuto,
+            "total": sum(emociones_minuto.values()),
+            "emociones": emociones_minuto
+        }
+        for minuto, emociones_minuto in sorted(por_minuto.items())
+    ]
+
+    inicio = sesion["fecha_inicio"]
+    fin = sesion["fecha_fin"]
+
+    from datetime import datetime
+
+    def convertir_fecha(valor):
+        if not valor:
+            return None
+        try:
+            return datetime.fromisoformat(str(valor))
+        except (TypeError, ValueError):
+            return None
+
+    fecha_inicio = convertir_fecha(inicio)
+    fecha_fin = convertir_fecha(fin)
+
+    if fecha_fin is None:
+        fecha_fin = datetime.now()
+
+    duracion = 0
+    if fecha_inicio:
+        duracion = max(
+            0,
+            int((fecha_fin - fecha_inicio).total_seconds())
+        )
+
+    return {
+        "success": True,
+        "sesion_id": sesion_id,
+        "total_detecciones": total,
+        "emocion_principal": emociones[0]["emocion"] if emociones else None,
+        "duracion_segundos": duracion,
+        "emociones": emociones,
+        "por_minuto": minutos,
+        "promedio_detecciones_minuto": (
+            total / (duracion / 60)
+            if duracion > 0 else 0
+        ),
+        "confianza_promedio": suma_confianza / total if total else 0
+    }
+
+
+def buscar_sesion_propia(conn, sesion_id, usuario_id, usuario):
+    """Evita consultar sesiones pertenecientes a otro usuario."""
+    if usuario_id:
+        return conn.execute("""
+            SELECT *
+            FROM sesiones
+            WHERE id = ? AND usuario_id = ?
+        """, (sesion_id, usuario_id)).fetchone()
+
+    if usuario:
+        return conn.execute("""
+            SELECT *
+            FROM sesiones
+            WHERE id = ? AND usuario = ?
+        """, (sesion_id, usuario)).fetchone()
+
+    return None
+
+
+@app.route("/sesion/iniciar", methods=["POST"])
+def iniciar_sesion_estadistica():
+    usuario_id, usuario = obtener_usuario_sesion()
+
+    if not usuario_id and not usuario:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesión para registrar un análisis."
+        }), 401
+
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.execute("""
+            INSERT INTO sesiones
+                (usuario_id, usuario, fecha_inicio, estado)
+            VALUES (?, ?, CURRENT_TIMESTAMP, 'activa')
+        """, (usuario_id, usuario))
+
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "sesion_id": cursor.lastrowid
+        }), 201
+
+    except Exception:
+        conn.rollback()
+        logger.exception("Error al iniciar sesión estadística")
+        return jsonify({
+            "success": False,
+            "error": "No se pudo iniciar la sesión estadística."
+        }), 500
+
+    finally:
+        conn.close()
+
+
+@app.route("/sesion/estadisticas", methods=["GET"])
+def estadisticas_sesion_nueva():
+    usuario_id, usuario = obtener_usuario_sesion()
+
+    if not usuario_id and not usuario:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesión."
+        }), 401
+
+    try:
+        sesion_id = request.args.get("sesion_id", type=int)
+
+        if not sesion_id:
+            return jsonify({
+                "success": False,
+                "error": "Falta el identificador de la sesión."
+            }), 400
+
+        conn = get_db_connection()
+
+        try:
+            sesion = buscar_sesion_propia(
+                conn, sesion_id, usuario_id, usuario
+            )
+
+            if not sesion:
+                return jsonify({
+                    "success": False,
+                    "error": "No se encontró la sesión solicitada."
+                }), 404
+
+            return jsonify(
+                calcular_estadisticas_sesion(conn, sesion)
+            )
+        finally:
+            conn.close()
+
+    except Exception:
+        logger.exception("Error al calcular estadísticas")
+        return jsonify({
+            "success": False,
+            "error": "No se pudieron calcular las estadísticas."
+        }), 500
+
+
+@app.route("/sesion/finalizar", methods=["POST"])
+def finalizar_sesion_estadistica():
+    usuario_id, usuario = obtener_usuario_sesion()
+
+    if not usuario_id and not usuario:
+        return jsonify({
+            "success": False,
+            "error": "Debes iniciar sesión."
+        }), 401
+
+    datos = request.get_json(silent=True) or {}
+    sesion_id = datos.get("sesion_id")
+
+    try:
+        sesion_id = int(sesion_id)
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "error": "El identificador de sesión no es válido."
+        }), 400
+
+    conn = get_db_connection()
+
+    try:
+        sesion = buscar_sesion_propia(
+            conn, sesion_id, usuario_id, usuario
+        )
+
+        if not sesion:
+            return jsonify({
+                "success": False,
+                "error": "No se encontró la sesión solicitada."
+            }), 404
+
+        if sesion["estado"] == "activa":
+            conn.execute("""
+                UPDATE sesiones
+                SET fecha_fin = CURRENT_TIMESTAMP,
+                    estado = 'finalizada'
+                WHERE id = ?
+            """, (sesion_id,))
+            conn.commit()
+
+        sesion = conn.execute("""
+            SELECT * FROM sesiones WHERE id = ?
+        """, (sesion_id,)).fetchone()
+
+        return jsonify(
+            calcular_estadisticas_sesion(conn, sesion)
+        )
+
+    except Exception:
+        conn.rollback()
+        logger.exception("Error al finalizar sesión estadística")
+        return jsonify({
+            "success": False,
+            "error": "No se pudo finalizar la sesión."
+        }), 500
+
+    finally:
+        conn.close()
 
 
 # ==========================================================

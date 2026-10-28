@@ -13,7 +13,7 @@ import numpy as np
 try:
     from tflite_runtime.interpreter import Interpreter
 
-    print("✅ Usando tflite_runtime")
+    print("âœ… Usando tflite_runtime")
 
 except ImportError:
 
@@ -21,11 +21,11 @@ except ImportError:
 
     Interpreter = tf.lite.Interpreter
 
-    print("✅ Usando TensorFlow Lite")
+    print("âœ… Usando TensorFlow Lite")
 
 
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÃ“N
 # ==========================================================
 
 logging.basicConfig(
@@ -66,52 +66,50 @@ IMG_SIZE = 224
 #
 # 0 = Enojo
 # 1 = Felicidad
-# 2 = Tristeza
-# 3 = Neutral
+# 2 = Neutral
+# 3 = Tristeza
 # ==========================================================
 
+
 EMOCIONES = [
-    "Enojo",      # Índice 0: Enojo en el entrenamiento
+    "Enojo",      # Índice 0
     "Felicidad",  # Índice 1
     "Neutral",    # Índice 2
     "Tristeza"    # Índice 3
 ]
+
 # ==========================================================
 # CONSEJOS
 # ==========================================================
 
 CONSEJOS = {
-
     "Enojo": [
         "Haz una pausa y respira profundamente antes de reaccionar.",
-        "Aléjate unos minutos de la situación que te está molestando.",
-        "Intenta identificar qué está causando tu enojo y piensa antes de actuar.",
+        "Al\u00e9jate unos minutos de la situaci\u00f3n que te est\u00e1 molestando.",
+        "Intenta identificar qu\u00e9 est\u00e1 causando tu enojo y piensa antes de actuar.",
         "Respira lentamente, relaja tu cuerpo y date un momento para recuperar la calma.",
-        "Hablar sobre lo que sientes cuando estés más tranquilo puede ayudarte a manejar mejor la situación."
+        "Hablar sobre lo que sientes cuando est\u00e9s m\u00e1s tranquilo puede ayudarte a manejar mejor la situaci\u00f3n."
     ],
-
     "Felicidad": [
-        "¡Excelente! Disfruta este momento y comparte tu energía positiva con los demás.",
-        "Aprovecha este estado de ánimo para realizar una actividad que disfrutes.",
-        "Sonríe, disfruta el momento y guarda este recuerdo positivo.",
-        "Compartir tu alegría con las personas que aprecias puede hacer que este momento sea aún mejor.",
-        "Utiliza esta energía positiva para avanzar en algo que te haga sentir orgulloso."
+        "\u00a1Excelente! Disfruta este momento y comparte tu energ\u00eda positiva con los dem\u00e1s.",
+        "Aprovecha este estado de \u00e1nimo para realizar una actividad que disfrutes.",
+        "Sonr\u00ede, disfruta el momento y guarda este recuerdo positivo.",
+        "Compartir tu alegr\u00eda con las personas que aprecias puede hacer que este momento sea a\u00fan mejor.",
+        "Utiliza esta energ\u00eda positiva para avanzar en algo que te haga sentir orgulloso."
     ],
-
     "Tristeza": [
-        "Tómate un momento para descansar y respirar tranquilamente.",
-        "Hablar con alguien de confianza sobre cómo te sientes puede ayudarte.",
+        "T\u00f3mate un momento para descansar y respirar tranquilamente.",
+        "Hablar con alguien de confianza sobre c\u00f3mo te sientes puede ayudarte.",
         "Realiza una actividad que disfrutes y que te permita despejar la mente.",
-        "Recuerda que está bien sentirse triste. Date tiempo para procesar lo que estás viviendo.",
-        "Cuida de ti, descansa y busca compañía si sientes que necesitas apoyo."
+        "Recuerda que est\u00e1 bien sentirse triste. Date tiempo para procesar lo que est\u00e1s viviendo.",
+        "Cuida de ti, descansa y busca compa\u00f1\u00eda si sientes que necesitas apoyo."
     ],
-
     "Neutral": [
-        "Tu expresión parece tranquila. Aprovecha este momento de calma.",
+        "Tu expresi\u00f3n parece tranquila. Aprovecha este momento de calma.",
         "Puedes continuar con tus actividades manteniendo este estado de tranquilidad.",
-        "Tómate unos minutos para respirar y mantener tu mente relajada.",
+        "T\u00f3mate unos minutos para respirar y mantener tu mente relajada.",
         "Este puede ser un buen momento para concentrarte en una tarea importante.",
-        "Disfruta este momento de equilibrio y continúa cuidando tu bienestar."
+        "Disfruta este momento de equilibrio y contin\u00faa cuidando tu bienestar."
     ]
 }
 
@@ -139,11 +137,11 @@ def cargar_modelo():
         return interpreter
 
     logger.info("=" * 60)
-    logger.info("🧠 CARGANDO MODELO RESNET50 TFLITE")
+    logger.info("ðŸ§  CARGANDO MODELO RESNET50 TFLITE")
     logger.info("=" * 60)
 
     logger.info(
-        "📁 Modelo: %s",
+        "ðŸ“ Modelo: %s",
         MODEL_PATH
     )
 
@@ -152,7 +150,6 @@ def cargar_modelo():
         raise FileNotFoundError(
             f"No existe el modelo:\n{MODEL_PATH}"
         )
-
     interpreter = Interpreter(
         model_path=MODEL_PATH
     )
@@ -162,35 +159,35 @@ def cargar_modelo():
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    logger.info("✅ MODELO CARGADO")
+    logger.info("âœ… MODELO CARGADO")
 
     logger.info(
-        "📥 Entrada: %s",
+        "ðŸ“¥ Entrada: %s",
         input_details[0]["shape"]
     )
 
     logger.info(
-        "📥 Tipo entrada: %s",
+        "ðŸ“¥ Tipo entrada: %s",
         input_details[0]["dtype"]
     )
 
     logger.info(
-        "📤 Salida: %s",
+        "ðŸ“¤ Salida: %s",
         output_details[0]["shape"]
     )
 
     logger.info(
-        "📤 Tipo salida: %s",
+        "ðŸ“¤ Tipo salida: %s",
         output_details[0]["dtype"]
     )
 
     logger.info(
-        "📐 Cuantización entrada: %s",
+        "ðŸ“ CuantizaciÃ³n entrada: %s",
         input_details[0].get("quantization")
     )
 
     logger.info(
-        "📐 Cuantización salida: %s",
+        "ðŸ“ CuantizaciÃ³n salida: %s",
         output_details[0].get("quantization")
     )
 
@@ -204,16 +201,22 @@ def cargar_modelo():
 # ==========================================================
 
 def obtener_consejo(emocion):
+    emocion_recibida = str(emocion or "").strip()
+    nombre = emocion_recibida.lower()
+
+    # Furia y Enojo comparten los consejos de la clase Enojo.
+    emocion_busqueda = (
+        "Enojo" if nombre in ("furia", "enojo", "anger", "angry")
+        else emocion_recibida
+    )
 
     mensajes = CONSEJOS.get(
-        emocion,
-        [
-            "Tómate un momento para respirar y cuidar de ti."
-        ]
+        emocion_busqueda,
+        ["T\u00f3mate un momento para respirar y cuidar de ti."]
     )
 
     return {
-        "titulo": f"Consejo para {emocion}",
+        "titulo": f"Consejo para {emocion_recibida or 'Neutral'}",
         "mensaje": random.choice(mensajes)
     }
 
@@ -237,8 +240,8 @@ def obtener_consejo(emocion):
 # G -> 116.779
 # B -> 123.68
 #
-# Aquí reproducimos ese procesamiento con NumPy
-# para NO necesitar TensorFlow en producción.
+# AquÃ­ reproducimos ese procesamiento con NumPy
+# para NO necesitar TensorFlow en producciÃ³n.
 # ==========================================================
 
 def preparar_rostro(rostro):
@@ -246,17 +249,17 @@ def preparar_rostro(rostro):
     if rostro is None:
 
         raise ValueError(
-            "No se recibió ningún rostro."
+            "No se recibiÃ³ ningÃºn rostro."
         )
 
     if rostro.size == 0:
 
         raise ValueError(
-            "El rostro recibido está vacío."
+            "El rostro recibido estÃ¡ vacÃ­o."
         )
 
     logger.info(
-        "📷 Rostro original: %s",
+        "ðŸ“· Rostro original: %s",
         rostro.shape
     )
 
@@ -287,7 +290,7 @@ def preparar_rostro(rostro):
     ):
 
         # OpenCV entrega BGR.
-        # El entrenamiento recibe imágenes RGB.
+        # El entrenamiento recibe imÃ¡genes RGB.
         rostro = cv2.cvtColor(
             rostro,
             cv2.COLOR_BGR2RGB
@@ -296,7 +299,7 @@ def preparar_rostro(rostro):
     else:
 
         raise ValueError(
-            f"Formato de rostro no válido: {rostro.shape}"
+            f"Formato de rostro no vÃ¡lido: {rostro.shape}"
         )
 
     # ======================================================
@@ -310,7 +313,7 @@ def preparar_rostro(rostro):
     )
 
     logger.info(
-        "📦 Imagen antes del preprocess: "
+        "ðŸ“¦ Imagen antes del preprocess: "
         "min=%.2f max=%.2f",
         rostro.min(),
         rostro.max()
@@ -335,7 +338,7 @@ def preparar_rostro(rostro):
     # modo caffe.
     #
     # Primero RGB -> BGR
-    # Después resta medias de ImageNet.
+    # DespuÃ©s resta medias de ImageNet.
     # ======================================================
 
     rostro = rostro[..., ::-1]
@@ -354,12 +357,12 @@ def preparar_rostro(rostro):
     )
 
     logger.info(
-        "📦 Entrada final: %s",
+        "ðŸ“¦ Entrada final: %s",
         rostro.shape
     )
 
     logger.info(
-        "📊 Después preprocess ResNet50: "
+        "ðŸ“Š DespuÃ©s preprocess ResNet50: "
         "min=%.4f max=%.4f",
         rostro.min(),
         rostro.max()
@@ -417,7 +420,7 @@ def procesar_salida(resultado):
     ):
 
         logger.info(
-            "🔄 Descuantizando salida TFLite"
+            "ðŸ”„ Descuantizando salida TFLite"
         )
 
         salida = (
@@ -435,7 +438,7 @@ def procesar_salida(resultado):
 
 
 # ==========================================================
-# PREDICCIÓN
+# PREDICCIÃ“N
 # ==========================================================
 
 def predecir(rostro):
@@ -443,7 +446,7 @@ def predecir(rostro):
     try:
 
         logger.info("=" * 60)
-        logger.info("🧠 INICIANDO PREDICCIÓN")
+        logger.info("ðŸ§  INICIANDO PREDICCIÃ“N")
 
         # ==================================================
         # CARGAR MODELO
@@ -466,7 +469,7 @@ def predecir(rostro):
         input_dtype = input_details[0]["dtype"]
 
         logger.info(
-            "📌 Tipo esperado por modelo: %s",
+            "ðŸ“Œ Tipo esperado por modelo: %s",
             input_dtype
         )
 
@@ -508,11 +511,11 @@ def predecir(rostro):
 
                 raise ValueError(
                     "El modelo tiene entrada cuantizada "
-                    "pero no tiene una escala válida."
+                    "pero no tiene una escala vÃ¡lida."
                 )
 
             logger.info(
-                "🔄 Cuantizando entrada: "
+                "ðŸ”„ Cuantizando entrada: "
                 "scale=%s zero_point=%s",
                 scale,
                 zero_point
@@ -559,7 +562,7 @@ def predecir(rostro):
         # ==================================================
 
         logger.info(
-            "📥 Tensor enviado: "
+            "ðŸ“¥ Tensor enviado: "
             "shape=%s dtype=%s min=%.4f max=%.4f",
             imagen_final.shape,
             imagen_final.dtype,
@@ -591,7 +594,7 @@ def predecir(rostro):
         )
 
         logger.info(
-            "📤 Salida RAW: %s",
+            "ðŸ“¤ Salida RAW: %s",
             resultado
         )
 
@@ -604,7 +607,7 @@ def predecir(rostro):
         )
 
         logger.info(
-            "📊 Predicciones procesadas: %s",
+            "ðŸ“Š Predicciones procesadas: %s",
             predicciones
         )
 
@@ -630,7 +633,7 @@ def predecir(rostro):
         )
 
         logger.info(
-            "📊 Suma salida: %.6f",
+            "ðŸ“Š Suma salida: %.6f",
             suma
         )
 
@@ -647,7 +650,7 @@ def predecir(rostro):
         else:
 
             logger.info(
-                "🔄 Aplicando Softmax a la salida"
+                "ðŸ”„ Aplicando Softmax a la salida"
             )
 
             probabilidades = softmax(
@@ -660,7 +663,7 @@ def predecir(rostro):
         # ==================================================
 
         logger.info("=" * 50)
-        logger.info("🎭 RESULTADO DE LAS 4 EMOCIONES")
+        logger.info("ðŸŽ­ RESULTADO DE LAS 4 EMOCIONES")
 
         todas = {}
 
@@ -684,7 +687,7 @@ def predecir(rostro):
             )
 
         # ==================================================
-        # EMOCIÓN PRINCIPAL
+        # EMOCIÃ“N PRINCIPAL
         # ==================================================
 
         indice = int(
@@ -702,7 +705,7 @@ def predecir(rostro):
         )
 
         logger.info(
-            "🏆 PRINCIPAL: %s (%.2f%%)",
+            "ðŸ† PRINCIPAL: %s (%.2f%%)",
             emocion,
             confianza
         )
@@ -716,7 +719,7 @@ def predecir(rostro):
         )
 
         logger.info(
-            "💡 CONSEJO: %s",
+            "ðŸ’¡ CONSEJO: %s",
             consejo["mensaje"]
         )
 
@@ -736,7 +739,7 @@ def predecir(rostro):
     except Exception as e:
 
         logger.exception(
-            "❌ ERROR EN PREDICCIÓN: %s",
+            "âŒ ERROR EN PREDICCIÃ“N: %s",
             e
         )
 
@@ -751,7 +754,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
 
-        print("\n❌ Debes indicar una imagen.")
+        print("\nâŒ Debes indicar una imagen.")
         print("Ejemplo:")
         print("python predict.py enojo.jpg")
         sys.exit(1)
@@ -759,14 +762,14 @@ if __name__ == "__main__":
     ruta_imagen = sys.argv[1]
 
     print("\n" + "=" * 60)
-    print("🧪 PRUEBA DE PREDICCIÓN")
+    print("ðŸ§ª PRUEBA DE PREDICCIÃ“N")
     print("=" * 60)
 
-    print(f"📷 Imagen: {ruta_imagen}")
+    print(f"ðŸ“· Imagen: {ruta_imagen}")
 
     if not os.path.exists(ruta_imagen):
 
-        print(f"❌ No existe la imagen: {ruta_imagen}")
+        print(f"âŒ No existe la imagen: {ruta_imagen}")
         sys.exit(1)
 
     rostro = cv2.imread(
@@ -776,11 +779,11 @@ if __name__ == "__main__":
 
     if rostro is None:
 
-        print("❌ No se pudo leer la imagen.")
+        print("âŒ No se pudo leer la imagen.")
         sys.exit(1)
 
     print(
-        f"📐 Tamaño de imagen: {rostro.shape}"
+        f"ðŸ“ TamaÃ±o de imagen: {rostro.shape}"
     )
 
     try:
@@ -790,7 +793,7 @@ if __name__ == "__main__":
         )
 
         print("\n" + "=" * 60)
-        print("🎭 RESULTADO FINAL")
+        print("ðŸŽ­ RESULTADO FINAL")
         print("=" * 60)
 
         for nombre, porcentaje in todas.items():
@@ -802,15 +805,15 @@ if __name__ == "__main__":
         print("-" * 60)
 
         print(
-            f"🏆 PRINCIPAL: {emocion}"
+            f"ðŸ† PRINCIPAL: {emocion}"
         )
 
         print(
-            f"📊 CONFIANZA: {confianza:.2f}%"
+            f"ðŸ“Š CONFIANZA: {confianza:.2f}%"
         )
 
         print(
-            f"💡 CONSEJO: {consejo['mensaje']}"
+            f"ðŸ’¡ CONSEJO: {consejo['mensaje']}"
         )
 
         print("=" * 60)
@@ -818,5 +821,5 @@ if __name__ == "__main__":
     except Exception as e:
 
         print(
-            f"\n❌ Error durante la prueba: {e}"
+            f"\nâŒ Error durante la prueba: {e}"
         )

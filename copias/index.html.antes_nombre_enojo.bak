@@ -1,0 +1,883 @@
+﻿
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotiScan - Analisis de emociones</title>
+    <link rel="icon" href="/static/favicon.ico">
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 22px;
+            background: #16213e;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px #0004;
+        }
+
+        h1 { margin-bottom: 5px; }
+        h2 { color: #a8d8ea; margin-top: 5px; }
+
+        video {
+            display: block;
+            width: 100%;
+            max-width: 640px;
+            min-height: 200px;
+            margin: 15px auto;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            background: #000;
+            object-fit: cover;
+        }
+
+        button {
+            margin: 6px;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 9px;
+            background: #e94560;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        button:hover { background: #c73652; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+
+        #status {
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+            background: #1a1a2e;
+        }
+
+        .success { color: #51cf66; }
+        .error { color: #ff8787; }
+
+        #result {
+            min-height: 130px;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #0f3460;
+        }
+
+        #loading { display: none; color: #ffd700; }
+
+        .emotion-card {
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #ffd700;
+            border-radius: 14px;
+            background: #ffd70012;
+        }
+
+        .emoji {
+            display: block;
+            font-size: 65px;
+        }
+
+        .emotion-name {
+            margin: 10px 0;
+            font-size: 42px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .confidence { font-size: 18px; }
+        .confidence strong { color: #ffd700; font-size: 27px; }
+
+        .advice {
+            margin-top: 15px;
+            padding: 18px;
+            border-left: 5px solid #ffd700;
+            border-radius: 10px;
+            background: #16213e;
+            color: #a8d8ea;
+            line-height: 1.6;
+            font-size: 17px;
+        }
+
+        .advice h3 { color: #ffd700; margin-top: 0; }
+
+        #graficaContainer {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #0f3460;
+        }
+
+        #graficaCircular {
+            width: 230px;
+            height: 230px;
+            max-width: 75vw;
+            max-height: 75vw;
+            margin: 20px auto;
+            border-radius: 50%;
+            background: #29334a;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 10px;
+            background: #ffffff12;
+            border-radius: 8px;
+        }
+
+        .legend-item strong { margin-left: auto; }
+
+        .dot {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            border-radius: 50%;
+        }
+
+        .anger { background: #e74c3c; }
+        .happy { background: #f1c40f; }
+        .neutral { background: #95a5a6; }
+        .sad { background: #3498db; }
+
+        a { color: #a8d8ea; }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 12px; }
+            button { width: 95%; }
+            .emotion-name { font-size: 32px; }
+            .legend { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>EmotiScan</h1>
+    <h2>Analisis de emociones</h2>
+
+    <div id="status">Preparando camara</div>
+
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" hidden></canvas>
+
+    <div>
+        <button id="startBtn">Iniciar camara</button>
+        <button id="captureBtn" disabled>Capturar y analizar</button>
+        <button id="autoBtn" disabled>Modo automatico</button>
+        <button id="stopBtn" disabled>Detener camara</button>
+        <button id="graficaBtn" disabled>Ver gráfica</button>
+    </div>
+
+    <div id="result">
+        <div id="loading">Analizando imagen...</div>
+        <div id="emotionDisplay">
+            Presiona «Iniciar camara» para comenzar.
+        </div>
+    </div>
+
+    <div id="graficaContainer">
+        <h3>Distribución de emociones</h3>
+        <div id="graficaCircular"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <span class="dot anger"></span>
+                <span>Enojo / Furia</span>
+                <strong id="pctAnger">0%</strong>
+            </div>
+            <div class="legend-item">
+                <span class="dot happy"></span>
+                <span>Felicidad</span>
+                <strong id="pctHappy">0%</strong>
+            </div>
+            <div class="legend-item">
+                <span class="dot neutral"></span>
+                <span>Neutral</span>
+                <strong id="pctNeutral">0%</strong>
+            </div>
+            <div class="legend-item">
+                <span class="dot sad"></span>
+                <span>Tristeza</span>
+                <strong id="pctSad">0%</strong>
+            </div>
+        </div>
+    </div>
+
+    <section id="estadisticasSesion" style="display:none; margin-top:24px; padding:20px; background:#f4f6fb; color:#20283a; border-radius:12px; text-align:left;">
+        <h3>Resumen de la sesión automática</h3>
+
+        <p>Total de detecciones: <strong id="sesionTotal">0</strong></p>
+        <p>Emoción principal: <strong id="sesionEmocionPrincipal">Sin detecciones</strong></p>
+        <p>Duración: <strong id="sesionDuracion">0 s</strong></p>
+        <p>Confianza promedio: <strong id="sesionConfianza">0%</strong></p>
+        <p>Promedio de detecciones por minuto: <strong id="sesionPromedioMinuto">0</strong></p>
+
+        <h4>Emociones por minuto</h4>
+        <div id="sesionPorMinuto">Todavía no hay detecciones registradas.</div>
+
+        <h4>Distribución acumulada</h4>
+        <div id="sesionDistribucion">Todavía no hay estadísticas.</div>
+    </section>
+
+    <a href="/inicio" style="display:block;margin-top:20px">
+        Volver al inicio
+    </a>
+</div>
+
+<script>
+"use strict";
+
+/* ELEMENTOS */
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const statusDiv = document.getElementById("status");
+const loading = document.getElementById("loading");
+const display = document.getElementById("emotionDisplay");
+
+const startBtn = document.getElementById("startBtn");
+const captureBtn = document.getElementById("captureBtn");
+const autoBtn = document.getElementById("autoBtn");
+const stopBtn = document.getElementById("stopBtn");
+const graficaBtn = document.getElementById("graficaBtn");
+const graficaContainer = document.getElementById("graficaContainer");
+const grafica = document.getElementById("graficaCircular");
+
+let stream = null;
+let cameraRunning = false;
+let processing = false;
+let autoMode = false;
+let autoTimer = null;
+let statsTimer = null;
+let sessionId = null;
+
+const colors = {
+    anger: "#e74c3c",
+    happy: "#f1c40f",
+    neutral: "#95a5a6",
+    sad: "#3498db"
+};
+
+let chartData = {
+    anger: 0,
+    happy: 0,
+    neutral: 0,
+    sad: 0
+};
+
+/* CONSEJOS */
+
+const advice = {
+    Felicidad: [
+        "\u{1F60A} Disfruta este momento y comparte tu energ\u00eda positiva.",
+        "\u{1F31F} Aprovecha este momento para realizar algo que disfrutes.",
+        "\u{1F49B} Dedica tiempo a las actividades que te hacen sentir bien."
+    ],
+    Furia: [
+        "\u{1F9D8} Respira lentamente y date unos segundos antes de reaccionar.",
+        "\u{1F4A8} T\u00f3mate una pausa si una situaci\u00f3n te genera tensi\u00f3n.",
+        "\u{1F4AC} Cuando est\u00e9s tranquilo, expresa lo que sientes respetuosamente."
+    ],
+    Tristeza: [
+        "Reconoce lo que sientes sin juzgarte.",
+        "\u{1F917} Hablar con alguien de confianza puede ayudarte.",
+        "\u{1F331} S\u00e9 paciente contigo y dedica tiempo a descansar."
+    ],
+    Neutral: [
+        "\u{1F60C} Aprovecha este momento para descansar y respirar.",
+        "\u{1F3AF} Un momento tranquilo puede ayudarte a concentrarte.",
+        "\u{1F33F} T\u00f3mate un momento para cuidar de tu bienestar."
+    ]
+};
+
+/* NORMALIZACIÃ“N DE NOMBRES */
+
+function normalizeEmotion(value) {
+    const text = String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+    if (["felicidad", "alegria", "happy", "happiness"].includes(text)) {
+        return "Felicidad";
+    }
+
+    if (["enojo", "furia", "anger", "angry"].includes(text)) {
+        return "Furia";
+    }
+
+    if (["tristeza", "sad", "sadness"].includes(text)) {
+        return "Tristeza";
+    }
+
+    if (["neutral", "neutro"].includes(text)) {
+        return "Neutral";
+    }
+
+    return "No identificada";
+}
+
+function getEmoji(emotion) {
+    const emojis = {
+        Felicidad: "\u{1F60A}",
+        Furia: "\u{1F621}",
+        Tristeza: "\u{1F622}",
+        Neutral: "\u{1F610}"
+    };
+
+    return emojis[normalizeEmotion(emotion)] || "";
+}
+
+function getAdvice(emotion) {
+    const list = advice[emotion];
+    if (!list) {
+        return "ðŸ’¡ Recuerda cuidar de tu bienestar.";
+    }
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+/* MOSTRAR RESULTADO */
+
+function showResult(rawEmotion, confidence) {
+    const emotion = normalizeEmotion(rawEmotion);
+    const value = Number(confidence);
+    const safeConfidence = Number.isFinite(value) ? value : 0;
+
+    display.replaceChildren();
+
+    const card = document.createElement("div");
+    card.className = "emotion-card";
+
+    const emoji = document.createElement("span");
+    emoji.className = "emoji";
+    emoji.textContent = getEmoji(emotion);
+
+    const title = document.createElement("div");
+    title.className = "emotion-name";
+    title.textContent = emotion;
+
+    const confidenceDiv = document.createElement("div");
+    confidenceDiv.className = "confidence";
+    confidenceDiv.append("Confianza: ");
+
+    const strong = document.createElement("strong");
+    strong.textContent = safeConfidence.toFixed(2) + "%";
+    confidenceDiv.appendChild(strong);
+
+    card.append(emoji, title, confidenceDiv);
+
+    const message = document.createElement("p");
+    message.textContent = "Emocion predominante: " + emotion;
+
+    const adviceBox = document.createElement("div");
+    adviceBox.className = "advice";
+
+    const adviceTitle = document.createElement("h3");
+    adviceTitle.textContent = "¡Consejo para ti";
+
+    adviceBox.append(adviceTitle, document.createTextNode(getAdvice(emotion)));
+    display.append(card, message, adviceBox);
+
+    console.log("Emocion devuelta por el modelo:", rawEmotion);
+    console.log("Emocion mostrada:", emotion);
+    console.log("Confianza devuelta:", safeConfidence);
+}
+
+/* DATOS PARA LA GRÃFICA */
+
+function updateChart(probabilities, mainEmotion) {
+    const result = { anger: 0, happy: 0, neutral: 0, sad: 0 };
+
+    if (probabilities && typeof probabilities === "object") {
+        for (const [label, rawValue] of Object.entries(probabilities)) {
+            const emotion = normalizeEmotion(label);
+            let value = Number(rawValue);
+
+            if (!Number.isFinite(value) || value < 0) continue;
+
+            if (value > 0 && value <= 1) value *= 100;
+
+            if (emotion === "Furia") result.anger = value;
+            if (emotion === "Felicidad") result.happy = value;
+            if (emotion === "Neutral") result.neutral = value;
+            if (emotion === "Tristeza") result.sad = value;
+        }
+    }
+
+    const total = Object.values(result).reduce((a, b) => a + b, 0);
+
+    // Si no hay probabilidades, no inventamos las demÃ¡s emociones.
+    if (total <= 0) {
+        const emotion = normalizeEmotion(mainEmotion);
+        if (emotion === "Furia") result.anger = 1;
+        if (emotion === "Felicidad") result.happy = 1;
+        if (emotion === "Neutral") result.neutral = 1;
+        if (emotion === "Tristeza") result.sad = 1;
+    }
+
+    chartData = result;
+    drawChart();
+}
+
+function drawChart() {
+    const entries = [
+        ["anger", "pctAnger"],
+        ["happy", "pctHappy"],
+        ["neutral", "pctNeutral"],
+        ["sad", "pctSad"]
+    ];
+
+    const total = entries.reduce(
+        (sum, [key]) => sum + Math.max(0, chartData[key]),
+        0
+    );
+
+    if (total <= 0) {
+        grafica.style.background = "#29334a";
+        entries.forEach(([, id]) => {
+            document.getElementById(id).textContent = "0%";
+        });
+        return;
+    }
+
+    let accumulated = 0;
+    const segments = [];
+
+    for (const [key, id] of entries) {
+        const value = Math.max(0, chartData[key]);
+        const start = accumulated / total * 360;
+        accumulated += value;
+        const end = accumulated / total * 360;
+
+        segments.push(`${colors[key]} ${start}deg ${end}deg`);
+
+        document.getElementById(id).textContent =
+            (value / total * 100).toFixed(2) + "%";
+    }
+
+    grafica.style.background = `conic-gradient(${segments.join(", ")})`;
+}
+
+/* INICIAR CÃMARA */
+
+async function startCamera() {
+    if (cameraRunning) return;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus(
+            "âŒ El navegador no permite acceder a la cÃ¡mara. Usa localhost y revisa los permisos.",
+            true
+        );
+        return;
+    }
+
+    startBtn.disabled = true;
+    setStatus("ðŸ“· Solicitando permiso para usar la cÃ¡mara...");
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "user"
+            },
+            audio: false
+        });
+
+        video.srcObject = stream;
+        await video.play();
+
+        if (!video.videoWidth || !video.videoHeight) {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(
+                    () => reject(new Error("La cÃ¡mara no entregÃ³ imÃ¡genes.")),
+                    8000
+                );
+
+                video.addEventListener("loadeddata", () => {
+                    clearTimeout(timeout);
+                    resolve();
+                }, { once: true });
+            });
+        }
+
+        cameraRunning = true;
+        captureBtn.disabled = false;
+        autoBtn.disabled = false;
+        stopBtn.disabled = false;
+        startBtn.disabled = true;
+
+        setStatus("Cámara activa. Ya puedes capturar tu rostro.");
+        console.log("Cámara iniciada:", video.videoWidth, video.videoHeight);
+
+    } catch (error) {
+        stopTracks();
+        cameraRunning = false;
+        startBtn.disabled = false;
+
+        let message = error.message || "No se pudo iniciar la cÃ¡mara.";
+
+        if (error.name === "NotAllowedError") {
+            message = "Permite el acceso a la cÃ¡mara en la configuraciÃ³n de Chrome.";
+        } else if (error.name === "NotFoundError") {
+            message = "No se encontrar ninguna cá¡mara conectada.";
+        } else if (error.name === "NotReadableError") {
+            message = "La cámara está¡ ocupada por otra aplicación. Cierra las otras aplicaciones que la usan.";
+        }
+
+        setStatus("" + message, true);
+        console.error("Error de camara:", error);
+    }
+}
+
+/* CAPTURAR Y ENVIAR A FLASK */
+
+async function captureAndAnalyze() {
+    if (!cameraRunning || processing) return;
+
+    if (!video.videoWidth || !video.videoHeight) {
+        setStatus("La cámara aún no está entregando imágenes.", true);
+        return;
+    }
+
+    processing = true;
+    display.textContent = "Procesando imagen...";
+
+    try {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const image = canvas.toDataURL("image/jpeg", 0.92);
+
+        const response = await fetch("/analizar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({
+                image: image,
+                sesion_id: (autoMode && sessionId) ? sessionId : null
+            })
+        });
+
+        const data = await response.json();
+
+        console.log("Respuesta de /analizar:", data);
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error || "No se pudo completar el análisis."
+            );
+        }
+
+        const emotion = data.emocion ?? data.emotion;
+
+        if (!emotion) {
+            throw new Error("El servidor no devolvió una emoción.");
+        }
+
+        const confidence = data.confianza ?? data.confidence ?? 0;
+
+        showResult(emotion, confidence);
+
+        updateChart(
+            data.todas ?? data.emotions ?? data.probabilidades ?? {},
+            emotion
+        );
+
+        graficaBtn.disabled = false;
+        setStatus("Análisis completado.");
+
+    } catch (error) {
+        console.error("Error de análisis:", error);
+        display.textContent = "Error: " + error.message;
+        setStatus("No se pudo completar el análisis.", true);
+
+    } finally {
+        processing = false;
+
+        if (typeof loading !== "undefined" && loading) {
+            loading.style.display = "none";
+        }
+
+        captureBtn.disabled = !cameraRunning;
+    }
+}
+
+/* ESTADISTICAS DE LA SESION */
+
+async function actualizarEstadisticasSesion(id = sessionId) {
+    if (!id) return;
+
+    try {
+        const response = await fetch(
+            `/sesion/estadisticas?sesion_id=${encodeURIComponent(id)}`,
+            { credentials: "same-origin" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || "No se pudieron consultar las estadísticas.");
+        }
+
+        document.getElementById("estadisticasSesion").style.display = "block";
+        document.getElementById("sesionTotal").textContent = data.total_detecciones ?? 0;
+        document.getElementById("sesionEmocionPrincipal").textContent =
+            data.emocion_principal || "Sin detecciones";
+
+        const segundos = Number(data.duracion_segundos) || 0;
+        const minutos = Math.floor(segundos / 60);
+        const resto = segundos % 60;
+
+        document.getElementById("sesionDuracion").textContent =
+            `${minutos} min ${resto} s`;
+
+        document.getElementById("sesionConfianza").textContent =
+            `${Number(data.confianza_promedio || 0).toFixed(2)}%`;
+
+        document.getElementById("sesionPromedioMinuto").textContent =
+            Number(data.promedio_detecciones_minuto || 0).toFixed(2);
+
+        const distribucion = document.getElementById("sesionDistribucion");
+        distribucion.replaceChildren();
+
+        if (Array.isArray(data.emociones) && data.emociones.length) {
+            data.emociones.forEach(item => {
+                const fila = document.createElement("p");
+                fila.textContent =
+                    `${item.emocion}: ${item.cantidad} detecciones (${item.porcentaje}%)`;
+                distribucion.appendChild(fila);
+            });
+        } else {
+            distribucion.textContent = "Todavía no hay detecciones.";
+        }
+
+        const porMinuto = document.getElementById("sesionPorMinuto");
+        porMinuto.replaceChildren();
+
+        if (Array.isArray(data.por_minuto) && data.por_minuto.length) {
+            data.por_minuto.forEach(item => {
+                const fila = document.createElement("p");
+                const detalle = Object.entries(item.emociones || {})
+                    .map(([emocion, cantidad]) => `${emocion}: ${cantidad}`)
+                    .join(", ");
+
+                fila.textContent =
+                    `Minuto ${item.minuto} (${item.total} detecciones): ${detalle}`;
+                porMinuto.appendChild(fila);
+            });
+        } else {
+            porMinuto.textContent = "Todavía no hay detecciones registradas.";
+        }
+    } catch (error) {
+        console.error("Error al actualizar estadísticas:", error);
+    }
+}
+
+/* MODO AUTOMATICO */
+
+async function toggleAutoMode() {
+    if (!cameraRunning) return;
+
+    if (autoMode) {
+        stopAutoMode();
+        return;
+    }
+
+    autoBtn.disabled = true;
+
+    try {
+        const response = await fetch("/sesion/iniciar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success || !data.sesion_id) {
+            throw new Error(
+                data.error || "No se pudo iniciar la sesión."
+            );
+        }
+
+        sessionId = data.sesion_id;
+        autoMode = true;
+
+        autoBtn.textContent = "Detener automático";
+        setStatus("Modo automático activo.");
+        document.getElementById("estadisticasSesion").style.display = "block";
+
+        actualizarEstadisticasSesion(sessionId);
+
+        if (statsTimer !== null) clearInterval(statsTimer);
+        statsTimer = setInterval(() => {
+            if (autoMode && sessionId !== null) {
+                actualizarEstadisticasSesion(sessionId);
+            }
+        }, 5000);
+
+        captureAndAnalyze();
+
+        autoTimer = setInterval(() => {
+            if (cameraRunning && autoMode && !processing) {
+                captureAndAnalyze();
+            }
+        }, 4000);
+
+    } catch (error) {
+        console.error("Error al iniciar modo automático:", error);
+        sessionId = null;
+        autoMode = false;
+        setStatus(error.message, true);
+
+    } finally {
+        autoBtn.disabled = !cameraRunning;
+    }
+}
+
+async function stopAutoMode() {
+    autoMode = false;
+
+    if (autoTimer !== null) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+    }
+
+    if (statsTimer !== null) {
+        clearInterval(statsTimer);
+        statsTimer = null;
+    }
+
+    autoBtn.textContent = "Modo automático";
+
+    const idToFinalize = sessionId;
+    sessionId = null;
+
+    if (idToFinalize !== null) {
+        try {
+            const response = await fetch("/sesion/finalizar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    sesion_id: idToFinalize
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                console.error("No se pudo finalizar la sesión:", data);
+            } else {
+                console.log("Sesión finalizada:", data);
+            }
+        } catch (error) {
+            console.error("Error al finalizar la sesión:", error);
+        }
+    }
+
+    // Consultar una última vez para mostrar el resumen final.
+    if (idToFinalize !== null) {
+        await actualizarEstadisticasSesion(idToFinalize);
+    }
+}
+function stopTracks() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    video.srcObject = null;
+}
+
+function stopCamera() {
+    stopAutoMode();
+    stopTracks();
+
+    cameraRunning = false;
+    captureBtn.disabled = true;
+    autoBtn.disabled = true;
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+
+    setStatus("â¹ï¸ CÃ¡mara detenida.");
+}
+
+/* MENSAJES DE ESTADO */
+
+function setStatus(message, isError = false) {
+    statusDiv.textContent = message;
+    statusDiv.className = isError ? "error" : "success";
+}
+
+/* EVENTOS */
+
+startBtn.addEventListener("click", startCamera);
+captureBtn.addEventListener("click", captureAndAnalyze);
+autoBtn.addEventListener("click", toggleAutoMode);
+stopBtn.addEventListener("click", stopCamera);
+
+graficaBtn.addEventListener("click", () => {
+    const visible = graficaContainer.style.display === "block";
+
+    if (!visible) drawChart();
+
+    graficaContainer.style.display = visible ? "none" : "block";
+    graficaBtn.textContent = visible ? "Ver grafica" : "Ocultar grafica";
+});
+
+document.addEventListener("keydown", event => {
+    if (
+        event.code === "Space" &&
+        !event.repeat &&
+        !["INPUT", "TEXTAREA", "BUTTON"].includes(document.activeElement.tagName)
+    ) {
+        event.preventDefault();
+        captureAndAnalyze();
+    }
+});
+
+window.addEventListener("beforeunload", () => {
+    stopAutoMode();
+    stopTracks();
+});
+
+/* INICIO */
+
+window.addEventListener("DOMContentLoaded", () => {
+    console.log("EmotiScan listo.");
+    startCamera();
+});
+</script>
+</body>
+</html>
+
+
