@@ -5,7 +5,8 @@ from flask import (
     redirect,
     session,
     jsonify,
-    send_from_directory
+    send_from_directory,
+    send_file
 )
 
 from werkzeug.security import (
@@ -25,6 +26,8 @@ import numpy as np
 import sqlite3
 import json
 import gc
+import io
+from openpyxl import Workbook
 
 
 # ==========================================================
@@ -2527,6 +2530,232 @@ init_db()
 # ==========================================================
 # EJECUTAR LOCALMENTE
 # ==========================================================
+
+
+
+# ==========================================================
+# HISTORIAL DE ANALISIS EMOCIONAL POR TIEMPO
+# ==========================================================
+
+@app.route("/historial-tiempo")
+def historial_tiempo():
+    if not usuario_autenticado():
+        return redirect("/login")
+
+    usuario_id, usuario = obtener_usuario_sesion()
+
+    if not usuario_id and not usuario:
+        return redirect("/login")
+
+    conn = get_db_connection()
+
+    try:
+        if usuario_id:
+            filas = conn.execute("""
+                SELECT *
+                FROM sesiones
+                WHERE usuario_id = ?
+                ORDER BY fecha_inicio DESC, id DESC
+            """, (usuario_id,)).fetchall()
+        else:
+            filas = conn.execute("""
+                SELECT *
+                FROM sesiones
+                WHERE usuario = ?
+                ORDER BY fecha_inicio DESC, id DESC
+            """, (usuario,)).fetchall()
+
+        historial = []
+
+        for fila in filas:
+            estadisticas = calcular_estadisticas_sesion(
+                conn, fila
+            )
+
+            historial.append({
+                "id": fila["id"],
+                "fecha_inicio": fila["fecha_inicio"],
+                "fecha_fin": fila["fecha_fin"],
+                "estado": fila["estado"],
+                "estadisticas": estadisticas
+            })
+
+        nombre = (
+            session.get("usuario_nombre")
+            or usuario
+            or "Usuario"
+        )
+
+        return render_template(
+            "historial_tiempo.html",
+            historial=historial,
+            nombre=nombre
+        )
+
+    except Exception:
+        app.logger.exception(
+            "Error al cargar el historial de an?lisis por tiempo"
+        )
+        return "Error al cargar el historial de an?lisis por tiempo.", 500
+
+    finally:
+        conn.close()
+
+
+# ==========================================================
+# EXPORTAR HISTORIAL DE ANALISIS POR TIEMPO A EXCEL
+# ==========================================================
+
+@app.route("/historial-tiempo/exportar-excel")
+def exportar_historial_tiempo_excel():
+    if not usuario_autenticado():
+        return redirect("/login")
+
+    usuario_id, usuario = obtener_usuario_sesion()
+
+    if not usuario_id and not usuario:
+        return redirect("/login")
+
+    conn = get_db_connection()
+
+    try:
+        if usuario_id:
+            filas = conn.execute("""
+                SELECT *
+                FROM sesiones
+                WHERE usuario_id = ?
+                ORDER BY fecha_inicio DESC, id DESC
+            """, (usuario_id,)).fetchall()
+        else:
+            filas = conn.execute("""
+                SELECT *
+                FROM sesiones
+                WHERE usuario = ?
+                ORDER BY fecha_inicio DESC, id DESC
+            """, (usuario,)).fetchall()
+
+        libro = Workbook()
+
+        # HOJA 1: RESUMEN DE SESIONES
+        resumen = libro.active
+        resumen.title = "Resumen de sesiones"
+
+        resumen.append([
+            "ID de sesi?n",
+            "Fecha de inicio",
+            "Fecha de finalizaci?n",
+            "Estado",
+            "Duraci?n (segundos)",
+            "Total de detecciones",
+            "Emoci?n principal",
+            "Confianza promedio (%)",
+            "Totales por emoci?n"
+        ])
+
+        # HOJA 2: DETALLE POR MINUTO
+        detalle = libro.create_sheet("Detalle por minuto")
+
+        detalle.append([
+            "ID de sesi?n",
+            "Fecha de inicio",
+            "Minuto",
+            "Total de detecciones del minuto",
+            "Emoci?n",
+            "Cantidad"
+        ])
+
+        for fila in filas:
+            estadisticas = calcular_estadisticas_sesion(
+                conn, fila
+            )
+
+            distribucion = "; ".join(
+                "{}: {} ({:.2f}%)".format(
+                    emocion["emocion"],
+                    emocion["cantidad"],
+                    emocion["porcentaje"]
+                )
+                for emocion in estadisticas["emociones"]
+            )
+
+            resumen.append([
+                fila["id"],
+                fila["fecha_inicio"],
+                fila["fecha_fin"],
+                fila["estado"],
+                estadisticas["duracion_segundos"],
+                estadisticas["total_detecciones"],
+                estadisticas["emocion_principal"] or "Sin detecciones",
+                round(estadisticas["confianza_promedio"], 2),
+                distribucion or "Sin detecciones"
+            ])
+
+            for minuto in estadisticas["por_minuto"]:
+                emociones_minuto = minuto["emociones"]
+
+                if emociones_minuto:
+                    for emocion, cantidad in emociones_minuto.items():
+                        detalle.append([
+                            fila["id"],
+                            fila["fecha_inicio"],
+                            minuto["minuto"],
+                            minuto["total"],
+                            emocion,
+                            cantidad
+                        ])
+                else:
+                    detalle.append([
+                        fila["id"],
+                        fila["fecha_inicio"],
+                        minuto["minuto"],
+                        minuto["total"],
+                        "Sin clasificar",
+                        0
+                    ])
+
+        # Dar formato a las dos hojas.
+        for hoja in (resumen, detalle):
+            hoja.freeze_panes = "A2"
+            hoja.auto_filter.ref = hoja.dimensions
+
+            for celda in hoja[1]:
+                celda.font = celda.font.copy(bold=True, color="FFFFFF")
+                celda.fill = celda.fill.copy(
+                    fill_type="solid",
+                    fgColor="49366F"
+                )
+
+            for columna in hoja.columns:
+                letra = columna[0].column_letter
+                ancho = max(
+                    len(str(celda.value or ""))
+                    for celda in columna
+                )
+                hoja.column_dimensions[letra].width = min(
+                    max(ancho + 3, 14),
+                    45
+                )
+
+        salida = io.BytesIO()
+        libro.save(salida)
+        salida.seek(0)
+
+        return send_file(
+            salida,
+            as_attachment=True,
+            download_name="historial_emotiscan.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    except Exception:
+        app.logger.exception(
+            "Error al exportar el historial por tiempo a Excel"
+        )
+        return "Error al generar el archivo Excel.", 500
+
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
 

@@ -1,4 +1,4 @@
-
+﻿
 import os
 import json
 import logging
@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÃ“N
 # ==========================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -49,21 +49,21 @@ logging.disable(logging.CRITICAL)
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("EMOTISCAN - EVALUACIÓN Y REVISIÓN DE ERRORES")
+print("EMOTISCAN - EVALUACIÃ“N Y REVISIÃ“N DE ERRORES")
 print("=" * 65)
 
 if not os.path.isfile(MODELO):
     raise FileNotFoundError(
-        f"No se encontró el modelo:\n{MODELO}"
+        f"No se encontrÃ³ el modelo:\n{MODELO}"
     )
 
 if not os.path.isdir(DATASET_TEST):
     raise FileNotFoundError(
-        f"No se encontró el dataset:\n{DATASET_TEST}"
+        f"No se encontrÃ³ el dataset:\n{DATASET_TEST}"
     )
 
 if os.path.isfile(CLASES_PATH):
-    with open(CLASES_PATH, "r", encoding="utf-8") as archivo:
+    with open(CLASES_PATH, "r", encoding="utf-8-sig") as archivo:
         clases_guardadas = json.load(archivo)
 
     if clases_guardadas != EMOCIONES:
@@ -131,7 +131,7 @@ def preparar_imagen(ruta):
     imagen = cv2.resize(
     imagen,
     (IMG_SIZE, IMG_SIZE),
-    interpolation=cv2.INTER_NEAREST
+    interpolation=cv2.INTER_AREA
 )
 
     imagen = imagen.astype(np.float32)
@@ -158,7 +158,7 @@ def preparar_imagen(ruta):
 
         if escala <= 0:
             raise ValueError(
-                "La entrada cuantizada no tiene escala válida."
+                "La entrada cuantizada no tiene escala vÃ¡lida."
             )
 
         cuantizada = np.round(imagen / escala + cero)
@@ -176,7 +176,7 @@ def preparar_imagen(ruta):
 
 
 # ==========================================================
-# PREDICCIÓN
+# PREDICCIÃ“N
 # ==========================================================
 
 def predecir(ruta):
@@ -193,12 +193,12 @@ def predecir(ruta):
         escala, cero = salida["quantization"]
 
         if escala <= 0:
-            raise ValueError("Escala de salida no válida.")
+            raise ValueError("Escala de salida no vÃ¡lida.")
 
         valores = (valores - cero) * escala
 
     if not np.all(np.isfinite(valores)):
-        raise ValueError("El modelo produjo valores no válidos.")
+        raise ValueError("El modelo produjo valores no vÃ¡lidos.")
 
     suma = float(np.sum(valores))
 
@@ -231,11 +231,11 @@ total = 0
 errores_lectura = 0
 
 # Cada clave contiene: (clase real, clase predicha).
-# Solo guardamos hasta N ejemplos por combinación.
+# Solo guardamos hasta N ejemplos por combinaciÃ³n.
 muestras_errores = {}
 
 print("\n" + "=" * 65)
-print("PROBANDO IMÁGENES")
+print("PROBANDO IMÃGENES")
 print("=" * 65)
 
 for indice_real, emocion_real in enumerate(EMOCIONES):
@@ -252,7 +252,7 @@ for indice_real, emocion_real in enumerate(EMOCIONES):
         and os.path.isfile(os.path.join(carpeta, nombre))
     )
 
-    print(f"\n{emocion_real}: {len(archivos)} imágenes")
+    print(f"\n{emocion_real}: {len(archivos)} imÃ¡genes")
 
     for numero, nombre in enumerate(archivos, start=1):
         ruta = os.path.join(carpeta, nombre)
@@ -298,7 +298,7 @@ if total == 0:
 correctas = int(np.trace(matriz))
 accuracy = 100.0 * correctas / total
 
-print(f"Imágenes evaluadas: {total}")
+print(f"ImÃ¡genes evaluadas: {total}")
 print(f"Predicciones correctas: {correctas}")
 print(f"Predicciones incorrectas: {total - correctas}")
 print(f"Accuracy general: {accuracy:.2f}%")
@@ -306,11 +306,11 @@ print(f"Errores de lectura: {errores_lectura}")
 
 
 # ==========================================================
-# RESULTADOS POR EMOCIÓN
+# RESULTADOS POR EMOCIÃ“N
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("RESULTADOS POR EMOCIÓN")
+print("RESULTADOS POR EMOCIÃ“N")
 print("=" * 65)
 
 for i, emocion in enumerate(EMOCIONES):
@@ -329,12 +329,12 @@ for i, emocion in enumerate(EMOCIONES):
 
 
 # ==========================================================
-# MATRIZ DE CONFUSIÓN
-# Filas = emoción real; columnas = predicción
+# MATRIZ DE CONFUSIÃ“N
+# Filas = emociÃ³n real; columnas = predicciÃ³n
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("MATRIZ DE CONFUSIÓN")
+print("MATRIZ DE CONFUSIÃ“N")
 print("=" * 65)
 
 ancho = 12
@@ -355,11 +355,11 @@ for i, emocion in enumerate(EMOCIONES):
 
 
 # ==========================================================
-# DISTRIBUCIÓN DE PREDICCIONES
+# DISTRIBUCIÃ“N DE PREDICCIONES
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("DISTRIBUCIÓN DE PREDICCIONES")
+print("DISTRIBUCIÃ“N DE PREDICCIONES")
 print("=" * 65)
 
 totales_predichos = np.sum(matriz, axis=0)
@@ -374,11 +374,11 @@ for i, emocion in enumerate(EMOCIONES):
 
 
 # ==========================================================
-# CREAR LÁMINA DE ERRORES
+# CREAR LÃMINA DE ERRORES
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("GENERANDO LÁMINA DE ERRORES")
+print("GENERANDO LÃMINA DE ERRORES")
 print("=" * 65)
 
 os.makedirs(CARPETA_REVISION, exist_ok=True)
@@ -389,7 +389,7 @@ MARGEN = 8
 
 celdas = []
 
-# Primero muestra las confusiones más numerosas.
+# Primero muestra las confusiones mÃ¡s numerosas.
 combinaciones = sorted(
     muestras_errores.items(),
     key=lambda elemento: matriz[elemento[0][0], elemento[0][1]],
@@ -504,12 +504,12 @@ if celdas:
     )
 
     if cv2.imwrite(ruta_lamina, lamina):
-        print(f"\nLámina creada correctamente:\n{ruta_lamina}")
-        print(f"Imágenes incluidas: {len(celdas)}")
+        print(f"\nLÃ¡mina creada correctamente:\n{ruta_lamina}")
+        print(f"ImÃ¡genes incluidas: {len(celdas)}")
     else:
-        print("No se pudo guardar la lámina.")
+        print("No se pudo guardar la lÃ¡mina.")
 else:
-    print("No se encontraron imágenes para la lámina.")
+    print("No se encontraron imÃ¡genes para la lÃ¡mina.")
 
 
 # ==========================================================
@@ -517,7 +517,8 @@ else:
 # ==========================================================
 
 print("\n" + "=" * 65)
-print("EVALUACIÓN TERMINADA")
+print("EVALUACIÃ“N TERMINADA")
 print("=" * 65)
-print("No se entrenó ni se modificó el modelo.")
-print("No se modificaron las imágenes originales del dataset.")
+print("No se entrenÃ³ ni se modificÃ³ el modelo.")
+print("No se modificaron las imÃ¡genes originales del dataset.")
+

@@ -1,0 +1,145 @@
+﻿
+            imagen_final = imagen.astype(
+                np.float16
+            )
+
+        # ==================================================
+        # INT8 / UINT8
+        # ==================================================
+
+        elif (
+            input_dtype == np.int8
+            or input_dtype == np.uint8
+        ):
+
+            scale, zero_point = input_details[0].get(
+                "quantization",
+                (0.0, 0)
+            )
+
+            if scale is None or scale == 0:
+
+                raise ValueError(
+                    "El modelo tiene entrada cuantizada "
+                    "pero no tiene una escala vÃƒÂ¡lida."
+                )
+
+            logger.info(
+                "Ã°Å¸â€â€ž Cuantizando entrada: "
+                "scale=%s zero_point=%s",
+                scale,
+                zero_point
+            )
+
+            imagen_final = (
+                imagen / scale
+                + zero_point
+            )
+
+            imagen_final = np.round(
+                imagen_final
+            )
+
+            if input_dtype == np.int8:
+
+                imagen_final = np.clip(
+                    imagen_final,
+                    -128,
+                    127
+                )
+
+            else:
+
+                imagen_final = np.clip(
+                    imagen_final,
+                    0,
+                    255
+                )
+
+            imagen_final = imagen_final.astype(
+                input_dtype
+            )
+
+        else:
+
+            raise ValueError(
+                f"Tipo de entrada TFLite no soportado: "
+                f"{input_dtype}"
+            )
+
+        # ==================================================
+        # LOG
+        # ==================================================
+
+        logger.info(
+            "Ã°Å¸â€œÂ¥ Tensor enviado: "
+            "shape=%s dtype=%s min=%.4f max=%.4f",
+            imagen_final.shape,
+            imagen_final.dtype,
+            imagen_final.min(),
+            imagen_final.max()
+        )
+
+        # ==================================================
+        # ENVIAR TENSOR
+        # ==================================================
+
+        interpreter.set_tensor(
+            input_details[0]["index"],
+            imagen_final
+        )
+
+        # ==================================================
+        # INFERENCIA
+        # ==================================================
+
+        interpreter.invoke()
+
+        # ==================================================
+        # OBTENER RESULTADO
+        # ==================================================
+
+        resultado = interpreter.get_tensor(
+            output_details[0]["index"]
+        )
+
+        logger.info(
+            "Ã°Å¸â€œÂ¤ Salida RAW: %s",
+            resultado
+        )
+
+        # ==================================================
+        # PROCESAR SALIDA
+        # ==================================================
+
+        predicciones = procesar_salida(
+            resultado
+        )
+
+        logger.info(
+            "Ã°Å¸â€œÅ  Predicciones procesadas: %s",
+            predicciones
+        )
+
+        # ==================================================
+        # VERIFICAR CLASES
+        # ==================================================
+
+        if len(predicciones) != len(EMOCIONES):
+
+            raise ValueError(
+                f"El modelo devuelve "
+                f"{len(predicciones)} clases, "
+                f"pero se esperan "
+                f"{len(EMOCIONES)}."
+            )
+
+        # ==================================================
+        # CONVERTIR A PROBABILIDADES
+        # ==================================================
+
+        suma = float(
+            np.sum(predicciones)
+        )
+
+        logger.info(

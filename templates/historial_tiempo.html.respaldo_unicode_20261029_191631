@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de anÃ¡lisis por tiempo | EmotiScan</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            color: #20243a;
+        }
+        .contenedor { max-width: 1050px; margin: auto; }
+        .cabecera, .sesion, .vacio {
+            background: white;
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.06);
+        }
+        h1 { margin-top: 0; color: #493c91; }
+        h2 { color: #493c91; }
+        .resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 12px;
+            margin: 18px 0;
+        }
+        .dato {
+            padding: 14px;
+            border-radius: 10px;
+            background: #f0efff;
+            overflow-wrap: anywhere;
+        }
+        .dato strong { display: block; margin-top: 8px; font-size: 20px; }
+        .tabla-contenedor { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td {
+            text-align: left;
+            padding: 11px;
+            border-bottom: 1px solid #e5e7ef;
+        }
+        th { background: #f0efff; }
+        .boton {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 9px;
+            background: #493c91;
+            color: white;
+            text-decoration: none;
+            margin: 5px 5px 5px 0;
+        }
+        .secundario { background: #e9e7f8; color: #493c91; }
+        .nota { color: #62677a; font-size: 14px; }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .cabecera, .sesion, .vacio { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<main class="contenedor">
+    <section class="cabecera">
+        <h1>?? Historial de anÃ¡lisis por tiempo</h1>
+        <p>Hola, {{ nombre }}. Aqui puedes consultar los anÃ¡lisis que quedaron registrados.</p>
+        <p class="nota">
+            El historial utiliza las sesiones y detecciones guardadas.
+            No inicia la c?mara ni genera an?lisis nuevos.
+        </p>
+        <a class="boton" href="/inicio">?? Volver al inicio</a>
+        <a class="boton secundario" href="/historial-tiempo">Ver historial de emociones</a>
+    </section>
+
+    {% if historial %}
+        {% for item in historial %}
+            {% set datos = item.estadisticas %}
+            <section class="sesion">
+                <h2>Sesi?n #{{ item.id }}</h2>
+                <p><strong>Inicio:</strong> {{ item.fecha_inicio or "Sin fecha registrada" }}</p>
+                <p><strong>Finalizaci?n:</strong> {{ item.fecha_fin or "Sesi?n a?n activa o sin fecha de cierre" }}</p>
+                <p><strong>Estado:</strong> {{ item.estado or "Sin estado" }}</p>
+
+                <div class="resumen">
+                    <div class="dato">
+                        Total de detecciones
+                        <strong>{{ datos.total_detecciones }}</strong>
+                    </div>
+                    <div class="dato">
+                        Emoci?n principal
+                        <strong>{{ datos.emocion_principal or "Sin detecciones" }}</strong>
+                    </div>
+                    <div class="dato">
+                        Duraci?n
+                        <strong>
+                            {% set segundos = datos.duracion_segundos | int %}
+                            {{ (segundos // 60) }} min {{ (segundos % 60) }} s
+                        </strong>
+                    </div>
+                    <div class="dato">
+                        Confianza promedio
+                        <strong>{{ "%.1f"|format(datos.confianza_promedio) }}%</strong>
+                    </div>
+                </div>
+
+                <h3>Emociones detectadas por minuto</h3>
+                {% if datos.por_minuto %}
+                    <div class="tabla-contenedor">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Minuto registrado</th>
+                                    <th>Total de detecciones</th>
+                                    <th>Detalle por emoci?n</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for minuto in datos.por_minuto %}
+                                    <tr>
+                                        <td>{{ minuto.minuto }}</td>
+                                        <td>{{ minuto.total }}</td>
+                                        <td>
+                                            {% for emocion, cantidad in minuto.emociones.items() %}
+                                                {{ emocion }}: {{ cantidad }}{% if not loop.last %}; {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="nota">Esta sesiÃ³n no tiene detecciones vinculadas.</p>
+                {% endif %}
+
+                <h3>Resumen de emociones de la sesi?n</h3>
+                {% if datos.emociones %}
+                    <div class="tabla-contenedor">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Emoci?n</th>
+                                    <th>Cantidad</th>
+                                    <th>Porcentaje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emocion in datos.emociones %}
+                                    <tr>
+                                        <td>{{ emocion.emocion }}</td>
+                                        <td>{{ emocion.cantidad }}</td>
+                                        <td>{{ "%.1f"|format(emocion.porcentaje) }}%</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </section>
+        {% endfor %}
+    {% else %}
+        <section class="vacio">
+            <h2>AÃºn no hay sesiones registradas</h2>
+            <p>Cuando realices un anÃ¡lisis que se guarde como sesiÃ³n, aparecen aqu?.</p>
+            <a class="boton" href="/camara">Comenzar detecci?n</a>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>
+

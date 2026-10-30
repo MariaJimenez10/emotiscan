@@ -312,8 +312,6 @@ const advice = {
     ]
 };
 
-/* NORMALIZACIÃ“N DE NOMBRES */
-
 function normalizeEmotion(value) {
     const text = String(value ?? "")
         .normalize("NFD")
@@ -488,14 +486,14 @@ async function startCamera() {
 
     if (!navigator.mediaDevices?.getUserMedia) {
         setStatus(
-            "âŒ El navegador no permite acceder a la cÃ¡mara. Usa localhost y revisa los permisos.",
+            "El navegador no permite acceder a la cámara. Usa localhost y revisa los permisos.",
             true
         );
         return;
     }
 
     startBtn.disabled = true;
-    setStatus("ðŸ“· Solicitando permiso para usar la cÃ¡mara...");
+    setStatus("Solicitando permiso para usar la cámara...");
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -513,7 +511,7 @@ async function startCamera() {
         if (!video.videoWidth || !video.videoHeight) {
             await new Promise((resolve, reject) => {
                 const timeout = setTimeout(
-                    () => reject(new Error("La cÃ¡mara no entregÃ³ imÃ¡genes.")),
+                    () => reject(new Error("La cámara no entregá imágenes.")),
                     8000
                 );
 

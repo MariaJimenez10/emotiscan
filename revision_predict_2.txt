@@ -1,0 +1,330 @@
+
+========== L?NEAS 500-710 ==========
+500:         elif (
+501:             input_dtype == np.int8
+502:             or input_dtype == np.uint8
+503:         ):
+504: 
+505:             scale, zero_point = input_details[0].get(
+506:                 "quantization",
+507:                 (0.0, 0)
+508:             )
+509: 
+510:             if scale is None or scale == 0:
+511: 
+512:                 raise ValueError(
+513:                     "El modelo tiene entrada cuantizada "
+514:                     "pero no tiene una escala vÃ¡lida."
+515:                 )
+516: 
+517:             logger.info(
+518:                 "ðŸ”„ Cuantizando entrada: "
+519:                 "scale=%s zero_point=%s",
+520:                 scale,
+521:                 zero_point
+522:             )
+523: 
+524:             imagen_final = (
+525:                 imagen / scale
+526:                 + zero_point
+527:             )
+528: 
+529:             imagen_final = np.round(
+530:                 imagen_final
+531:             )
+532: 
+533:             if input_dtype == np.int8:
+534: 
+535:                 imagen_final = np.clip(
+536:                     imagen_final,
+537:                     -128,
+538:                     127
+539:                 )
+540: 
+541:             else:
+542: 
+543:                 imagen_final = np.clip(
+544:                     imagen_final,
+545:                     0,
+546:                     255
+547:                 )
+548: 
+549:             imagen_final = imagen_final.astype(
+550:                 input_dtype
+551:             )
+552: 
+553:         else:
+554: 
+555:             raise ValueError(
+556:                 f"Tipo de entrada TFLite no soportado: "
+557:                 f"{input_dtype}"
+558:             )
+559: 
+560:         # ==================================================
+561:         # LOG
+562:         # ==================================================
+563: 
+564:         logger.info(
+565:             "ðŸ“¥ Tensor enviado: "
+566:             "shape=%s dtype=%s min=%.4f max=%.4f",
+567:             imagen_final.shape,
+568:             imagen_final.dtype,
+569:             imagen_final.min(),
+570:             imagen_final.max()
+571:         )
+572: 
+573:         # ==================================================
+574:         # ENVIAR TENSOR
+575:         # ==================================================
+576: 
+577:         interpreter.set_tensor(
+578:             input_details[0]["index"],
+579:             imagen_final
+580:         )
+581: 
+582:         # ==================================================
+583:         # INFERENCIA
+584:         # ==================================================
+585: 
+586:         interpreter.invoke()
+587: 
+588:         # ==================================================
+589:         # OBTENER RESULTADO
+590:         # ==================================================
+591: 
+592:         resultado = interpreter.get_tensor(
+593:             output_details[0]["index"]
+594:         )
+595: 
+596:         logger.info(
+597:             "ðŸ“¤ Salida RAW: %s",
+598:             resultado
+599:         )
+600: 
+601:         # ==================================================
+602:         # PROCESAR SALIDA
+603:         # ==================================================
+604: 
+605:         predicciones = procesar_salida(
+606:             resultado
+607:         )
+608: 
+609:         logger.info(
+610:             "ðŸ“Š Predicciones procesadas: %s",
+611:             predicciones
+612:         )
+613: 
+614:         # ==================================================
+615:         # VERIFICAR CLASES
+616:         # ==================================================
+617: 
+618:         if len(predicciones) != len(EMOCIONES):
+619: 
+620:             raise ValueError(
+621:                 f"El modelo devuelve "
+622:                 f"{len(predicciones)} clases, "
+623:                 f"pero se esperan "
+624:                 f"{len(EMOCIONES)}."
+625:             )
+626: 
+627:         # ==================================================
+628:         # CONVERTIR A PROBABILIDADES
+629:         # ==================================================
+630: 
+631:         suma = float(
+632:             np.sum(predicciones)
+633:         )
+634: 
+635:         logger.info(
+636:             "ðŸ“Š Suma salida: %.6f",
+637:             suma
+638:         )
+639: 
+640:         if (
+641:             np.all(predicciones >= 0)
+642:             and suma > 0
+643:             and abs(suma - 1.0) < 0.05
+644:         ):
+645: 
+646:             probabilidades = (
+647:                 predicciones / suma
+648:             )
+649: 
+650:         else:
+651: 
+652:             logger.info(
+653:                 "ðŸ”„ Aplicando Softmax a la salida"
+654:             )
+655: 
+656:             probabilidades = softmax(
+657:                 predicciones
+658:             )
+659:             
+660: 
+661:         # ==================================================
+662:         # MOSTRAR LAS 4 EMOCIONES
+663:         # ==================================================
+664: 
+665:         logger.info("=" * 50)
+666:         logger.info("ðŸŽ­ RESULTADO DE LAS 4 EMOCIONES")
+667: 
+668:         todas = {}
+669: 
+670:         for i, emocion_nombre in enumerate(
+671:             EMOCIONES
+672:         ):
+673: 
+674:             porcentaje = float(
+675:                 probabilidades[i] * 100
+676:             )
+677: 
+678:             todas[emocion_nombre] = round(
+679:                 porcentaje,
+680:                 2
+681:             )
+682: 
+683:             logger.info(
+684:                 "   %s: %.2f%%",
+685:                 emocion_nombre,
+686:                 porcentaje
+687:             )
+688: 
+689:         # ==================================================
+690:         # EMOCIÃ“N PRINCIPAL
+691:         # ==================================================
+692: 
+693:         indice = int(
+694:             np.argmax(
+695:                 probabilidades
+696:             )
+697:         )
+698: 
+699:         emocion = EMOCIONES[
+700:             indice
+701:         ]
+702: 
+703:         confianza = float(
+704:             probabilidades[indice] * 100
+705:         )
+706: 
+707:         logger.info(
+708:             "ðŸ† PRINCIPAL: %s (%.2f%%)",
+709:             emocion,
+710:             confianza
+
+========== L?NEAS 711-825 ==========
+711:         )
+712: 
+713:         # ==================================================
+714:         # CONSEJO
+715:         # ==================================================
+716: 
+717:         consejo = obtener_consejo(
+718:             emocion
+719:         )
+720: 
+721:         logger.info(
+722:             "ðŸ’¡ CONSEJO: %s",
+723:             consejo["mensaje"]
+724:         )
+725: 
+726:         logger.info("=" * 60)
+727: 
+728:         # ==================================================
+729:         # RETORNAR
+730:         # ==================================================
+731: 
+732:         return (
+733:             emocion,
+734:             confianza,
+735:             todas,
+736:             consejo
+737:         )
+738: 
+739:     except Exception as e:
+740: 
+741:         logger.exception(
+742:             "âŒ ERROR EN PREDICCIÃ“N: %s",
+743:             e
+744:         )
+745: 
+746:         raise
+747: # ==========================================================
+748: # PRUEBA DESDE CONSOLA
+749: # ==========================================================
+750: 
+751: if __name__ == "__main__":
+752: 
+753:     import sys
+754: 
+755:     if len(sys.argv) < 2:
+756: 
+757:         print("\nâŒ Debes indicar una imagen.")
+758:         print("Ejemplo:")
+759:         print("python predict.py enojo.jpg")
+760:         sys.exit(1)
+761: 
+762:     ruta_imagen = sys.argv[1]
+763: 
+764:     print("\n" + "=" * 60)
+765:     print("ðŸ§ª PRUEBA DE PREDICCIÃ“N")
+766:     print("=" * 60)
+767: 
+768:     print(f"ðŸ“· Imagen: {ruta_imagen}")
+769: 
+770:     if not os.path.exists(ruta_imagen):
+771: 
+772:         print(f"âŒ No existe la imagen: {ruta_imagen}")
+773:         sys.exit(1)
+774: 
+775:     rostro = cv2.imread(
+776:         ruta_imagen,
+777:         cv2.IMREAD_COLOR
+778:     )
+779: 
+780:     if rostro is None:
+781: 
+782:         print("âŒ No se pudo leer la imagen.")
+783:         sys.exit(1)
+784: 
+785:     print(
+786:         f"ðŸ“ TamaÃ±o de imagen: {rostro.shape}"
+787:     )
+788: 
+789:     try:
+790: 
+791:         emocion, confianza, todas, consejo = predecir(
+792:             rostro
+793:         )
+794: 
+795:         print("\n" + "=" * 60)
+796:         print("ðŸŽ­ RESULTADO FINAL")
+797:         print("=" * 60)
+798: 
+799:         for nombre, porcentaje in todas.items():
+800: 
+801:             print(
+802:                 f"{nombre}: {porcentaje:.2f}%"
+803:             )
+804: 
+805:         print("-" * 60)
+806: 
+807:         print(
+808:             f"ðŸ† PRINCIPAL: {emocion}"
+809:         )
+810: 
+811:         print(
+812:             f"ðŸ“Š CONFIANZA: {confianza:.2f}%"
+813:         )
+814: 
+815:         print(
+816:             f"ðŸ’¡ CONSEJO: {consejo['mensaje']}"
+817:         )
+818: 
+819:         print("=" * 60)
+820: 
+821:     except Exception as e:
+822: 
+823:         print(
+824:             f"\nâŒ Error durante la prueba: {e}"
+825:         )
